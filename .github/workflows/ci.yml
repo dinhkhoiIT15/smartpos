@@ -1,4 +1,4 @@
-name: M0 Repository Checks (not app CI)
+name: M0 Foundation Checks (TypeScript workspace; no app runtime)
 on:
   pull_request:
   push:
@@ -12,14 +12,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.20.0'
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
-      - name: Check scripts syntax and documentation
-        run: |
-          node --check scripts/validate-context.mjs
-          node --check scripts/context-report.mjs
-          node scripts/validate-context.mjs
+          node-version-file: '.node-version'
+          cache: 'pnpm'
+      - name: Frozen dependency install
+        run: pnpm install --frozen-lockfile
+      - name: Inspect workspace packages
+        run: pnpm -r list --depth -1
+      - name: Docs, workspace and strict TypeScript checks
+        run: pnpm run check
       - name: Read-only context report
         run: node scripts/context-report.mjs
-# POS-001 adds install, lockfile validation, typecheck, lint, tests, build.
+# Electron, Fastify and DB runtime tests are added in POS-007/008/009 and later.
