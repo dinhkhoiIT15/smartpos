@@ -2,48 +2,46 @@
 
 status_schema: 1
 last_reviewed_at: 2026-11-04
-verified_commit: d41f4750e445b2a1b65049ce2c3eee3add67781e
+verified_commit: f1ddce60436788e74b05218000dc29c40d6100a2
 verified_ref: main
 repository_url: https://github.com/dinhkhoiIT15/smartpos
-repo_connection: CONFIRMED — GitHub linked account can read and write branch (not admin)
-last_github_synced_at: 2026-11-04T15:42:41Z
+repo_connection: CONFIRMED — GitHub linked collaborator, read/write; admin unavailable
+last_github_synced_at: MANUAL REVIEW 2026-11-04 (not an automatic synchronization)
 current_milestone: M0
-current_phase: POS-002 / POS-004 FIX IN OPEN PR — NOT MERGED
-ci_status: M0 PR CHECKS PASSED at reviewed branch SHA 25c816a85831684e05ecb179dd3bbe1d14654c8f; recheck after later documentation-only commits
+current_phase: POS-001 WORKSPACE FOUNDATION IN OPEN PR #5 — NOT MERGED
+ci_status: POS-001 PR #5 CI PENDING; previous PR #3 M0 docs checks passed
 production_status: NOT DEPLOYED
 
-## Confirmed decisions
-- Product baseline v1.0: 1 store, 1 offline POS, 4–20 employees, SKU variants, cash, internal receipt; no IMEI/Serial.
-- Architecture baseline: Electron + SQLite, Fastify API, Neon PostgreSQL, outbox/idempotent sync.
-- These locked requirements and ADRs were not modified in PR #3.
+## Locked baseline
+- One electronics/phone store with one authorized offline cashier device and 4–20 employees.
+- SKU-level inventory by product variants (no IMEI/Serial in MVP), cash only, internal receipts.
+- Electron + SQLite local sale/outbox; Fastify API; Neon PostgreSQL central and versioned idempotent synchronization.
+- PRD, architecture, database design, offline sync policy and ADRs unchanged in POS-001.
 
-## Actual repository evidence
-- Main HEAD verified at first inspection: [`d41f4750e445`](https://github.com/dinhkhoiIT15/smartpos/commit/d41f4750e445b2a1b65049ce2c3eee3add67781e) (`first commit`).
-- [POS-002 Issue #1](https://github.com/dinhkhoiIT15/smartpos/issues/1) and [POS-004 Issue #2](https://github.com/dinhkhoiIT15/smartpos/issues/2) opened.
-- [PR #3](https://github.com/dinhkhoiIT15/smartpos/pull/3) proposes dotfile naming and GitHub workflow/template path repairs on `feature/POS-002-004-fix-foundation-layout`; **not merged**.
-- PR compare showed byte-identical renames for root dotfiles and Issue Templates; existing M0 workflow and PR template content placed in `.github/`.
-- On PR branch SHA `25c816a85831684e05ecb179dd3bbe1d14654c8f`, GitHub Actions passed: [M0 Repository Checks](https://github.com/dinhkhoiIT15/smartpos/actions/runs/41860834310) and [M0 Documentation Validation](https://github.com/dinhkhoiIT15/smartpos/actions/runs/41860834281). Recheck checks for any later HEAD before merging.
-- `verified_commit` refers to reviewed `main`, **not this PR branch HEAD**. The branch must be re-read after each push; after merge update the snapshot to the merged main commit.
+## Verified main state
+- [PR #3](https://github.com/dinhkhoiIT15/smartpos/pull/3) **merged** into main as [`f1ddce604367`](https://github.com/dinhkhoiIT15/smartpos/commit/f1ddce60436788e74b05218000dc29c40d6100a2).
+- [POS-002 Issue #1](https://github.com/dinhkhoiIT15/smartpos/issues/1) and [POS-004 Issue #2](https://github.com/dinhkhoiIT15/smartpos/issues/2) confirmed **closed**.
+- Existing M0 documentation workflows were successful on PR #3. No POS application code/runtime exists on the verified main commit.
 
-## Implementation state
-- M0 documentation and root package skeleton exist on main, but layout fix is pending PR review/CI.
-- No Electron app, Fastify API, real Neon connection, schema migration or application test verified.
-- No actual POS business operation deployed.
+## POS-001 proposal (unmerged)
+- [POS-001 Issue #4](https://github.com/dinhkhoiIT15/smartpos/issues/4) is open.
+- [PR #5](https://github.com/dinhkhoiIT15/smartpos/pull/5), branch `feature/POS-001-typescript-workspace`, proposes six scoped TypeScript workspace packages, TypeScript 5.9.3 dependency, pnpm lockfile, validation script, CI frozen install/typecheck and onboarding docs.
+- `verified_commit` refers exclusively to reviewed **main**. A feature-branch head or queued CI run does not make POS-001 Done.
+- No changes to business baseline, Neon production or live customer data.
 
-## M0 exit checklist
-- [ ] PR #3 reviewed, relevant M0 checks pass and changes merged.
-- [ ] Full backlog imported to GitHub Issues and board established (only POS-002 and POS-004 Issues created so far).
-- [ ] POS-001 pnpm monorepo initialized, lockfile and workspace commands tested.
-- [ ] Main branch governance/branch protection reviewed with repository owner.
-- [ ] AI session handoff exercised after merge using real HEAD and CI evidence.
+## M0 exit gates
+- [x] Initial docs and config layout committed and repaired (PR #3 merged).
+- [x] M0 documentation CI evidence available on PR #3.
+- [ ] POS-001 PR #5 CI passed, reviewed and merged; then verify main workspace/lockfile.
+- [ ] POS-003 backlog Issue/Project board setup finished.
+- [ ] POS-005 main branch governance confirmed by repo owner.
+- [ ] POS-006 fresh-session GitHub HEAD/CI handoff drill completed.
 
-## Current risks
-- Offline authentication / device provisioning and local backup policy still require design and testing.
-- No network/SQLite/Neon business application tests yet.
-- Return/refund handling deferred; not ready for live commercial use.
-- Main branch may lack protections until owner configures them.
+## Open risks and boundaries
+- Electron process, Fastify API, Neon development DB and SQLite local DB **not yet implemented**.
+- Do not claim POS app, migrations, business tests, packaging or deployment done.
+- Offline authentication, backup/recovery and reconciliation continue as open future issues.
+- `pnpm install --frozen-lockfile` and TypeScript checks require successful CI on latest PR branch commit; previous local environment was Node 22 without package registry access.
 
-## Next actions
-1. Review [PR #3](https://github.com/dinhkhoiIT15/smartpos/pull/3) and check current GitHub Actions.
-2. Address check failures if any, then ask owner to review and merge (prefer squash merge for incremental rename commits).
-3. Update status against **actual merged main SHA**, then start POS-001, POS-003 and POS-005 as their dependencies allow.
+## Next task
+Inspect latest PR #5 GitHub Actions results; resolve any dependency/typecheck failure on the same branch; merge only after review. Then re-read main HEAD and update this file with actual merged commit and CI URL.
