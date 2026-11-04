@@ -9,7 +9,7 @@ repo_connection: CONFIRMED — GitHub linked account can read and write branch (
 last_github_synced_at: 2026-11-04T15:42:41Z
 current_milestone: M0
 current_phase: POS-002 / POS-004 FIX IN OPEN PR — NOT MERGED
-ci_status: PENDING — PR #3 checks initially queued; recheck latest GitHub Actions before marking pass
+ci_status: M0 PR CHECKS PASSED at reviewed branch SHA 25c816a85831684e05ecb179dd3bbe1d14654c8f; recheck after later documentation-only commits
 production_status: NOT DEPLOYED
 
 ## Confirmed decisions
@@ -22,7 +22,7 @@ production_status: NOT DEPLOYED
 - [POS-002 Issue #1](https://github.com/dinhkhoiIT15/smartpos/issues/1) and [POS-004 Issue #2](https://github.com/dinhkhoiIT15/smartpos/issues/2) opened.
 - [PR #3](https://github.com/dinhkhoiIT15/smartpos/pull/3) proposes dotfile naming and GitHub workflow/template path repairs on `feature/POS-002-004-fix-foundation-layout`; **not merged**.
 - PR compare showed byte-identical renames for root dotfiles and Issue Templates; existing M0 workflow and PR template content placed in `.github/`.
-- GitHub Actions M0 run IDs 41860574654 and 41860574762 were queued at initial review. These are not proof of success.
+- On PR branch SHA `25c816a85831684e05ecb179dd3bbe1d14654c8f`, GitHub Actions passed: [M0 Repository Checks](https://github.com/dinhkhoiIT15/smartpos/actions/runs/41860834310) and [M0 Documentation Validation](https://github.com/dinhkhoiIT15/smartpos/actions/runs/41860834281). Recheck checks for any later HEAD before merging.
 - `verified_commit` refers to reviewed `main`, **not this PR branch HEAD**. The branch must be re-read after each push; after merge update the snapshot to the merged main commit.
 
 ## Implementation state
