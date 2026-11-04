@@ -1,16 +1,22 @@
 {
   "name": "smartpos-retail",
-  "version": "0.0.0-m0",
+  "version": "0.1.0-m0",
   "private": true,
-  "description": "SmartPOS documentation and repository foundation (no application code yet)",
+  "description": "SmartPOS foundational TypeScript monorepo (no POS runtime implemented)",
   "type": "module",
   "packageManager": "pnpm@10.20.0",
   "engines": {
-    "node": ">=24 <27"
+    "node": ">=24 <25"
   },
   "scripts": {
     "docs:check": "node scripts/validate-context.mjs",
     "context:report": "node scripts/context-report.mjs",
-    "ci:m0": "node --check scripts/validate-context.mjs && node --check scripts/context-report.mjs && node scripts/validate-context.mjs"
+    "workspace:check": "node scripts/validate-workspace.mjs",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "ci:m0": "node --check scripts/validate-context.mjs && node --check scripts/context-report.mjs && node --check scripts/validate-workspace.mjs && node scripts/validate-context.mjs",
+    "check": "pnpm run ci:m0 && pnpm run workspace:check && pnpm run typecheck"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
   }
 }
