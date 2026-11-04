@@ -19,7 +19,7 @@
 ## Verification performed
 - GitHub connector: read baseline main and compared `main...feature/POS-002-004-fix-foundation-layout`.
 - GitHub diff showed same-content renames and content restoration in `.github/` for the configuration repair.
-- GitHub M0 Actions runs 41860574654 / 41860574762 were **queued** when first checked; inspect the latest PR checks before merge.
+- GitHub Actions completed successfully for PR branch checkpoint `25c816a85831684e05ecb179dd3bbe1d14654c8f`: [M0 Repository Checks](https://github.com/dinhkhoiIT15/smartpos/actions/runs/41860834310) and [M0 Documentation Validation](https://github.com/dinhkhoiIT15/smartpos/actions/runs/41860834281). Additional handoff commits require rechecking latest HEAD checks before merge.
 - No local `node scripts/validate-context.mjs` execution (no local clone/execution of GitHub checkout available here); GitHub Actions is the intended authoritative validation.
 - No TypeScript application tests, Neon DB query, app build, migration or deployment performed.
 - Branch HEAD changes when this handoff is committed; obtain the latest SHA from GitHub rather than reusing an earlier checkpoint.
