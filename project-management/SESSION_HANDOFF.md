@@ -1,48 +1,43 @@
 # Session Handoff — SmartPOS
 
-## Last session
-- Date: 2026-11-04
-- Context: Requirements locked; generated M0 documentation/starter package. User plans to connect GitHub.
-- Issue: NONE EXECUTED; backlog IDs are proposed.
-- Branch: NOT VERIFIED
-- Commit SHA: NOT VERIFIED
-- PR URL: NONE
-- Repository connection: NOT VERIFIED
+## Current session (2026-11-04)
+- Task: POS-002 / POS-004 — repair root dotfiles, GitHub templates and M0 CI workflow paths.
+- Repository: https://github.com/dinhkhoiIT15/smartpos
+- Verified **main** baseline: `d41f4750e445b2a1b65049ce2c3eee3add67781e` (`first commit`).
+- Working branch: `feature/POS-002-004-fix-foundation-layout`.
+- Pull Request: https://github.com/dinhkhoiIT15/smartpos/pull/3 (**OPEN; NOT MERGED**).
+- Tracking Issues: https://github.com/dinhkhoiIT15/smartpos/issues/1 (POS-002), https://github.com/dinhkhoiIT15/smartpos/issues/2 (POS-004).
+- Repository permissions: linked collaborator can read/write branch, no repository admin permission.
 
-## What was produced
-- Locked PRD v1.0, business rules, architecture ADRs, logical DB schema and offline sync policy.
-- AI development contract, status/roadmap/backlog, templates and docs-validation workflow starter.
+## Changes proposed in PR #3
+- Renamed root config to real dotfiles: `.gitignore`, `.env.example`, `.editorconfig`, `.gitattributes`, `.node-version`, `.prettierignore`, `.prettierrc.json`.
+- Relocated GitHub Issue Templates from `github/ISSUE_TEMPLATE/` to `.github/ISSUE_TEMPLATE/`.
+- Filled previously empty `.github/workflows/ci.yml`, `.github/workflows/validate-docs.yml`, `.github/pull_request_template.md` from misplaced existing copies.
+- Removed misplaced duplicates; no modifications to PRD, business rules, architecture, database schema, offline sync policy or ADRs.
+- Updated `DEVELOPMENT_STATUS.md`, this handoff and repository intake on the **PR branch only**.
 
-## Actual code changes in user's GitHub repo
-NONE VERIFIED. Any files bundled locally are not automatically committed or pushed.
+## Verification performed
+- GitHub connector: read baseline main and compared `main...feature/POS-002-004-fix-foundation-layout`.
+- GitHub diff showed same-content renames and content restoration in `.github/` for the configuration repair.
+- GitHub M0 Actions runs 41860574654 / 41860574762 were **queued** when first checked; inspect the latest PR checks before merge.
+- No local `node scripts/validate-context.mjs` execution (no local clone/execution of GitHub checkout available here); GitHub Actions is the intended authoritative validation.
+- No TypeScript application tests, Neon DB query, app build, migration or deployment performed.
+- Branch HEAD changes when this handoff is committed; obtain the latest SHA from GitHub rather than reusing an earlier checkpoint.
 
-## Tests
-- No product unit/integration/e2e tests executed.
-- Run local doc validator after extracting package: `node scripts/validate-context.mjs`.
+## Current blockers and follow-up
+1. Inspect PR #3 checks and logs; fix any failure on the same branch.
+2. Owner/reviewer confirms PR scope and approves; merge only after relevant checks pass.
+3. Re-read **main** HEAD after merge and update `DEVELOPMENT_STATUS.md`, `SESSION_HANDOFF.md` with the actual merged commit and CI URL.
+4. Proceed with POS-001 monorepo initialization; POS-003 GitHub issue board and POS-005 branch governance remain outstanding.
 
-## Decisions / risks
-- One offline till at a time. Keep immutable cash sales through sync conflicts.
-- No IMEI/Serial, tax invoice, or hardware integrations at MVP.
-- Need to design offline authentication, secret handling and backup before pilot.
-
-## Immediate next steps
-1. User connects GitHub and identifies repository.
-2. Coding agent compares repository HEAD to this package; only then commits files (scoped PR preferred).
-3. Import M0 issues; check docs CI; run POS-001.
-
-## Template for NEXT SESSION
+## Handoff template for NEXT SESSION
 - Date / operator:
 - Issue ID / goal:
-- Repository URL / branch / verified HEAD:
-- Diff summary / touched files:
-- Commands actually executed and results:
-- CI URL/status:
-- PR / merge status:
-- New ADR/change requests:
-- Remaining blockers and proposed next task:
-
-## Follow-up package v1.1 (prepared locally)
-- Added root workspace configuration, governance and onboarding docs, risk/change tracking, extra templates, M0 CI checks and `context-report.mjs`.
-- No application source code and no GitHub commit verified.
-- Next action: inspect user repository after connection, compare files and create a scoped PR for M0 documents/config.
-- Thiết lập `tsconfig.base.json`, coding conventions và Neon setup checklist; những nội dung này chưa là mã nguồn ứng dụng.
+- Repository URL / verified base branch SHA:
+- Current feature branch SHA / PR URL:
+- Files changed / scope:
+- Tests actually executed and results:
+- CI run URL/status:
+- PR merge status:
+- Open risks / ADR changes:
+- Next task:
