@@ -1,0 +1,11 @@
+node_modules/
+dist/
+build/
+out/
+release/
+coverage/
+*.sqlite
+*.sqlite3
+*.db
+*.log
+pnpm-lock.yaml

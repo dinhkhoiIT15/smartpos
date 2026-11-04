@@ -1,0 +1,16 @@
+{
+  "name": "smartpos-retail",
+  "version": "0.0.0-m0",
+  "private": true,
+  "description": "SmartPOS documentation and repository foundation (no application code yet)",
+  "type": "module",
+  "packageManager": "pnpm@10.20.0",
+  "engines": {
+    "node": ">=24 <27"
+  },
+  "scripts": {
+    "docs:check": "node scripts/validate-context.mjs",
+    "context:report": "node scripts/context-report.mjs",
+    "ci:m0": "node --check scripts/validate-context.mjs && node --check scripts/context-report.mjs && node scripts/validate-context.mjs"
+  }
+}

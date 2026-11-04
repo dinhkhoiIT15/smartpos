@@ -1,0 +1,31 @@
+﻿id,milestone,title,priority,dependencies,acceptance_criteria,labels
+POS-001,M0,Initialize pnpm monorepo,P0,,pnpm workspace config + Node LTS pinned + README commands; documented run output,foundation
+POS-002,M0,Commit approved M0 documents and ADRs,P0,,"docs in repo reviewed, links valid, verified SHA recorded",docs
+POS-003,M0,Create GitHub Issues and Project board,P0,POS-002,issues imported from backlog; board status columns; issue URLs referenced,management
+POS-004,M0,Enable docs validation CI,P0,POS-002,docs-check workflow passes on PR; evidence URL,ci
+POS-005,M0,Protect main and define PR process,P0,POS-004,branch rules reviewed; PR template; documented account limitations,governance
+POS-006,M0,Verify context handoff end-to-end,P0,POS-003;POS-004,"fresh session can verify HEAD, CI and next issue without guessing",ai-context
+POS-007,M1,Bootstrap secure Electron shell,P0,POS-001,"Electron window with React demo, IPC guard, isolation checks",desktop
+POS-008,M1,Bootstrap Fastify API with health endpoint,P0,POS-001,health endpoint validated; unit test and dev start commands,api
+POS-009,M1,Configure Neon dev and environment secrets,P0,POS-008,"Neon dev connectivity via API only, env.example, no credentials in repo",database
+POS-010,M1,Build shared contracts and domain modules,P0,POS-001,"Zod DTOs, bigint VND helpers and tests",domain
+POS-011,M1,Design staff auth and offline device provision,P0,POS-007;POS-008,ADR + threat model + login/offline expiry acceptance tests,security
+POS-012,M1,Implement PostgreSQL migration v1,P0,POS-009;POS-010,schema constraints and migration verified on Neon dev,database
+POS-013,M1,Implement SQLite local migration v1,P0,POS-007;POS-010,atomic SQLite tx and reopening checks,database
+POS-014,M2,Create catalog and variant services,P0,POS-012,CRUD+validation+unique SKU+variant attributes tests,catalog
+POS-015,M2,Implement inventory movements and balances,P0,POS-012,"stock adjustment transaction, audit, non-lost update tests",inventory
+POS-016,M2,Formalize versioned sync API contract,P0,POS-010;POS-012,Zod + OpenAPI/request response examples and negative cases,sync
+POS-017,M2,Cache catalog to local SQLite,P0,POS-013;POS-014,local lookup and initial cursor handling tested,catalog
+POS-018,M3,Implement POS cart and cash totals,P0,POS-010;POS-017,cash calculator integer tests and UI acceptance,checkout
+POS-019,M3,Implement atomic offline sale with outbox,P0,POS-013;POS-018,sale+items+cash+local stock+outbox single tx; crash test,offline
+POS-020,M3,Implement internal sale receipt UI,P0,POS-019,"receipt includes totals, cash/change, no VAT claim",checkout
+POS-021,M4,Implement idempotent sync push API,P0,POS-016;POS-015,duplicate/lost ACK concurrency integration tests,sync
+POS-022,M4,Implement desktop retry outbox worker,P0,POS-019;POS-021,reconnect; exponential retry; restart recovery tested,sync
+POS-023,M4,Implement server-to-client catalog delta pull,P0,POS-017;POS-021,"cursor, pagination, pending delta preservation tested",sync
+POS-024,M4,Implement conflict review workflow,P0,POS-021;POS-023,stock shortage and stale price visible with audit,sync
+POS-025,M5,Implement staff RBAC and server audit,P0,POS-011;POS-014,"manager/cashier tests, revoked session tests",security
+POS-026,M5,Implement sales history and report summary,P1,POS-021;POS-025,synced vs pending values labeled accurately,reporting
+POS-027,M5,Harden secrets IPC and local data protection,P0,POS-007;POS-022,security test checklist pass and threat review,security
+POS-028,M6,Package Windows and macOS desktop builds,P1,POS-007;POS-027,"reproducible install builds, release/version docs",release
+POS-029,M6,Perform crash restore and conflict rehearsal,P0,POS-022;POS-024,written evidence restore and sync failure cases,reliability
+POS-030,M6,Production pilot readiness review,P0,POS-025;POS-028;POS-029,checklist sign-off; risks & refunds policy documented,release
