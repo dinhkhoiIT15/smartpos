@@ -1,25 +1,30 @@
-# Repository Intake — lần đầu kết nối GitHub
+# Repository Intake — GitHub verification
 
-> Chỉ điền khi được cấp quyền đọc repository. Không giả định từ link repository rằng có quyền chỉnh sửa.
+**Verified at:** 2026-11-04 (M0 POS-002 / POS-004 review).
 
-## Nhận diện nguồn
-- Repository URL: `NOT PROVIDED`
-- Visibility: `NOT VERIFIED`
-- Default branch: `NOT VERIFIED`
-- HEAD SHA: `NOT VERIFIED`
-- Working tree status: `NOT VERIFIED`
-- GitHub integration permissions: `NOT VERIFIED`
-- GitHub Issues/Projects status: `NOT VERIFIED`
-- CI latest run URL: `NOT VERIFIED`
+## Confirmed repository facts
+- Repository URL: https://github.com/dinhkhoiIT15/smartpos
+- Owner: `dinhkhoiIT15` (personal account); visibility: **public**.
+- Default branch: `main`.
+- Verified initial main HEAD: `d41f4750e445b2a1b65049ce2c3eee3add67781e` (first commit).
+- Linked user: `iameewh-lgtm` (collaborator; pull/push/triage allowed, admin not allowed).
+- PR branch: `feature/POS-002-004-fix-foundation-layout`.
+- PR: https://github.com/dinhkhoiIT15/smartpos/pull/3 (**not merged at initial intake**).
+- Tracking issues: [#1 POS-002](https://github.com/dinhkhoiIT15/smartpos/issues/1), [#2 POS-004](https://github.com/dinhkhoiIT15/smartpos/issues/2).
+- GitHub Project board: **NOT VERIFIED / NOT CREATED IN THIS TASK**.
+- Branch ruleset/protection: **NOT VERIFIED** (owner/admin must review).
+- Local working tree status: **NOT VERIFIED** (no local Git checkout here).
+- GitHub Actions initial runs for PR #3: [M0 Repository Checks](https://github.com/dinhkhoiIT15/smartpos/actions/runs/41860574654) and [M0 Documentation Validation](https://github.com/dinhkhoiIT15/smartpos/actions/runs/41860574762); initially **queued**, recheck latest runs before merge.
 
-## Các bước xác minh
-1. Kiểm tra URL/nhánh mặc định, quyền và branch ruleset trước khi tạo PR.
-2. `git status --short`, `git branch --show-current`, `git rev-parse HEAD`, `git log -3 --oneline` nếu có clone.
-3. So sánh file hiện có với gói SmartPOS v1.1; không ghi đè dữ liệu hoặc file đã chỉnh sửa mà không review.
-4. Chạy `node scripts/validate-context.mjs` sau khi chép file vào repo; đọc `node scripts/context-report.mjs`.
-5. Tạo issue, PR hoặc commit **chỉ** khi có quyền tương ứng và yêu cầu rõ ràng.
-6. Sau khi merge, ghi commit SHA/URL CI vào DEVELOPMENT_STATUS và session handoff; nếu chưa merge, ghi `PROPOSED`.
+## Evidence and boundaries
+- GitHub connector read repository files, created a feature branch and compared changes against main.
+- Documentation, source files and M0 scripts were examined. No app code, Neon database, migrations or live tests executed.
+- `verified_commit` in `DEVELOPMENT_STATUS.md` is the inspected **main** SHA, not the current unmerged PR head.
+- Pull Request changes are not production deployments; after merge, refresh main SHA, actual CI conclusion and handoff.
 
-## Quy tắc nguồn sự thật
-- Git commit xác nhận code đã nằm trong Git; PR xác nhận thay đổi được đề xuất/duyệt; CI xác nhận các checks đã chạy.
-- Những nguồn này không tự xác nhận doanh nghiệp đã sẵn sàng sử dụng sản phẩm.
+## Re-verify next session
+1. Read `AGENTS.md`, `DEVELOPMENT_STATUS.md` and `SESSION_HANDOFF.md`.
+2. Re-fetch main SHA and PR HEAD; inspect PR checks, merge state and CI run details.
+3. If PR #3 checks pass, owner/reviewer may merge; do not infer merge from PR creation.
+4. Record the actual merged main SHA and verify `node scripts/validate-context.mjs` on checkout or CI.
+5. Then progress POS-001 workspace initialization and M0 issue-board/governance work.
