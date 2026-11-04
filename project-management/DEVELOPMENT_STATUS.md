@@ -2,46 +2,48 @@
 
 status_schema: 1
 last_reviewed_at: 2026-11-04
-verified_commit: NOT VERIFIED
-repository_url: NOT PROVIDED
-repo_connection: NOT VERIFIED
-last_github_synced_at: NEVER
+verified_commit: d41f4750e445b2a1b65049ce2c3eee3add67781e
+verified_ref: main
+repository_url: https://github.com/dinhkhoiIT15/smartpos
+repo_connection: CONFIRMED — GitHub linked account can read and write branch (not admin)
+last_github_synced_at: 2026-11-04T15:42:41Z
 current_milestone: M0
-current_phase: PLANNING / M0 v1.1 FOUNDATION PACKAGE PREPARED
-ci_status: NOT RUN ON GITHUB
+current_phase: POS-002 / POS-004 FIX IN OPEN PR — NOT MERGED
+ci_status: PENDING — PR #3 checks initially queued; recheck latest GitHub Actions before marking pass
 production_status: NOT DEPLOYED
 
 ## Confirmed decisions
-- Product baseline v1.0 agreed: 1 store, 1 offline POS, 4–20 employees, SKU variants, cash, internal receipt; no IMEI.
+- Product baseline v1.0: 1 store, 1 offline POS, 4–20 employees, SKU variants, cash, internal receipt; no IMEI/Serial.
 - Architecture baseline: Electron + SQLite, Fastify API, Neon PostgreSQL, outbox/idempotent sync.
+- These locked requirements and ADRs were not modified in PR #3.
+
+## Actual repository evidence
+- Main HEAD verified at first inspection: [`d41f4750e445`](https://github.com/dinhkhoiIT15/smartpos/commit/d41f4750e445b2a1b65049ce2c3eee3add67781e) (`first commit`).
+- [POS-002 Issue #1](https://github.com/dinhkhoiIT15/smartpos/issues/1) and [POS-004 Issue #2](https://github.com/dinhkhoiIT15/smartpos/issues/2) opened.
+- [PR #3](https://github.com/dinhkhoiIT15/smartpos/pull/3) proposes dotfile naming and GitHub workflow/template path repairs on `feature/POS-002-004-fix-foundation-layout`; **not merged**.
+- PR compare showed byte-identical renames for root dotfiles and Issue Templates; existing M0 workflow and PR template content placed in `.github/`.
+- GitHub Actions M0 run IDs 41860574654 and 41860574762 were queued at initial review. These are not proof of success.
+- `verified_commit` refers to reviewed `main`, **not this PR branch HEAD**. The branch must be re-read after each push; after merge update the snapshot to the merged main commit.
 
 ## Implementation state
-- No application implementation verified.
-- No Neon database project/branch verified.
-- No GitHub repository contents inspected or modified.
-- No GitHub Issues/PR/CI results verified.
-- M0 files in this package are **proposed artifacts** until committed by user/agent.
+- M0 documentation and root package skeleton exist on main, but layout fix is pending PR review/CI.
+- No Electron app, Fastify API, real Neon connection, schema migration or application test verified.
+- No actual POS business operation deployed.
 
 ## M0 exit checklist
-- [ ] Package committed into user's repo
-- [ ] GitHub backlog issues created and linked
-- [ ] Monorepo initialization implemented
-- [ ] CI docs check green on GitHub
-- [ ] Main branch governance reviewed
-- [ ] Handoff reconciled against actual HEAD
+- [ ] PR #3 reviewed, relevant M0 checks pass and changes merged.
+- [ ] Full backlog imported to GitHub Issues and board established (only POS-002 and POS-004 Issues created so far).
+- [ ] POS-001 pnpm monorepo initialized, lockfile and workspace commands tested.
+- [ ] Main branch governance/branch protection reviewed with repository owner.
+- [ ] AI session handoff exercised after merge using real HEAD and CI evidence.
 
 ## Current risks
-- Credential and offline-auth policy pending design task.
-- Single-device offline conflict handling requires tests.
-- Device data recovery/backup not implemented.
-- Return/refund process deferred; not ready for live commercial operation.
+- Offline authentication / device provisioning and local backup policy still require design and testing.
+- No network/SQLite/Neon business application tests yet.
+- Return/refund handling deferred; not ready for live commercial use.
+- Main branch may lack protections until owner configures them.
 
-## Next task
-POS-001 (initialize pnpm workspace), after GitHub connection + repo verification.
-
-## Evidence
-Project decisions came from requirements conversation; **no code / deployment test evidence**. Local document validator may pass on the ZIP, but is not equivalent to GitHub CI.
-
-## Package v1.1 notes
-- Added monorepo root config, contribution/security instructions, environment/backup/traceability documents, risk register and read-only context report.
-- Artifacts are prepared **outside the target GitHub repository**; no CI/PR/commit from the user repository has been verified.
+## Next actions
+1. Review [PR #3](https://github.com/dinhkhoiIT15/smartpos/pull/3) and check current GitHub Actions.
+2. Address check failures if any, then ask owner to review and merge (prefer squash merge for incremental rename commits).
+3. Update status against **actual merged main SHA**, then start POS-001, POS-003 and POS-005 as their dependencies allow.
