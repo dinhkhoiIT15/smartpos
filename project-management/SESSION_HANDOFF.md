@@ -1,43 +1,42 @@
 # Session Handoff — SmartPOS
 
-## Current session (2026-11-04)
-- Task: POS-002 / POS-004 — repair root dotfiles, GitHub templates and M0 CI workflow paths.
+## Session
+- Date: 2026-11-04.
+- Issue: [POS-001 #4](https://github.com/dinhkhoiIT15/smartpos/issues/4), TypeScript pnpm monorepo foundation.
 - Repository: https://github.com/dinhkhoiIT15/smartpos
-- Verified **main** baseline: `d41f4750e445b2a1b65049ce2c3eee3add67781e` (`first commit`).
-- Working branch: `feature/POS-002-004-fix-foundation-layout`.
-- Pull Request: https://github.com/dinhkhoiIT15/smartpos/pull/3 (**OPEN; NOT MERGED**).
-- Tracking Issues: https://github.com/dinhkhoiIT15/smartpos/issues/1 (POS-002), https://github.com/dinhkhoiIT15/smartpos/issues/2 (POS-004).
-- Repository permissions: linked collaborator can read/write branch, no repository admin permission.
+- Reviewed main HEAD: `f1ddce60436788e74b05218000dc29c40d6100a2` (PR #3 merged).
+- Feature branch: `feature/POS-001-typescript-workspace`.
+- Pull Request: [#5](https://github.com/dinhkhoiIT15/smartpos/pull/5) (**open, not merged**).
+- Previous M0 work: PR #3 merged, [POS-002 #1](https://github.com/dinhkhoiIT15/smartpos/issues/1) and [POS-004 #2](https://github.com/dinhkhoiIT15/smartpos/issues/2) closed.
 
-## Changes proposed in PR #3
-- Renamed root config to real dotfiles: `.gitignore`, `.env.example`, `.editorconfig`, `.gitattributes`, `.node-version`, `.prettierignore`, `.prettierrc.json`.
-- Relocated GitHub Issue Templates from `github/ISSUE_TEMPLATE/` to `.github/ISSUE_TEMPLATE/`.
-- Filled previously empty `.github/workflows/ci.yml`, `.github/workflows/validate-docs.yml`, `.github/pull_request_template.md` from misplaced existing copies.
-- Removed misplaced duplicates; no modifications to PRD, business rules, architecture, database schema, offline sync policy or ADRs.
-- Updated `DEVELOPMENT_STATUS.md`, this handoff and repository intake on the **PR branch only**.
+## What changed on POS-001 feature branch
+- Root package scripts and exact TypeScript version (5.9.3), Node 24 and pnpm 10.20.0 pinning.
+- `pnpm-lock.yaml`, `scripts/validate-workspace.mjs`.
+- Manifests, tsconfig and minimal empty `src/index.ts` modules in six workspaces (`apps/api`, `apps/desktop`, `packages/{contracts,domain,db,config}`).
+- `.github/workflows/ci.yml` now installs dependencies with frozen lockfile, verifies workspace structure and strict TS compilation.
+- README, `docs/DEVELOPMENT_SETUP.md`, `TODO.md`, `DEVELOPMENT_STATUS.md`, this handoff updated.
+- PRD, security baseline, accepted ADR, database schema and offline sync design unchanged.
 
-## Verification performed
-- GitHub connector: read baseline main and compared `main...feature/POS-002-004-fix-foundation-layout`.
-- GitHub diff showed same-content renames and content restoration in `.github/` for the configuration repair.
-- GitHub Actions completed successfully for PR branch checkpoint `25c816a85831684e05ecb179dd3bbe1d14654c8f`: [M0 Repository Checks](https://github.com/dinhkhoiIT15/smartpos/actions/runs/41860834310) and [M0 Documentation Validation](https://github.com/dinhkhoiIT15/smartpos/actions/runs/41860834281). Additional handoff commits require rechecking latest HEAD checks before merge.
-- No local `node scripts/validate-context.mjs` execution (no local clone/execution of GitHub checkout available here); GitHub Actions is the intended authoritative validation.
-- No TypeScript application tests, Neon DB query, app build, migration or deployment performed.
-- Branch HEAD changes when this handoff is committed; obtain the latest SHA from GitHub rather than reusing an earlier checkpoint.
+## Verification and evidence
+- Source-of-truth is GitHub PR/Actions, not a generated Markdown claim.
+- Planned runner commands: `pnpm install --frozen-lockfile`; `pnpm -r list --depth -1`; `pnpm run check` (docs, workspace, TypeScript).
+- At time of initial handoff update, CI for PR #5 was **not yet confirmed successful**; check latest branch SHA and workflow run result before merge.
+- This assistant environment has Node 22 and cannot fetch npm packages from registry; no local frozen install or app runtime test was claimed.
+- No Electron app, Fastify server, Neon connection, migrations, SQLite database, payment or sync worker implemented.
 
-## Current blockers and follow-up
-1. Inspect PR #3 checks and logs; fix any failure on the same branch.
-2. Owner/reviewer confirms PR scope and approves; merge only after relevant checks pass.
-3. Re-read **main** HEAD after merge and update `DEVELOPMENT_STATUS.md`, `SESSION_HANDOFF.md` with the actual merged commit and CI URL.
-4. Proceed with POS-001 monorepo initialization; POS-003 GitHub issue board and POS-005 branch governance remain outstanding.
+## How to continue
+1. Fetch current PR #5 head commit; confirm it has not diverged from main and review `Files changed`.
+2. Inspect GitHub Actions jobs and logs, especially frozen pnpm install and typecheck; if any fail, fix on feature branch, then retest.
+3. Confirm no secrets, PRD or architectural changes. Owner/reviewer performs **Squash and merge** after passing checks.
+4. Re-fetch actual merged **main** HEAD, update `DEVELOPMENT_STATUS.md` and this handoff with commit + CI evidence.
+5. Next M0: POS-003 issue/Project board; POS-005 branch protection; POS-006 handoff drill. Next app foundation: POS-007 Electron and POS-008 Fastify.
 
-## Handoff template for NEXT SESSION
-- Date / operator:
-- Issue ID / goal:
-- Repository URL / verified base branch SHA:
-- Current feature branch SHA / PR URL:
-- Files changed / scope:
-- Tests actually executed and results:
-- CI run URL/status:
-- PR merge status:
-- Open risks / ADR changes:
-- Next task:
+## Reusable handoff fields
+- Date / issue / owner:
+- Repo / verified main SHA:
+- Feature branch / PR URL / HEAD SHA:
+- Changed files:
+- Commands and actual results:
+- CI run URL and conclusion:
+- Merged main SHA (if any):
+- Risks, blockers, next issue:

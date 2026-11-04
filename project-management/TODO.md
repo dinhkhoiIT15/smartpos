@@ -1,13 +1,18 @@
-# TODO — Current Priorities
+# TODO — SmartPOS M0 priorities
 
-**Snapshot:** 2026-11-04, **sync to GitHub:** NOT STARTED.
+**Reviewed:** 2026-11-04. GitHub Issues are the task source of truth. This file is a manually reviewed summary, **not** an automatic synchronization.
 
-## Trước tiên (M0)
-- [ ] POS-001 — Khởi tạo pnpm monorepo và quy ước Node LTS; chưa code.
-- [ ] POS-002 — Đưa bộ tài liệu v1.0 vào repository, đối chiếu nhánh/HEAD.
-- [ ] POS-003 — Thiết lập GitHub Issues/Projects và nhập backlog.
-- [ ] POS-004 — Kết nối doc validation trong GitHub Actions, lưu CI evidence.
-- [ ] POS-005 — Bật branch protection/PR review theo khả năng repo/plan.
-- [ ] POS-006 — Chuẩn hóa session handoff và status theo commit/CI.
+## Verified completed / merged
+- [x] [POS-002 / Issue #1](https://github.com/dinhkhoiIT15/smartpos/issues/1) — Repository dotfile/template structure repaired in [merged PR #3](https://github.com/dinhkhoiIT15/smartpos/pull/3).
+- [x] [POS-004 / Issue #2](https://github.com/dinhkhoiIT15/smartpos/issues/2) — M0 documentation CI restored, checks passed on PR #3; issue closed.
 
-Sau khi GitHub Issues được tạo, cập nhật liên kết issue ở đây thay vì duy trì checklist độc lập. Không đánh dấu Done trước khi có commit/PR/CI evidence.
+## Current work
+- [ ] [POS-001 / Issue #4](https://github.com/dinhkhoiIT15/smartpos/issues/4) — Initialize pinned pnpm/TypeScript workspace. [PR #5](https://github.com/dinhkhoiIT15/smartpos/pull/5) under review; do not call Done until CI passes and PR merges.
+
+## Remaining M0
+- [ ] POS-003 — Import backlog and create GitHub Project board (30 planned tasks in `BACKLOG.csv`, not all created as GitHub Issues yet).
+- [ ] POS-005 — Owner reviews branch protection/PR process. Linked account has no admin rights.
+- [ ] POS-006 — End-to-end AI handoff after checking the latest merged commit + CI evidence.
+
+## Next recommendation
+Check PR #5 CI on its latest head; fix frozen install/typecheck errors if any, review, squash merge and then refresh `DEVELOPMENT_STATUS.md` against actual `main`.

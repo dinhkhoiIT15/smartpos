@@ -1,0 +1,10 @@
+{
+  "name": "@smartpos/api",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Fastify API boundary (runtime bootstrapped in POS-008)",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --project tsconfig.json --noEmit"
+  }
+}
