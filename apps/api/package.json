@@ -2,7 +2,7 @@
   "name": "@smartpos/api",
   "version": "0.1.0",
   "private": true,
-  "description": "SmartPOS Fastify API foundation (health only, no database connection)",
+  "description": "Fastify API foundation with opt-in server-only Neon dev connectivity diagnostic",
   "type": "module",
   "engines": {
     "node": ">=24 <25"
@@ -12,13 +12,16 @@
     "build": "tsc --project tsconfig.build.json",
     "start": "node dist/main.js",
     "typecheck": "tsc --project tsconfig.json --noEmit",
-    "test": "pnpm run build && node --test dist/server.test.js"
+    "test": "pnpm run build && node --test dist/server.test.js dist/db.test.js",
+    "db:check": "tsx src/db-check.ts"
   },
   "dependencies": {
-    "fastify": "5.12.8"
+    "fastify": "5.12.8",
+    "pg": "8.23.1"
   },
   "devDependencies": {
     "@types/node": "24.19.2",
-    "tsx": "4.23.15"
+    "tsx": "4.23.15",
+    "@types/pg": "8.23.1"
   }
 }
