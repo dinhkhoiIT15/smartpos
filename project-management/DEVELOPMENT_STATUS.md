@@ -9,7 +9,7 @@ repo_connection: CONFIRMED — GitHub linked collaborator, branch/PR access; not
 last_github_synced_at: MANUAL REVIEW 2026-11-05 (not automatic)
 current_milestone: M1 (M0 governance tasks still outstanding)
 current_phase: POS-008 FASTIFY HEALTH API IN DRAFT PR #10 — NOT MERGED
-ci_status: POS-008 checks pending, verify current feature SHA and GitHub Actions run before merge
+ci_status: POS-008 PR CI PASSED on reviewed feature checkpoint be5c2ae31e606915dc6770e0ac1045bddd0388f6; check latest HEAD after handoff edits
 production_status: NOT DEPLOYED
 
 ## Baseline (unchanged)
@@ -32,7 +32,9 @@ production_status: NOT DEPLOYED
 - Node/tsx development entrypoint listens on `127.0.0.1:3001` by default; port validation prevents unsafe values.
 - Node test runner + Fastify.inject tests; TypeScript build, dev/start scripts and GitHub CI checks proposed.
 - Pinned dependency lockfile regeneration through temporary CI workflow; must be reviewed and the temporary workflow removed before merge.
-- Do NOT mark POS-008 done until CI succeeds on latest feature SHA, Windows local health smoke is confirmed, review and merge complete.
+- GitHub CI [run 42061832917](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42061832917) succeeded at feature checkpoint `be5c2ae31e606915dc6770e0ac1045bddd0388f6`: frozen pnpm install, workspace/TypeScript checks, desktop security/build, Fastify TypeScript build and **3/3 API tests**.
+- Docs validation [run 42061832890](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42061832890) also succeeded at the same checkpoint.
+- Subsequent handoff commits need latest CI recheck. Do NOT mark POS-008 done until Windows health smoke is confirmed, review and merge complete.
 
 ## M0 remaining
 - [ ] POS-003 GitHub backlog import and Project board.
@@ -46,7 +48,7 @@ production_status: NOT DEPLOYED
 - No production deployment, fiscal invoice or actual sales.
 
 ## Next
-1. Regenerate lockfile with pnpm 10.20.0 using GitHub Actions; remove temporary workflow.
-2. Verify frozen install, `pnpm run check`, API build/test and existing desktop checks on PR #10.
+1. Lockfile regenerated with pinned pnpm 10.20.0 on GitHub Actions and temporary workflow removed (completed).
+2. Recheck passing CI against latest PR #10 HEAD after documentation updates.
 3. Ask user to run PowerShell `Invoke-RestMethod http://127.0.0.1:3001/v1/health` from Windows.
 4. Review/merge #10 after evidence; re-read main HEAD and update status/handoff.
