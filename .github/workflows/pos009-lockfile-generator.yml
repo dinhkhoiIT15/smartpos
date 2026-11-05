@@ -1,0 +1,25 @@
+# POS-009 temporary lockfile resolver. Delete after committing generated pnpm-lock.yaml.
+# Public dependency metadata only; no secrets.
+name: POS-009 Resolve Lockfile (temporary)
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  generate:
+    name: Resolve pinned pg dependency graph
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.20.0'
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+      - name: Resolve lockfile with pinned pnpm
+        run: pnpm install --lockfile-only --no-frozen-lockfile --ignore-scripts
+      - name: Print chunked base64 lockfile (public package metadata)
+        run: |
+          node -e "const fs = require('node:fs'); const data = Buffer.from(fs.readFileSync('pnpm-lock.yaml')).toString('base64'); console.log('SMARTPOS_LOCK_BEGIN'); for (let i = 0; i < data.length; i += 100) console.log('LOCKCHUNK:' + data.slice(i, i + 100)); console.log('SMARTPOS_LOCK_END');"
