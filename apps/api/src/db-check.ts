@@ -1,19 +1,18 @@
-import { existsSync } from 'node:fs';
-import { loadEnvFile } from 'node:process';
 import { checkNeonConnection, validateNeonDatabaseUrl } from './db.js';
+import { readLocalDatabaseUrl } from './db-config.js';
+import { formatSafeNeonFailure } from './db-diagnostics.js';
 
 /**
- * Local-only CLI. Reads apps/api/.env when present; never creates a remote Fastify DB route.
- * Keep .env outside Git and do not paste the URL or its console logs into chat.
+ * Local-only CLI. For this command, apps/api/.env takes precedence over inherited
+ * DATABASE_URL. Never print the URL, its components or raw driver exceptions.
  */
 async function run(): Promise<void> {
   try {
-    if (existsSync('.env')) loadEnvFile('.env');
-    const connectionString = validateNeonDatabaseUrl(process.env.DATABASE_URL);
+    const connectionString = validateNeonDatabaseUrl(readLocalDatabaseUrl());
     await checkNeonConnection(connectionString);
     console.log('Neon development database: SELECT 1 succeeded (TLS connection).');
-  } catch {
-    console.error('Neon development database check failed. Verify local DATABASE_URL, TLS, network access and credentials. Details intentionally hidden.');
+  } catch (error: unknown) {
+    console.error(formatSafeNeonFailure(error));
     process.exitCode = 1;
   }
 }
