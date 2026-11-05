@@ -1,50 +1,33 @@
 # Session Handoff — SmartPOS
 
-## Latest diagnosis (2026-11-05)
-- Main HEAD verified: `68b136f397ba1bb8f334ff607e37abec6b4dcfc0` — POS-009 PR #12 was **merged**, although Issue #11 remains open awaiting real Neon connectivity.
-- On Windows, `pnpm install --frozen-lockfile` passed but two `pnpm --filter @smartpos/api db:check` attempts failed with the generic CLI message. The `sslmode=require` pg warning is advisory; the actual category remains unknown.
-- Fix branch `fix/POS-009-safe-neon-diagnostics`, [draft PR #13](https://github.com/dinhkhoiIT15/smartpos/pull/13) is **NOT merged**.
-- New local-only diagnostics: `apps/api/.env` takes precedence over inherited `DATABASE_URL`, placeholder values rejected, only safe finite error categories printed; tests use fake data.
-- Keep `apps/api/.env` ignored; never paste connection string, credential or hostname into chat, issues or GitHub.
-- Next: verify PR #13 frozen CI/typecheck/all tests; have Windows user switch branch and run `pnpm --filter @smartpos/api db:check`. User may share only category e.g. `[DNS_FAILED]` and whether `SELECT 1 succeeded`.
-- Do not mark POS-009 Done until real development Neon query succeeds, and PR is reviewed/merged. No migrations or production connection authorized.
-
----
-
-## Earlier handoff (historical)
-
-## Current session (2026-11-05)
-- Task: [POS-009 Issue #11](https://github.com/dinhkhoiIT15/smartpos/issues/11) — server-only Neon PostgreSQL dev connection probe.
+## Current task (2026-11-05)
+- [Issue #14 — POS-010](https://github.com/dinhkhoiIT15/smartpos/issues/14): Shared Zod contracts and pure VND bigint domain helpers.
 - Repository: https://github.com/dinhkhoiIT15/smartpos
-- Verified main HEAD at start: `644dab2e1f4556f9a1fb02b8875908e5b310ca11`, after POS-008 [PR #10](https://github.com/dinhkhoiIT15/smartpos/pull/10) merged.
-- User confirmed Windows API `/v1/health` returned `status: ok`. POS-008 Issue #9 closed.
-- Branch: `feature/POS-009-neon-dev-connectivity`; [Draft PR #12](https://github.com/dinhkhoiIT15/smartpos/pull/12) **not merged**.
-- Do not confuse reviewed main SHA with latest feature branch HEAD.
+- Verified main base: `e138ca32290ff30041487ce594bdbefdccae11dd` (POS-009 diagnostic PR #13 merged).
+- Feature branch: `feature/POS-010-contracts-vnd-domain`, [draft PR #15](https://github.com/dinhkhoiIT15/smartpos/pull/15); NOT merged.
+- [POS-009 #11](https://github.com/dinhkhoiIT15/smartpos/issues/11) closed after user confirmed `SELECT 1 succeeded (TLS connection)` on Neon development in Windows; no credentials stored.
 
-## Implemented on POS-009 feature branch
-- `apps/api/package.json`: pinned `pg` / `@types/pg`, `db:check` script and additional Node tests.
-- `src/db.ts`: Neon-only validated TLS URL and short-lived read-only `SELECT 1 AS ok` probe, client cleanup.
-- `src/db-check.ts`: optional local `.env` loading, output without URL/secret or raw exception.
-- `src/db.test.ts`: simulated valid/invalid URLs, successful query, query failure and unexpected result.
-- `apps/api/.env.example` contains **fake placeholders only**; `apps/api/.env` must remain local and Git-ignored.
-- `docs/NEON_SETUP.md`, API README, management docs revised; approved PRD/ADRs/DB schema/offline sync untouched.
-- Temporary CI workflow resolves the lockfile using pinned pnpm; must be removed before merge.
+## Feature branch scope
+- `packages/contracts`: Zod v4.6.7 validated cart estimate inputs with SKU/name snapshots, positive integer quantity and canonical decimal VND strings bounded by signed 64-bit.
+- `packages/domain`: pure bigint calculations of line subtotal, discount, cash amount due/change; reject floats, over-discounts, invalid quantities, overflows and insufficient tender.
+- Added Node tests + CI step running both package test suites.
+- Dependency lockfile generated with pinned pnpm and temporary workflow removed before merge; inspect actual CI evidence.
+- README/status/handoff updated. No changes to PRD, architecture, ADR, logical DB schema or offline sync.
+- No sale is posted, no PostgreSQL table/schema created, no migration executed and no actual money received.
 
-## Verification status
-- POS-008 local Windows API smoke **confirmed** and CI previously passed.
-- POS-009 actual Neon `SELECT 1` **NOT VERIFIED**. No access to user's Neon credentials or project.
-- POS-009 CI and lockfile should be verified against the latest PR HEAD after changes; do not claim full success based on draft PR.
-- No actual database connection, migration, schema write, SQLite cash sale, authentication or sync performed.
+## Verification pending
+- Latest PR HEAD must pass frozen `pnpm install --frozen-lockfile`, `pnpm run check` (strict TypeScript), `pnpm --filter @smartpos/contracts test` and `pnpm --filter @smartpos/domain test`.
+- Existing Fastify health/security and Electron build checks must remain green.
+- Review source and CI results; PR #15 should not be merged until those gates pass.
+- Repository owner/admin approval remains necessary for main branch governance; this session does not alter it.
 
-## Windows acceptance — follow docs/NEON_SETUP.md
-1. From the repo root, checkout the POS-009 branch and `pnpm install --frozen-lockfile` after lockfile is fixed.
-2. In Neon Console, choose/create a **development** project/branch/database and role, then copy the pooled PostgreSQL string.
-3. Create `apps/api/.env` from `apps/api/.env.example` and replace the template URL locally (do not paste it into GitHub/ChatGPT).
-4. Run `pnpm --filter @smartpos/api db:check`, verify `SELECT 1 succeeded`; do not share URL/screenshot with credentials.
-5. Review and merge PR only after a successful check and CI; re-read main SHA after merge.
+## Next step after POS-010 review/merge
+- POS-012 PostgreSQL schema + migrations is next dependency. Follow the approved `docs/DATABASE_SCHEMA.md` logical baseline and `docs/OFFLINE_SYNC_DESIGN.md`; review FK, CHECK, uniqueness, indexes and transaction/rollback plan before testing migrations.
+- Only run against isolated Neon **development** branch with explicit user approval, never production. Do not request/publish `DATABASE_URL`.
+- Update this handoff after merge against the true new main SHA and CI URLs.
 
-## Next session
-- Read AGENTS.md + status + handoff, check real main/PR commit/CI.
-- Address failing tests or missing lockfile on POS-009 branch before user runs it.
-- Keep production, migrations (POS-012), Neon secrets and Electron renderer credentials strictly out-of-scope.
-- Continue M0 governance (POS-003/005/006) and M1 domain/contracts work later.
+## Required recheck at next session
+1. Read AGENTS.md, this handoff and DEVELOPMENT_STATUS.md.
+2. Compare real main SHA and PR #15 HEAD/checks/merge status.
+3. Record changed files/tests and address any CI failure on branch.
+4. Do not call POS-010 done until review, CI and merge.
