@@ -1,23 +1,24 @@
-# TODO — SmartPOS current priorities
+# TODO — SmartPOS Current Priorities
 
-**Manual review:** 2026-11-05. GitHub Issues and merged commits are the real source of truth; this file is an informational snapshot, not automatic sync.
+**Manual GitHub review:** 2026-11-05. GitHub Issues/PR/CI are the real source of truth, not this Markdown snapshot.
 
-## Merged on main
-- [x] [POS-002 #1](https://github.com/dinhkhoiIT15/smartpos/issues/1) — repository layout repaired; [PR #3](https://github.com/dinhkhoiIT15/smartpos/pull/3) merged.
-- [x] [POS-004 #2](https://github.com/dinhkhoiIT15/smartpos/issues/2) — CI M0 documents repaired; PR #3 merged.
-- [x] [POS-001 #4](https://github.com/dinhkhoiIT15/smartpos/issues/4) — pnpm/TypeScript monorepo with six packages; [PR #5](https://github.com/dinhkhoiIT15/smartpos/pull/5) merged to main SHA `07aa1ea8`.
+## Verified merged work
+- [x] [POS-002 #1](https://github.com/dinhkhoiIT15/smartpos/issues/1) — M0 structure, merged PR #3.
+- [x] [POS-004 #2](https://github.com/dinhkhoiIT15/smartpos/issues/2) — documentation CI, merged PR #3.
+- [x] [POS-001 #4](https://github.com/dinhkhoiIT15/smartpos/issues/4) — pnpm TypeScript workspace, merged PR #5.
+- [x] [POS-007 #7](https://github.com/dinhkhoiIT15/smartpos/issues/7) — Electron + React demo merged [PR #8](https://github.com/dinhkhoiIT15/smartpos/pull/8); user confirmed Windows window opens (IPC button unreported).
 
-## In progress
-- [ ] [POS-007 #7](https://github.com/dinhkhoiIT15/smartpos/issues/7) — Secure Electron + React/Vite Desktop demo in [draft PR #8](https://github.com/dinhkhoiIT15/smartpos/pull/8), pending latest CI and Windows/macOS GUI smoke confirmation.
+## Current PR
+- [ ] [POS-008 #9](https://github.com/dinhkhoiIT15/smartpos/issues/9) — Fastify API health endpoint and Node tests proposed in [draft PR #10](https://github.com/dinhkhoiIT15/smartpos/pull/10). CI and Windows health smoke must pass before merge.
 
 ## Remaining M0 governance
-- [ ] POS-003 — Import the planned backlog and establish a GitHub Project board.
-- [ ] POS-005 — Owner confirms main protection / PR review rules (collaborator has no admin rights).
-- [ ] POS-006 — Fresh-session handoff verification against main SHA, latest CI and active issue.
+- [ ] POS-003 — Import backlog into Issues and create GitHub Project board.
+- [ ] POS-005 — Owner reviews/protects main and sets PR policy (linked collaborator is not admin).
+- [ ] POS-006 — Verify context handoff in fresh session against latest GitHub commit and CI.
 
 ## Next M1
-- [ ] POS-008 — Fastify API + `/v1/health` endpoint once desktop bootstrap is reviewed; can be developed in a separate branch.
-- [ ] POS-009 — Neon development database server-only credentials, no connection from Electron renderer.
-- [ ] POS-010 — Shared contracts/domain, and POS-011 offline device auth design.
+- [ ] POS-009 — Neon development credentials through API server only.
+- [ ] POS-010 — Shared Zod contracts/domain rules.
+- [ ] POS-011 — Offline device authorization/expiry design.
 
-**Do not treat an Electron dashboard screenshot as proof of cash checkout, SQLite persistence or cloud sync.**
+Do not treat a local Fastify liveness probe as proof of Neon, SQLite checkout, payment processing, or sync.
