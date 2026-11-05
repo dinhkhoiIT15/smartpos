@@ -18,11 +18,11 @@
 - `.github/workflows/ci.yml`: API build+tests alongside existing Electron build/security checks.
 - API README, root README, development setup, status, handoff and TODO updated.
 - No PRD, ADR, DB schema, security baseline or offline sync design changed.
-- `pnpm-lock.yaml` must be generated with pinned pnpm 10.20.0; temporary workflow must be deleted after committing lockfile.
+- `pnpm-lock.yaml` generated using pinned pnpm 10.20.0 in [temporary workflow run 42061657744](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42061657744), committed; temporary workflow removed afterward.
 
 ## Verification state
-- Actual CI verification is required; don't claim that Node tests or frozen install succeeded based only on PR creation.
-- Verify `pnpm install --frozen-lockfile`, `pnpm run check`, `pnpm --filter @smartpos/api test` and desktop build/security in CI.
+- **Verified PR CI checkpoint `be5c2ae31e606915dc6770e0ac1045bddd0388f6`:** [Foundation run 42061832917](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42061832917) succeeded (frozen pnpm install, docs, TypeScript, Electron security/build, Fastify build, 3/3 health/404/port tests); [Docs run 42061832890](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42061832890) succeeded. Recheck checks for any newer handoff commit.
+- The checks `pnpm install --frozen-lockfile`, `pnpm run check`, `pnpm --filter @smartpos/api test` and desktop build/security passed on the cited checkpoint; still require manual Windows API smoke before merge.
 - `GET /v1/health` is liveness only, not readiness for Neon or POS operations.
 - Not tested yet on Windows: Fastify dev listener, PowerShell `Invoke-RestMethod`.
 - No PostgreSQL/Neon, SQLite, auth, payment, stock or sync code implemented.
@@ -43,7 +43,7 @@ Expected status `ok`, service `smartpos-api`; stop server using Ctrl+C.
 
 ## Next session
 1. Read `AGENTS.md`, `DEVELOPMENT_STATUS.md` and this handoff, confirm actual GitHub HEAD/PR/CI.
-2. Inspect POS-008 build and test logs; fix code on feature branch if failing.
+2. Recheck latest POS-008 CI for any commits following the successful checkpoint; inspect logs if failing.
 3. Require successful Windows API smoke and CI before PR #10 ready/merge.
 4. Reconcile main SHA after merge. POS-003/005/006 M0 governance remains.
 5. Next M1 issue POS-009 (Neon development API-only credentials) or POS-010 shared contracts, not real checkout yet.
