@@ -1,4 +1,4 @@
-name: M0 Foundation Checks (TypeScript workspace; no app runtime)
+name: SmartPOS Foundation CI (Desktop + API)
 on:
   pull_request:
   push:
@@ -29,6 +29,10 @@ jobs:
         run: pnpm --filter @smartpos/desktop security:check
       - name: Build Electron main, preload and React renderer
         run: pnpm --filter @smartpos/desktop build
+      - name: Build and test Fastify API
+        run: |
+          pnpm --filter @smartpos/api build
+          pnpm --filter @smartpos/api test
       - name: Read-only context report
         run: node scripts/context-report.mjs
-# Electron, Fastify and DB runtime tests are added in POS-007/008/009 and later.
+# Electron build, Fastify health tests; database/auth/sync tests follow later issues.

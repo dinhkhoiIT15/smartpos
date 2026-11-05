@@ -1,6 +1,6 @@
-# SmartPOS — Development Setup (M1 POS-007)
+# SmartPOS — Development Setup (M1 POS-007 / POS-008)
 
-**Status:** POS-001 workspace merged; POS-007 Electron/React demo in [PR #8](https://github.com/dinhkhoiIT15/smartpos/pull/8). This is not a functioning checkout or synced POS.
+**Status:** POS-007 desktop demo merged in PR #8 and launched on Windows (IPC button result is not separately confirmed). POS-008 Fastify health API is a feature-branch proposal; no real checkout or cloud sync.
 
 ## Prerequisites
 
@@ -30,7 +30,7 @@ If `pnpm install --frozen-lockfile` fails because the lockfile differs from mani
 ## Repository structure
 
 - `apps/desktop`: secure Electron + React/Vite development shell proposed in POS-007 PR #8. Not a sales application.
-- `apps/api`: Fastify **planned POS-008**, no health endpoint yet.
+- `apps/api`: Fastify health-only API on the POS-008 feature branch; no Neon or authentication yet.
 - `packages/contracts` and `packages/domain`: future shared Zod contracts/business rules (POS-010).
 - `packages/db`: Neon/Drizzle **planned POS-009/012**. No schema migrations yet.
 - `packages/config`: reserved for shared tooling.
@@ -54,6 +54,22 @@ pnpm --filter @smartpos/desktop build
 ```
 
 See [desktop README](../apps/desktop/README.md) for detailed smoke checks and troubleshooting. CI can compile the app but cannot prove it opens correctly on an actual Windows/macOS display. The repository owner should verify on a workstation before merging POS-007.
+
+## Run Fastify API in a second terminal (POS-008 branch)
+
+From the repository root, after checking out POS-008 and `pnpm install --frozen-lockfile`:
+
+```powershell
+pnpm --filter @smartpos/api dev
+```
+
+In another PowerShell window:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:3001/v1/health
+```
+
+Expected HTTP 200 JSON: `{"status":"ok","service":"smartpos-api"}`. See [API README](../apps/api/README.md) for `build`, `test`, `start` and port configuration. This only checks Fastify liveness, not Neon.
 
 ## Security
 
