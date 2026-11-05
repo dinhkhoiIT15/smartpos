@@ -1,49 +1,37 @@
 # Session Handoff — SmartPOS
 
-## Current session
-- Date: 2026-11-05; task [POS-008 #9](https://github.com/dinhkhoiIT15/smartpos/issues/9) — Fastify health API foundation.
+## Current session (2026-11-05)
+- Task: [POS-009 Issue #11](https://github.com/dinhkhoiIT15/smartpos/issues/11) — server-only Neon PostgreSQL dev connection probe.
 - Repository: https://github.com/dinhkhoiIT15/smartpos
-- Inspected main: `3e8a366ee1687687dc96f165ff5a5ea829139ad9` (POS-007 PR #8 merged).
-- Feature branch: `feature/POS-008-fastify-health`.
-- [Draft PR #10](https://github.com/dinhkhoiIT15/smartpos/pull/10) — not merged. Latest feature head should be re-read from GitHub.
-- User confirmed Windows Electron desktop window launches; result of `Kiểm tra Electron IPC` button not reported.
+- Verified main HEAD at start: `644dab2e1f4556f9a1fb02b8875908e5b310ca11`, after POS-008 [PR #10](https://github.com/dinhkhoiIT15/smartpos/pull/10) merged.
+- User confirmed Windows API `/v1/health` returned `status: ok`. POS-008 Issue #9 closed.
+- Branch: `feature/POS-009-neon-dev-connectivity`; [Draft PR #12](https://github.com/dinhkhoiIT15/smartpos/pull/12) **not merged**.
+- Do not confuse reviewed main SHA with latest feature branch HEAD.
 
-## Changes in POS-008 draft PR
-- `apps/api/package.json`: pinned Fastify 5, tsx, @types/node and dev/build/test/typecheck/start scripts.
-- `apps/api/src/config.ts`: validated `API_PORT`, loopback-only bind.
-- `apps/api/src/server.ts`: Fastify factory and GET /v1/health, no-store, no Neon connection.
-- `apps/api/src/main.ts`: process listener with error handling.
-- `apps/api/src/server.test.ts`: Fastify.inject and Node test regression cases.
-- `apps/api/tsconfig*.json`: TypeScript checking and emitted dist build.
-- `.github/workflows/ci.yml`: API build+tests alongside existing Electron build/security checks.
-- API README, root README, development setup, status, handoff and TODO updated.
-- No PRD, ADR, DB schema, security baseline or offline sync design changed.
-- `pnpm-lock.yaml` generated using pinned pnpm 10.20.0 in [temporary workflow run 42061657744](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42061657744), committed; temporary workflow removed afterward.
+## Implemented on POS-009 feature branch
+- `apps/api/package.json`: pinned `pg` / `@types/pg`, `db:check` script and additional Node tests.
+- `src/db.ts`: Neon-only validated TLS URL and short-lived read-only `SELECT 1 AS ok` probe, client cleanup.
+- `src/db-check.ts`: optional local `.env` loading, output without URL/secret or raw exception.
+- `src/db.test.ts`: simulated valid/invalid URLs, successful query, query failure and unexpected result.
+- `apps/api/.env.example` contains **fake placeholders only**; `apps/api/.env` must remain local and Git-ignored.
+- `docs/NEON_SETUP.md`, API README, management docs revised; approved PRD/ADRs/DB schema/offline sync untouched.
+- Temporary CI workflow resolves the lockfile using pinned pnpm; must be removed before merge.
 
-## Verification state
-- **Verified PR CI checkpoint `be5c2ae31e606915dc6770e0ac1045bddd0388f6`:** [Foundation run 42061832917](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42061832917) succeeded (frozen pnpm install, docs, TypeScript, Electron security/build, Fastify build, 3/3 health/404/port tests); [Docs run 42061832890](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42061832890) succeeded. Recheck checks for any newer handoff commit.
-- The checks `pnpm install --frozen-lockfile`, `pnpm run check`, `pnpm --filter @smartpos/api test` and desktop build/security passed on the cited checkpoint; still require manual Windows API smoke before merge.
-- `GET /v1/health` is liveness only, not readiness for Neon or POS operations.
-- Not tested yet on Windows: Fastify dev listener, PowerShell `Invoke-RestMethod`.
-- No PostgreSQL/Neon, SQLite, auth, payment, stock or sync code implemented.
+## Verification status
+- POS-008 local Windows API smoke **confirmed** and CI previously passed.
+- POS-009 actual Neon `SELECT 1` **NOT VERIFIED**. No access to user's Neon credentials or project.
+- POS-009 CI and lockfile should be verified against the latest PR HEAD after changes; do not claim full success based on draft PR.
+- No actual database connection, migration, schema write, SQLite cash sale, authentication or sync performed.
 
-## User Windows smoke once PR checks pass
-```powershell
-git fetch origin
-git switch feature/POS-008-fastify-health
-git pull --ff-only origin feature/POS-008-fastify-health
-pnpm install --frozen-lockfile
-pnpm --filter @smartpos/api dev
-```
-In a separate PowerShell window:
-```powershell
-Invoke-RestMethod http://127.0.0.1:3001/v1/health
-```
-Expected status `ok`, service `smartpos-api`; stop server using Ctrl+C.
+## Windows acceptance — follow docs/NEON_SETUP.md
+1. From the repo root, checkout the POS-009 branch and `pnpm install --frozen-lockfile` after lockfile is fixed.
+2. In Neon Console, choose/create a **development** project/branch/database and role, then copy the pooled PostgreSQL string.
+3. Create `apps/api/.env` from `apps/api/.env.example` and replace the template URL locally (do not paste it into GitHub/ChatGPT).
+4. Run `pnpm --filter @smartpos/api db:check`, verify `SELECT 1 succeeded`; do not share URL/screenshot with credentials.
+5. Review and merge PR only after a successful check and CI; re-read main SHA after merge.
 
 ## Next session
-1. Read `AGENTS.md`, `DEVELOPMENT_STATUS.md` and this handoff, confirm actual GitHub HEAD/PR/CI.
-2. Recheck latest POS-008 CI for any commits following the successful checkpoint; inspect logs if failing.
-3. Require successful Windows API smoke and CI before PR #10 ready/merge.
-4. Reconcile main SHA after merge. POS-003/005/006 M0 governance remains.
-5. Next M1 issue POS-009 (Neon development API-only credentials) or POS-010 shared contracts, not real checkout yet.
+- Read AGENTS.md + status + handoff, check real main/PR commit/CI.
+- Address failing tests or missing lockfile on POS-009 branch before user runs it.
+- Keep production, migrations (POS-012), Neon secrets and Electron renderer credentials strictly out-of-scope.
+- Continue M0 governance (POS-003/005/006) and M1 domain/contracts work later.
