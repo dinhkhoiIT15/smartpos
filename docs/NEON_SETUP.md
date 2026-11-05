@@ -55,6 +55,26 @@ In a second terminal or browser, request `http://127.0.0.1:3001/v1/health`. It s
 
 This remains a **process liveness** endpoint, not a database readiness endpoint, and must never expose credentials.
 
+## POS-009 safe troubleshooting for Windows
+
+If `pnpm --filter @smartpos/api db:check` fails, update to the safe-diagnostics branch in [PR #13](https://github.com/dinhkhoiIT15/smartpos/pull/13). The CLI prints only a bracketed failure category and never prints the URL, username, password, or raw PostgreSQL exception.
+
+- `CONFIG_MISSING`: no `DATABASE_URL` in local `apps/api/.env` or inherited environment.
+- `TEMPLATE_NOT_REPLACED`: `.env.example` placeholders have not been replaced.
+- `CONFIG_INVALID`: invalid PostgreSQL URL, Neon hostname, credentials or TLS URL parameter.
+- `AUTH_FAILED`: wrong development role/password or revoked credentials; copy a fresh development connection string from Neon Console.
+- `DATABASE_NOT_FOUND`: the chosen database name does not exist on that Neon development branch.
+- `DNS_FAILED`: Windows DNS could not resolve the Neon endpoint.
+- `NETWORK_UNREACHABLE` or `CONNECTION_TIMEOUT`: network, firewall, VPN, port 5432, or transient connection timeout; check Neon status.
+- `TLS_CERTIFICATE_FAILED`: certificate validation/hostname mismatch or TLS interception; do not disable certificate verification.
+- `CONNECTION_FAILED`: unknown or unmapped failure; check the Neon Console and network privately.
+
+A `pg` warning about `sslmode=require` is **not itself proof of failure**. In your local `.env` you may replace just `sslmode=require` with `sslmode=verify-full` for explicit hostname/certificate verification and to remove the driver warning. Keep the rest of the Neon URL exactly as supplied, including `channel_binding=require`, unless Neon instructs you otherwise. Do **not** change to `sslmode=disable`, `no-verify`, or `rejectUnauthorized=false`.
+
+The local CLI now gives `apps/api/.env` precedence over any older `DATABASE_URL` inherited from the current PowerShell session. The app server `/v1/health` is still database independent.
+
+Only share the category (for example `[DNS_FAILED]`) and whether `SELECT 1 succeeded`, **never** post the URL, `.env` file, password, hostname or a screenshot displaying credentials.
+
 ## Testing, limitations and next issue
 
 ```powershell

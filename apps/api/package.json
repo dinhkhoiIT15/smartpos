@@ -12,7 +12,7 @@
     "build": "tsc --project tsconfig.build.json",
     "start": "node dist/main.js",
     "typecheck": "tsc --project tsconfig.json --noEmit",
-    "test": "pnpm run build && node --test dist/server.test.js dist/db.test.js",
+    "test": "pnpm run build && node --test dist/server.test.js dist/db.test.js dist/db-diagnostics.test.js",
     "db:check": "tsx src/db-check.ts"
   },
   "dependencies": {

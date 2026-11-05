@@ -1,5 +1,18 @@
 # Session Handoff — SmartPOS
 
+## Latest diagnosis (2026-11-05)
+- Main HEAD verified: `68b136f397ba1bb8f334ff607e37abec6b4dcfc0` — POS-009 PR #12 was **merged**, although Issue #11 remains open awaiting real Neon connectivity.
+- On Windows, `pnpm install --frozen-lockfile` passed but two `pnpm --filter @smartpos/api db:check` attempts failed with the generic CLI message. The `sslmode=require` pg warning is advisory; the actual category remains unknown.
+- Fix branch `fix/POS-009-safe-neon-diagnostics`, [draft PR #13](https://github.com/dinhkhoiIT15/smartpos/pull/13) is **NOT merged**.
+- New local-only diagnostics: `apps/api/.env` takes precedence over inherited `DATABASE_URL`, placeholder values rejected, only safe finite error categories printed; tests use fake data.
+- Keep `apps/api/.env` ignored; never paste connection string, credential or hostname into chat, issues or GitHub.
+- Next: verify PR #13 frozen CI/typecheck/all tests; have Windows user switch branch and run `pnpm --filter @smartpos/api db:check`. User may share only category e.g. `[DNS_FAILED]` and whether `SELECT 1 succeeded`.
+- Do not mark POS-009 Done until real development Neon query succeeds, and PR is reviewed/merged. No migrations or production connection authorized.
+
+---
+
+## Earlier handoff (historical)
+
 ## Current session (2026-11-05)
 - Task: [POS-009 Issue #11](https://github.com/dinhkhoiIT15/smartpos/issues/11) — server-only Neon PostgreSQL dev connection probe.
 - Repository: https://github.com/dinhkhoiIT15/smartpos
