@@ -1,7 +1,7 @@
 import pg from 'pg';
 
 export interface DatabaseProbeClient {
-  connect(): Promise<void>;
+  connect(): Promise<unknown>;
   query(sql: string): Promise<{ rows: Array<{ ok: number }> }>;
   end(): Promise<void>;
 }
