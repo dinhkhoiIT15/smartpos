@@ -1,6 +1,6 @@
 # SmartPOS API — POS-008 Fastify Foundation
 
-**Status:** API health server under review in [POS-008 PR](https://github.com/dinhkhoiIT15/smartpos/pulls). Not production-ready; no database, auth, catalog, sales or sync yet.
+**Status:** POS-008 health API merged. POS-009 adds an optional read-only Neon **development** connection CLI in an open PR. Not production-ready; no database migrations, authentication, catalog, sales or sync.
 
 ## Requirements
 
@@ -50,6 +50,18 @@ pnpm --filter @smartpos/api start
 - `start`: runs compiled JavaScript, bound to loopback by default.
 - Stop dev/start server with `Ctrl+C`.
 
+## Optional Neon development connection check (POS-009)
+
+Follow the [Neon setup checklist](../../docs/NEON_SETUP.md). Keep all passwords in `apps/api/.env` locally and out of Git/ChatGPT.
+
+```powershell
+Copy-Item .\apps\api\.env.example .\apps\api\.env
+notepad .\apps\api\.env
+pnpm --filter @smartpos/api db:check
+```
+
+Expected: `Neon development database: SELECT 1 succeeded (TLS connection).`. Never share connection strings, screenshots showing credentials or the .env file. `db:check` is a read-only CLI, **not** an unauthenticated API route. `/v1/health` stays independent of the database.
+
 ## Source layout and next steps
 
 - `src/server.ts`: factory, route and no-store response; no real database dependency.
@@ -57,4 +69,4 @@ pnpm --filter @smartpos/api start
 - `src/main.ts`: starts API listener and fails on invalid port.
 - `src/server.test.ts`: happy-path, 404, safe response and invalid port regression.
 
-A later issue POS-009 introduces Neon dev credentials **server-side only**, not through the Electron renderer. POS-010 introduces shared DTO/Zod contracts, POS-012 PostgreSQL migrations and later POS-016/021 sync endpoints. Never put `DATABASE_URL` or authentication secrets in the renderer or repository.
+POS-009 introduces Neon development connectivity in an opt-in server-only CLI; actual developer credential setup is not automated. POS-010 introduces shared DTO/Zod contracts, POS-012 PostgreSQL migrations and later POS-016/021 sync endpoints. Never put `DATABASE_URL` or authentication secrets in the renderer or repository.
