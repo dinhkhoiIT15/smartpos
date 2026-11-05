@@ -1,6 +1,6 @@
-# SmartPOS — Development Setup (M0 POS-001)
+# SmartPOS — Development Setup (M1 POS-007)
 
-**Status:** Workspace TypeScript skeleton under review. POS runtime, Neon database connectivity and migrations are not implemented.
+**Status:** POS-001 workspace merged; POS-007 Electron/React demo in [PR #8](https://github.com/dinhkhoiIT15/smartpos/pull/8). This is not a functioning checkout or synced POS.
 
 ## Prerequisites
 
@@ -29,14 +29,31 @@ If `pnpm install --frozen-lockfile` fails because the lockfile differs from mani
 
 ## Repository structure
 
-- `apps/desktop`: Electron/React **planned POS-007**, not a runnable Electron binary.
+- `apps/desktop`: secure Electron + React/Vite development shell proposed in POS-007 PR #8. Not a sales application.
 - `apps/api`: Fastify **planned POS-008**, no health endpoint yet.
 - `packages/contracts` and `packages/domain`: future shared Zod contracts/business rules (POS-010).
 - `packages/db`: Neon/Drizzle **planned POS-009/012**. No schema migrations yet.
 - `packages/config`: reserved for shared tooling.
 - `scripts/validate-workspace.mjs`: manifest/tsconfig/lockfile structural checks.
 
-Do not attempt `pnpm dev`, `pnpm build`, `pnpm test` or `pnpm db:migrate` until those commands are implemented in later issues. `pnpm run check` is the supported validation entrypoint now.
+Desktop has scoped `dev`, `build`, `preview` and `security:check` commands. Root `pnpm dev`, root `pnpm build`, POS tests and `pnpm db:migrate` do **not** exist yet.
+
+## Launch desktop shell (after checking out PR #8 branch or after merge)
+
+```bash
+pnpm install --frozen-lockfile
+pnpm --filter @smartpos/desktop dev
+```
+
+Click **Kiểm tra Electron IPC** and verify `DEMO_ONLY`; keep in mind no actual sales functionality exists. You can also compile and check without GUI:
+
+```bash
+pnpm --filter @smartpos/desktop security:check
+pnpm --filter @smartpos/desktop typecheck
+pnpm --filter @smartpos/desktop build
+```
+
+See [desktop README](../apps/desktop/README.md) for detailed smoke checks and troubleshooting. CI can compile the app but cannot prove it opens correctly on an actual Windows/macOS display. The repository owner should verify on a workstation before merging POS-007.
 
 ## Security
 
