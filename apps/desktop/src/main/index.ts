@@ -41,11 +41,12 @@ function createWindow(): void {
 
   ipcMain.removeHandler(APP_INFO_CHANNEL);
   ipcMain.handle(APP_INFO_CHANNEL, (event) => {
-    const mainFrame = window.webContents.mainFrame;
+    const frame = event.senderFrame;
     if (
+      !frame ||
       event.sender !== window.webContents ||
-      event.senderFrame !== mainFrame ||
-      event.senderFrame.url !== window.webContents.getURL()
+      frame !== window.webContents.mainFrame ||
+      frame.url !== window.webContents.getURL()
     ) {
       throw new Error('Untrusted IPC sender');
     }
