@@ -2,14 +2,14 @@
 
 status_schema: 1
 last_reviewed_at: 2026-11-05
-verified_commit: 644dab2e1f4556f9a1fb02b8875908e5b310ca11
+verified_commit: 68b136f397ba1bb8f334ff607e37abec6b4dcfc0
 verified_ref: main
 repository_url: https://github.com/dinhkhoiIT15/smartpos
 repo_connection: CONFIRMED — GitHub linked collaborator can create branches/PRs; no admin authority
 last_github_synced_at: MANUAL GITHUB REVIEW 2026-11-05 (not automatic)
 current_milestone: M1 (M0 governance remains open)
-current_phase: POS-009 NEON DEV CONNECTIVITY IN DRAFT PR #12 — NOT MERGED, REAL DB NOT VERIFIED
-ci_status: POS-009 CI PENDING; check PR #12 latest HEAD before merge
+current_phase: POS-009 CODE MERGED IN PR #12, WINDOWS DATABASE PROBE FAILED; SAFE DIAGNOSTICS IN DRAFT PR #13
+ci_status: POS-009 PR #12 CI PASSED (8/8 API tests); fix PR #13 CI PENDING until current head checks
 production_status: NOT DEPLOYED
 
 ## Locked business and technical baseline
@@ -27,7 +27,7 @@ production_status: NOT DEPLOYED
 - `verified_commit` is last verified **main** SHA, not the POS-009 PR branch HEAD.
 
 ## POS-009 proposal (not done)
-- [Issue #11](https://github.com/dinhkhoiIT15/smartpos/issues/11), [draft PR #12](https://github.com/dinhkhoiIT15/smartpos/pull/12), branch `feature/POS-009-neon-dev-connectivity`.
+- [Issue #11](https://github.com/dinhkhoiIT15/smartpos/issues/11) remains open because Windows real Neon `db:check` failed; PR #12 has **merged** into main as [commit `68b136f3`](https://github.com/dinhkhoiIT15/smartpos/commit/68b136f397ba1bb8f334ff607e37abec6b4dcfc0).
 - Server-only read-only `db:check` uses `pg`, requires a credentialed Neon PostgreSQL URL with TLS, `SELECT 1 AS ok`, closes client, sanitizes failures.
 - Added fake-client tests and local-only `apps/api/.env.example` / [Neon setup guide](../docs/NEON_SETUP.md).
 - No Neon credential, project or real remote query has been verified. GitHub Actions must use mocked tests with no secrets.
@@ -44,3 +44,10 @@ production_status: NOT DEPLOYED
 2. User creates Neon development database and keeps `DATABASE_URL` privately in ignored `apps/api/.env` (do not share URL).
 3. User runs `pnpm --filter @smartpos/api db:check`; records success/failure **without credentials**.
 4. Only after real dev connectivity evidence and review, merge PR #12 and update main snapshot. Schema migrations belong to POS-012.
+
+## POS-009 diagnosis fix (draft)
+- [Draft PR #13](https://github.com/dinhkhoiIT15/smartpos/pull/13), branch `fix/POS-009-safe-neon-diagnostics`, leaves main untouched.
+- Windows log: `pnpm install --frozen-lockfile` passed; `pg` printed an advisory `sslmode=require` warning; `db:check` failed twice with a generic message. Do NOT infer auth, TLS or network failure without category.
+- POS-009 CLI now prefers `apps/api/.env` to an inherited DATABASE_URL, detects unmodified template placeholders and categorizes errors using fixed, nonsecret codes; raw driver exceptions still hidden.
+- No real connection has succeeded; no credentials shared. A local Windows rerun is required before Issue #11 can be closed.
+- CI for PR #13 must be green before recommending merge.
