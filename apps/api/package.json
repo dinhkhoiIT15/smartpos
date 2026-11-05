@@ -1,10 +1,24 @@
 {
   "name": "@smartpos/api",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
-  "description": "Fastify API boundary (runtime bootstrapped in POS-008)",
+  "description": "SmartPOS Fastify API foundation (health only, no database connection)",
   "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
-    "typecheck": "tsc --project tsconfig.json --noEmit"
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc --project tsconfig.build.json",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "test": "pnpm run build && node --test dist/server.test.js"
+  },
+  "dependencies": {
+    "fastify": "5.12.8"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "tsx": "4.23.15"
   }
 }
