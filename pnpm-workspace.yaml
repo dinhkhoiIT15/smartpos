@@ -1,3 +1,8 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+
+# pnpm 10: permit only these reviewed install scripts for the desktop toolchain.
+onlyBuiltDependencies:
+  - electron
+  - esbuild
