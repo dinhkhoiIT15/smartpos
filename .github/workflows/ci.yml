@@ -25,6 +25,10 @@ jobs:
         run: pnpm -r list --depth -1
       - name: Docs, workspace and strict TypeScript checks
         run: pnpm run check
+      - name: Desktop source security checks
+        run: pnpm --filter @smartpos/desktop security:check
+      - name: Build Electron main, preload and React renderer
+        run: pnpm --filter @smartpos/desktop build
       - name: Read-only context report
         run: node scripts/context-report.mjs
 # Electron, Fastify and DB runtime tests are added in POS-007/008/009 and later.
