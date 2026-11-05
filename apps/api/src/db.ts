@@ -18,6 +18,10 @@ export function validateNeonDatabaseUrl(value: string | undefined): string {
   } catch {
     throw new Error('DATABASE_URL must be a valid PostgreSQL URL');
   }
+  if (/^YOUR_/i.test(url.username) || /^YOUR_/i.test(url.password)
+    || /YOUR-DEV-/i.test(url.hostname) || /^\/YOUR_/i.test(url.pathname)) {
+    throw new Error('DATABASE_URL contains template placeholders');
+  }
   const validProtocol = url.protocol === 'postgresql:' || url.protocol === 'postgres:';
   const validCredentials = Boolean(url.username && url.password);
   const validHostname = url.hostname.toLowerCase().endsWith('.neon.tech');
