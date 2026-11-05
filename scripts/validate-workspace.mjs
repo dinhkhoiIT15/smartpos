@@ -33,7 +33,7 @@ for (const [dir, name] of expected) {
   const config = JSON.parse(readFileSync(tsFile, 'utf8'));
   if (pkg.name !== name || pkg.private !== true || !pkg.scripts?.typecheck) errors.push('Invalid manifest in ' + dir);
   if (config.extends !== '../../tsconfig.base.json' || config.compilerOptions?.noEmit !== true) errors.push('Invalid tsconfig in ' + dir);
-  if (!lock.includes(dir + ': {}')) errors.push('Missing pnpm-lock importer: ' + dir);
+  if (!lock.includes('  ' + dir + ':')) errors.push('Missing pnpm-lock importer: ' + dir);
 }
 if (errors.length) {
   console.error('POS-001 workspace validation failed:\n- ' + errors.join('\n- '));
