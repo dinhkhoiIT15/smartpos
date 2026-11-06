@@ -121,6 +121,24 @@ test('POS-012 migration v1 creates 17 tables and enforces retail invariants', as
       await c.query(receipt,[device,event,sale,'fake_sha256','APPLIED','{}']);
       await failsWith(c,receipt,[device,event,sale,'other_hash','APPLIED','{}'],'23505');
       await failsWith(c,receipt,[device,randomUUID(),sale,'fake_sha256','APPLIED','{}'],'23505');
+      await failsWith(c,'DELETE FROM sync_receipts WHERE sale_id=$1',[sale],'P0001');
+
+      // Financial, inventory and audit evidence is append-only in migration SQL.
+      const movement = randomUUID();
+      await c.query('INSERT INTO inventory_movements (id,store_id,variant_id,sale_id,qty_delta,kind) VALUES ($1,$2,$3,$4,-1,$5)',
+        [movement,store,variant,sale,'SALE']);
+      await failsWith(c,'UPDATE inventory_movements SET qty_delta=1 WHERE id=$1',[movement],'P0001');
+      await failsWith(c,'INSERT INTO inventory_movements (id,store_id,variant_id,sale_id,qty_delta,kind) VALUES ($1,$2,$3,$4,-1,$5)',
+        [randomUUID(),store,variant,sale,'SALE'],'23505');
+      const auditId = randomUUID();
+      await c.query('INSERT INTO audit_logs (id,store_id,actor_id,action,entity_type,entity_id,metadata) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+        [auditId,store,employee,'SALE_POSTED','sale',sale,'{}']);
+      await failsWith(c,'DELETE FROM audit_logs WHERE id=$1',[auditId],'P0001');
+      const logEntry = await c.query<{ seq: string }>(
+        'INSERT INTO catalog_change_log (store_id,entity_type,entity_id,op,payload) VALUES ($1,$2,$3,$4,$5) RETURNING seq',
+        [store,'variant',variant,'UPSERT','{}'],
+      );
+      assert.ok(BigInt(logEntry.rows[0]?.seq ?? '0') > 0n);
     } finally {
       await c.query('ROLLBACK');
       c.release();
