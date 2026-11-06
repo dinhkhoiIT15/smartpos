@@ -91,7 +91,7 @@ export const productVariants = pgTable('product_variants', {
   attributes: jsonb('attributes').notNull(),
   attributesKey: text('attributes_key').notNull(),
   priceVnd: money('price_vnd'),
-  revision: bigint('revision', { mode: 'bigint' }).notNull().default(0n),
+  revision: bigint('revision', { mode: 'bigint' }).notNull().default(sql`0`),
   active: boolean('active').notNull().default(true),
 }, (t) => [
   unique('variants_store_id_id_unique').on(t.storeId, t.id),
@@ -106,7 +106,7 @@ export const inventoryBalances = pgTable('inventory_balances', {
   storeId: uuid('store_id').notNull().references(() => stores.id, { onDelete: 'restrict' }),
   variantId: uuid('variant_id').notNull(),
   qty: bigint('qty', { mode: 'bigint' }).notNull(),
-  revision: bigint('revision', { mode: 'bigint' }).notNull().default(0n),
+  revision: bigint('revision', { mode: 'bigint' }).notNull().default(sql`0`),
 }, (t) => [
   primaryKey({ columns: [t.storeId, t.variantId], name: 'inventory_balances_pk' }),
   foreignKey({ columns: [t.storeId, t.variantId], foreignColumns: [productVariants.storeId, productVariants.id], name: 'balances_variant_same_store_fk' }).onDelete('restrict'),
