@@ -2,6 +2,7 @@ export type SmartPosAppInfo = {
   name: string;
   version: string;
   mode: 'DEMO_ONLY';
+  localSchemaVersion: number;
 };
 
 export interface SmartPosBridge {
