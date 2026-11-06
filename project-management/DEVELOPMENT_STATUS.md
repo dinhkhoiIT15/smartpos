@@ -9,7 +9,7 @@ repo_connection: CONFIRMED — linked collaborator with branch/PR access, not ad
 last_github_synced_at: MANUAL REVIEW 2026-11-06
 current_milestone: M1 (M0 governance items remain open)
 current_phase: POS-012 POSTGRESQL V1 SCHEMA + MIGRATION IN DRAFT PR #17 — NOT MERGED
-ci_status: POS-012 PostgreSQL 16 migration job successful on branch checkpoint 00a985cfddea6ad61630a85762d68fb0a5d59c26; recheck all CI against latest PR head
+ci_status: PR #17 Foundation + PostgreSQL 16 CI and docs checks PASSED on reviewed head d730d6babd1693d7ddeade68e97902c5b4bfdc9c; recheck after these documentation-only commits
 production_status: NOT DEPLOYED
 
 ## Verified main
@@ -25,7 +25,7 @@ production_status: NOT DEPLOYED
 - Drizzle ORM v0.45.4 / Kit v0.31.11, code-first 17 PostgreSQL tables matching the locked schema baseline, checked-in initial SQL, migration snapshot + journal.
 - Enforced PK/FK, same-store constraints, partial unique index on active offline device, unique SKU, nonnegative VND, line-level amount consistency, cash-only payment/change consistency. Immutable/append-only triggers protect posted sale history and financial audit rows.
 - Script `migrate:dev` requires explicit confirmation and reads only ignored local API `.env`; **not executed on Neon**. No production credentials, migrations, or data used.
-- CI on branch checkpoint `00a985cfddea6ad61630a85762d68fb0a5d59c26`: disposable PostgreSQL 16 successfully created 17 tables, reapplied migration idempotently, enforced main constraints; 4/4 Node tests successful. Additional test/doc commits require fresh CI evidence.
+- CI on branch checkpoint `d730d6babd1693d7ddeade68e97902c5b4bfdc9c`: [Foundation & PostgreSQL tests](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42165991774) and [Docs checks](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42165991788) SUCCEEDED. Disposable PostgreSQL 16 created 17 tables, reapplied migration idempotently, tested SKU/tenant FKs/cash checks/posted immutability and append-only audit; 4/4 migration tests passed. Recheck CI on any later HEAD.
 - Manual Neon development migration remains pending explicit human review and approval. No real sale or inventory data created.
 
 ## Open boundaries and work
