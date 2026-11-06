@@ -29,6 +29,8 @@ jobs:
         run: pnpm --filter @smartpos/desktop security:check
       - name: Build Electron main, preload and React renderer
         run: pnpm --filter @smartpos/desktop build
+      - name: SQLite local migration, rollback, reopen and WAL backup tests
+        run: pnpm --filter @smartpos/desktop test:local-db
       - name: Build and test Fastify API
         run: |
           pnpm --filter @smartpos/api build
