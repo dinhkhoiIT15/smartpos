@@ -4,9 +4,13 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "noEmit": true,
-    "types": []
+    "types": [
+      "node"
+    ]
   },
   "include": [
-    "src/**/*.ts"
+    "src/**/*.ts",
+    "scripts/**/*.ts",
+    "drizzle.config.ts"
   ]
 }
