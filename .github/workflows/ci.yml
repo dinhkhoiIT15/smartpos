@@ -33,6 +33,10 @@ jobs:
         run: |
           pnpm --filter @smartpos/api build
           pnpm --filter @smartpos/api test
+      - name: Verify shared DTOs and bigint VND domain rules
+        run: |
+          pnpm --filter @smartpos/contracts test
+          pnpm --filter @smartpos/domain test
       - name: Read-only context report
         run: node scripts/context-report.mjs
 # Electron build, Fastify health tests; database/auth/sync tests follow later issues.
