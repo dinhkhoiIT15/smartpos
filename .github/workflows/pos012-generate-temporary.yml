@@ -36,6 +36,9 @@ jobs:
             }
           }
           visit(root);
+          if (!files.some(p => /drizzle\/[^/]+\.sql$/.test(p)) || !files.some(p => p.endsWith('_snapshot.json'))) {
+            throw new Error('Drizzle migration SQL/snapshot missing: generation did not complete successfully');
+          }
           const output = Object.fromEntries(files.sort().map(p => [p, fs.readFileSync(p, 'utf8')]));
           const encoded = Buffer.from(JSON.stringify(output), 'utf8').toString('base64');
           console.log('SMARTPOS_ARTIFACTS_BEGIN');
