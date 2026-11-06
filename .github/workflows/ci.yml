@@ -39,4 +39,40 @@ jobs:
           pnpm --filter @smartpos/domain test
       - name: Read-only context report
         run: node scripts/context-report.mjs
-# Electron build, Fastify health tests; database/auth/sync tests follow later issues.
+
+  postgres-migrations:
+    name: PostgreSQL v1 migration and constraints (ephemeral)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: smartpos_test
+          POSTGRES_PASSWORD: local_ci_only
+          POSTGRES_DB: smartpos_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U smartpos_test -d smartpos_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      POS_DB_TEST_URL: postgresql://smartpos_test:local_ci_only@127.0.0.1:5432/smartpos_ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.20.0'
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: 'pnpm'
+      - name: Frozen workspace install
+        run: pnpm install --frozen-lockfile
+      - name: Validate committed Drizzle migration history
+        run: pnpm --filter @smartpos/db schema:check
+      - name: Apply migration only to disposable CI database and test constraints
+        run: pnpm --filter @smartpos/db test:migrations
+
+# Database tests run ONLY against disposable CI PostgreSQL; Neon is never contacted.

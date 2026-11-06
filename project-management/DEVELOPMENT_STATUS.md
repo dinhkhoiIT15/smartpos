@@ -1,37 +1,40 @@
 # Development Status — SmartPOS
 
 status_schema: 1
-last_reviewed_at: 2026-11-05
-verified_commit: e138ca32290ff30041487ce594bdbefdccae11dd
+last_reviewed_at: 2026-11-06
+verified_commit: c16382008b17eb18fdeaa2d2eb90b1eec1a8b595
 verified_ref: main
 repository_url: https://github.com/dinhkhoiIT15/smartpos
-repo_connection: CONFIRMED — GitHub linked collaborator; no admin permissions
-last_github_synced_at: MANUAL REVIEW 2026-11-05 (not automatic)
-current_milestone: M1 (M0 issue board/branch governance/handoff still outstanding)
-current_phase: POS-010 ZOD AND BIGINT VND DOMAIN IN DRAFT PR #15 — UNMERGED
-ci_status: POS-010 CI/lockfile pending, verify latest PR head
+repo_connection: CONFIRMED — linked collaborator with branch/PR access, not admin
+last_github_synced_at: MANUAL REVIEW 2026-11-06
+current_milestone: M1 (M0 governance items remain open)
+current_phase: POS-012 POSTGRESQL V1 SCHEMA + MIGRATION IN DRAFT PR #17 — NOT MERGED
+ci_status: PR #17 Foundation + PostgreSQL 16 CI and docs checks PASSED on reviewed head d730d6babd1693d7ddeade68e97902c5b4bfdc9c; recheck after these documentation-only commits
 production_status: NOT DEPLOYED
 
-## Verified merged work
-- POS-002/POS-004 (PR #3); POS-001 (PR #5) merged.
-- POS-007 Electron + React demo (PR #8) merged; user reported Windows desktop window opened.
-- POS-008 Fastify health (PR #10) merged; user reported Windows /v1/health status ok, Issue #9 closed.
-- POS-009 Neon development connectivity probe (PR #12) and safe diagnostic fix (PR #13) **merged**.
-- Developer confirmed Windows `pnpm --filter @smartpos/api db:check` returned `Neon development database: SELECT 1 succeeded (TLS connection).`. [POS-009 Issue #11](https://github.com/dinhkhoiIT15/smartpos/issues/11) closed. This proves read-only development connectivity only; no tables or migrations.
-- Verified `main` at [commit `e138ca32290f`](https://github.com/dinhkhoiIT15/smartpos/commit/e138ca32290ff30041487ce594bdbefdccae11dd). Feature branch HEAD must be re-read separately.
+## Verified main
+- POS-001 (PR #5), POS-002/POS-004 (PR #3) merged.
+- POS-007 Electron (PR #8) merged; Windows application window launched per developer.
+- POS-008 Fastify health (PR #10) merged; Windows /v1/health returned status ok.
+- POS-009 Neon dev-only read probe (PR #12 + fix PR #13) merged; developer confirmed `SELECT 1 succeeded (TLS connection)`, issue #11 closed. **No schema migration was run on Neon.**
+- [POS-010 PR #15](https://github.com/dinhkhoiIT15/smartpos/pull/15) merged into main SHA [`c16382008b17`](https://github.com/dinhkhoiIT15/smartpos/commit/c16382008b17eb18fdeaa2d2eb90b1eec1a8b595); Issue #14 closed. Zod decimal-string money and bigint domain tests passed.
+- `verified_commit` is the inspected main commit, **not** the POS-012 branch head.
 
-## Current M1 POS-010 (not done)
-- [Issue #14](https://github.com/dinhkhoiIT15/smartpos/issues/14), [draft PR #15](https://github.com/dinhkhoiIT15/smartpos/pull/15), branch `feature/POS-010-contracts-vnd-domain`.
-- Shared Zod cart-estimate DTOs with SKU/name snapshots, integer quantities and VND canonical decimal strings, bounded by signed PostgreSQL BIGINT.
-- Pure bigint cash calculations (subtotal, line discounts, due, tendered, change). Tests cover source business rules and overflow/invalid money.
-- Exact pinned pnpm lockfile and full CI must be verified, reviewed and merged before POS-010 is Done.
-- Approved business rules, PRD, architecture, offline sync policy and logical PostgreSQL model remain unchanged.
+## Current POS-012 feature (not Done)
+- [POS-012 Issue #16](https://github.com/dinhkhoiIT15/smartpos/issues/16); [draft PR #17](https://github.com/dinhkhoiIT15/smartpos/pull/17) on `feature/POS-012-postgres-migration-v1`, not merged.
+- Drizzle ORM v0.45.4 / Kit v0.31.11, code-first 17 PostgreSQL tables matching the locked schema baseline, checked-in initial SQL, migration snapshot + journal.
+- Enforced PK/FK, same-store constraints, partial unique index on active offline device, unique SKU, nonnegative VND, line-level amount consistency, cash-only payment/change consistency. Immutable/append-only triggers protect posted sale history and financial audit rows.
+- Script `migrate:dev` requires explicit confirmation and reads only ignored local API `.env`; **not executed on Neon**. No production credentials, migrations, or data used.
+- CI on branch checkpoint `d730d6babd1693d7ddeade68e97902c5b4bfdc9c`: [Foundation & PostgreSQL tests](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42165991774) and [Docs checks](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42165991788) SUCCEEDED. Disposable PostgreSQL 16 created 17 tables, reapplied migration idempotently, tested SKU/tenant FKs/cash checks/posted immutability and append-only audit; 4/4 migration tests passed. Recheck CI on any later HEAD.
+- Manual Neon development migration remains pending explicit human review and approval. No real sale or inventory data created.
 
-## Next planned M1 issue
-- POS-012 PostgreSQL schema/migration v1 **depends on POS-009 and POS-010**.
-- No Neon development migration has been executed; review schema, FK, indexes, CHECK and rollback/forward-fix plan before applying any SQL. Never run production migrations without explicit owner approval.
+## Open boundaries and work
+- PostgreSQL is central database only; SQLite local migration (POS-013), domain services, receipt posting and sync remain future issues.
+- Matching sum of all sale items to sale total, current cashier authorization and negative-stock reconciliation still require transactional API services; bare schema does not guarantee those application invariants.
+- M0 governance remains: POS-003 GitHub board/backlog, POS-005 branch protection by owner/admin, POS-006 handoff drill.
 
-## Remaining M0
-- POS-003 GitHub board/backlog import.
-- POS-005 main branch protection (needs repository owner/admin).
-- POS-006 new-session handoff verification against actual HEAD and CI.
+## Next actions
+1. Re-fetch latest PR #17 HEAD and verify frozen pnpm CI + PostgreSQL migration tests and docs checks.
+2. Review generated SQL, its custom history guards and the [forward-fix plan](../packages/db/README.md); get peer/owner approval.
+3. Only after explicit user approval and selection of disposable Neon development branch, developer may run guarded migration CLI locally, then verify table list and migration log.
+4. Do **not** run production migration or infer Neon DDL was executed from CI. Update main SHA/handoff after merge.

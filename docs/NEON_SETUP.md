@@ -1,6 +1,6 @@
-# Neon PostgreSQL — SmartPOS Development Setup (POS-009)
+# Neon PostgreSQL — SmartPOS Development Setup (POS-009 / POS-012)
 
-**State:** code for an optional server-only development connection check is proposed in [POS-009 Issue #11](https://github.com/dinhkhoiIT15/smartpos/issues/11). No actual Neon project, database, credential or successful remote query has been verified. No production database access or migrations are authorized here.
+**State:** POS-009 development connectivity was confirmed by the developer on Windows (`SELECT 1 succeeded (TLS connection)`) and Issue #11 is closed. POS-012 Drizzle schema/migration is proposed in [draft PR #17](https://github.com/dinhkhoiIT15/smartpos/pull/17), but **no Neon development or production migration has been executed**.
 
 ## Step 1 — Create a development database
 
@@ -74,6 +74,24 @@ A `pg` warning about `sslmode=require` is **not itself proof of failure**. In yo
 The local CLI now gives `apps/api/.env` precedence over any older `DATABASE_URL` inherited from the current PowerShell session. The app server `/v1/health` is still database independent.
 
 Only share the category (for example `[DNS_FAILED]`) and whether `SELECT 1 succeeded`, **never** post the URL, `.env` file, password, hostname or a screenshot displaying credentials.
+
+## POS-012 migration v1 — review first, no automatic application
+
+A reviewed SQL migration and schema snapshot are proposed in [POS-012 PR #17](https://github.com/dinhkhoiIT15/smartpos/pull/17). GitHub Actions runs them only against disposable PostgreSQL 16 with fake credentials.
+
+**Before applying to Neon development:** inspect the committed `packages/db/drizzle/*.sql`, check the Drizzle journal and transaction/constraint test report, back up or branch your Neon development database, and verify in Neon Console that this is **not production**. Database migrations create 17 tables and indexes; they are not equivalent to `SELECT 1` and should not be attempted without a review.
+
+Once the owner explicitly authorizes development migration, the documented guarded CLI may be run by the developer from the repository root after installing dependencies and selecting the POS-012 branch:
+
+```powershell
+pnpm --filter @smartpos/db typecheck
+pnpm --filter @smartpos/db schema:check
+pnpm --filter @smartpos/db migrate:dev --confirm-neon-development
+```
+
+The migration CLI reads the **local** ignored `apps/api/.env`, requires an explicit confirmation flag and a TLS Neon URL, and rejects unmanaged pre-existing SmartPOS tables. It never outputs the URL or password. Do not run against a production database, a real customer database, or a shared Neon branch whose contents you cannot safely restore.
+
+After manual application, **read-only** verification in Neon should list 17 tables in the `public` schema and one entry in `drizzle.__drizzle_migrations`. Record only counts and status, not credentials. For errors, follow the [forward-fix plan](../packages/db/README.md); do not try deleting tables or clearing the migration journal to force a rerun.
 
 ## Testing, limitations and next issue
 

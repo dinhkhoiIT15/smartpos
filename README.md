@@ -1,6 +1,6 @@
 # SmartPOS Retail — Desktop + API Foundation
 
-**Status:** Milestone M1 development. Electron demo, Fastify health and server-only Neon development connectivity are merged; POS-010 bigint VND contracts/domain are in [draft PR #15](https://github.com/dinhkhoiIT15/smartpos/pull/15). **No real checkout, PostgreSQL migration or cloud sync yet.**
+**Status:** Milestone M1 development. Electron demo, Fastify health and server-only Neon development connectivity are merged; POS-010 bigint VND contracts/domain are merged, and the **reviewable PostgreSQL migration v1** is in [draft PR #17](https://github.com/dinhkhoiIT15/smartpos/pull/17). **No real checkout, Neon schema migration or cloud sync yet.**
 
 SmartPOS is a planned offline-first, cash-only POS for a single electronics store. The accepted baseline (one authorized offline cashier, immutable sales, integer VND, SKU inventory) is recorded in [AGENTS.md](AGENTS.md), [PRD](docs/PRODUCT_REQUIREMENTS.md), [Business Rules](docs/BUSINESS_RULES.md) and [Architecture](docs/SYSTEM_ARCHITECTURE.md).
 
@@ -55,15 +55,26 @@ pnpm --filter @smartpos/domain test
 
 Contracts carry VND as **decimal JSON strings** to avoid loss of precision, validated with Zod. Domain uses `bigint` for quantity × unit price − line discounts and cash change. This is calculation/validation groundwork, **not a cash checkout or posted sale**. See [Contracts README](packages/contracts/README.md) and [Domain README](packages/domain/README.md).
 
+## PostgreSQL schema v1 — POS-012 in draft PR #17
+
+The proposed `packages/db` migration contains 17 retail tables, PK/FK/UNIQUE/CHECK constraints and immutability guards. GitHub CI applies SQL to **disposable PostgreSQL 16 only**, not to your Neon database.
+
+```bash
+pnpm --filter @smartpos/db typecheck
+pnpm --filter @smartpos/db schema:check
+```
+
+The reviewer should inspect [DB migration instructions and forward-fix plan](packages/db/README.md). **Do not run `migrate:dev` until the PR and exact Neon development branch are reviewed and approved.** Production migrations are not permitted in this phase.
+
 ## Monorepo layout
 
 | Workspace | What exists |
 |---|---|
 | `apps/desktop` | Electron + React/Vite secure demo with IPC test (POS-007) |
 | `apps/api` | Fastify health and server-only optional Neon dev connectivity (POS-008/009) |
-| `packages/contracts` | Zod cart estimate DTOs and VND decimal string validation in PR #15 |
-| `packages/domain` | Pure bigint cash calculation helpers in PR #15 |
-| `packages/db` | Reserved for Drizzle/Neon migrations (POS-009/POS-012) |
+| `packages/contracts` | Zod cart estimate DTOs, signed-bigint-safe VND strings, POS-010 merged |
+| `packages/domain` | Pure bigint cash calculation helpers, POS-010 merged |
+| `packages/db` | Drizzle PostgreSQL schema v1 and reviewed migration proposal in PR #17 |
 | `packages/config` | Shared TypeScript tooling boundary |
 
 See [Desktop README](apps/desktop/README.md), [API README](apps/api/README.md), [Development Setup](docs/DEVELOPMENT_SETUP.md), [Development Status](project-management/DEVELOPMENT_STATUS.md), [Session Handoff](project-management/SESSION_HANDOFF.md) and [Backlog](project-management/BACKLOG.csv).

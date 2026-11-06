@@ -1,10 +1,24 @@
 {
   "name": "@smartpos/db",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
-  "description": "Neon PostgreSQL and Drizzle schema boundary (POS-009/POS-012)",
+  "description": "SmartPOS PostgreSQL Drizzle v1 schema and reviewed migrations; never auto-migrate Neon",
   "type": "module",
   "scripts": {
-    "typecheck": "tsc --project tsconfig.json --noEmit"
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "schema:generate": "drizzle-kit generate --name=initial_retail_v1",
+    "schema:check": "drizzle-kit check",
+    "test:migrations": "tsx --test src/migration.test.ts",
+    "migrate:dev": "tsx scripts/migrate-dev.ts"
+  },
+  "dependencies": {
+    "drizzle-orm": "0.45.4",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "drizzle-kit": "0.31.11",
+    "@types/node": "24.19.2",
+    "@types/pg": "8.23.1",
+    "tsx": "4.23.15"
   }
 }
