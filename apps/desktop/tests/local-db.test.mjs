@@ -128,7 +128,9 @@ test('SQLite enforces per-store SKU, same-store FK, CASH, quantity and bigint mo
   db.prepare(`INSERT INTO local_sales
     (sale_id,store_id,device_id,cashier_id,client_created_at,total_vnd)
     VALUES (?,?,?,?,?,?)`).run('sale1','store1','dev1','cashier','2026-11-07T00:00:00Z',9_007_199_254_740_993n);
-  const total = db.prepare('SELECT total_vnd FROM local_sales').setReadBigInts(true).get().total_vnd;
+  const totalStmt = db.prepare('SELECT total_vnd FROM local_sales');
+  totalStmt.setReadBigInts(true);
+  const total = totalStmt.get().total_vnd;
   assert.equal(total, 9_007_199_254_740_993n);
   assert.throws(() => db.prepare('INSERT INTO local_payments (payment_id,sale_id,method,due_vnd,tendered_vnd,change_vnd) VALUES (?,?,?,?,?,?)')
     .run('p1','sale1','CARD',100n,200n,100n), /CHECK/);
