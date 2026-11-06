@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "type": "module",
+  "description": "ES module boundary for Node 24 native TypeScript SQLite tests; electron-vite bundles into main"
+}
