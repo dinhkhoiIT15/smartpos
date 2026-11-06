@@ -112,7 +112,10 @@ test('POS-012 migration v1 creates 17 tables and enforces retail invariants', as
       await failsWith(c,paymentSql,[randomUUID(),sale,'CASH','9340000','9500000','0'],'23514');
       await c.query(paymentSql,[payment,sale,'CASH','9340000','9500000','160000']);
       await failsWith(c,paymentSql,[randomUUID(),sale,'CASH','9340000','9500000','160000'],'23505');
-      await failsWith(c,'DELETE FROM sales WHERE id=$1',[sale],'23503');
+      await failsWith(c,'UPDATE sales SET total_vnd=$2 WHERE id=$1',[sale,'1'],'P0001');
+      await failsWith(c,'DELETE FROM sales WHERE id=$1',[sale],'P0001');
+      await failsWith(c,'UPDATE sale_items SET name_snapshot=$2 WHERE id=$1',[item,'MUTATED'],'P0001');
+      await failsWith(c,'DELETE FROM payments WHERE id=$1',[payment],'P0001');
       const event = randomUUID();
       const receipt='INSERT INTO sync_receipts (device_id,event_id,sale_id,payload_hash,result_code,ack_json) VALUES ($1,$2,$3,$4,$5,$6)';
       await c.query(receipt,[device,event,sale,'fake_sha256','APPLIED','{}']);
