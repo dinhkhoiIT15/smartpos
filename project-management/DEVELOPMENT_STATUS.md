@@ -1,40 +1,45 @@
 # Development Status — SmartPOS
 
 status_schema: 1
-last_reviewed_at: 2026-11-06
-verified_commit: c16382008b17eb18fdeaa2d2eb90b1eec1a8b595
+last_reviewed_at: 2026-11-07
+verified_commit: 857446310b0b1ba61bb27374fac3c13f3dc94050
 verified_ref: main
 repository_url: https://github.com/dinhkhoiIT15/smartpos
-repo_connection: CONFIRMED — linked collaborator with branch/PR access, not admin
-last_github_synced_at: MANUAL REVIEW 2026-11-06
-current_milestone: M1 (M0 governance items remain open)
-current_phase: POS-012 POSTGRESQL V1 SCHEMA + MIGRATION IN DRAFT PR #17 — NOT MERGED
-ci_status: PR #17 Foundation + PostgreSQL 16 CI and docs checks PASSED on reviewed head d730d6babd1693d7ddeade68e97902c5b4bfdc9c; recheck after these documentation-only commits
+repo_connection: CONFIRMED — linked GitHub collaborator may create feature branches/PR, no admin
+last_github_synced_at: MANUAL GITHUB REVIEW 2026-11-07
+current_milestone: M1 (M0 management/governance tasks remain open)
+current_phase: POS-013 ELECTRON LOCAL SQLITE V1 — DRAFT PR #19 — NOT MERGED
+ci_status: POS-013 SQLite 6/6 test suite and existing TypeScript/Electron/Fastify checks PASSED at feature checkpoint 9568cc888beaa1788c0452282b01cf5d7a8fe717; CI on latest PR HEAD must be rechecked
 production_status: NOT DEPLOYED
 
-## Verified main
-- POS-001 (PR #5), POS-002/POS-004 (PR #3) merged.
-- POS-007 Electron (PR #8) merged; Windows application window launched per developer.
-- POS-008 Fastify health (PR #10) merged; Windows /v1/health returned status ok.
-- POS-009 Neon dev-only read probe (PR #12 + fix PR #13) merged; developer confirmed `SELECT 1 succeeded (TLS connection)`, issue #11 closed. **No schema migration was run on Neon.**
-- [POS-010 PR #15](https://github.com/dinhkhoiIT15/smartpos/pull/15) merged into main SHA [`c16382008b17`](https://github.com/dinhkhoiIT15/smartpos/commit/c16382008b17eb18fdeaa2d2eb90b1eec1a8b595); Issue #14 closed. Zod decimal-string money and bigint domain tests passed.
-- `verified_commit` is the inspected main commit, **not** the POS-012 branch head.
+## Locked business baseline
+- One electronics store, one authorized offline cashier device, cash only, no IMEI; internal receipt is NOT a VAT/tax invoice.
+- Integer/bigint VND, immutable paid sale, atomic SQLite sale/items/CASH payment/local stock/outbox event, server idempotency and audit-preserving conflict handling.
+- Electron main owns local filesystem/SQLite, renderer only receives narrow validated IPC; Neon connection credentials belong on API only.
+- Approved PRD, BUSINESS_RULES, SYSTEM_ARCHITECTURE, DATABASE_SCHEMA and OFFLINE_SYNC_DESIGN unchanged in POS-013.
 
-## Current POS-012 feature (not Done)
-- [POS-012 Issue #16](https://github.com/dinhkhoiIT15/smartpos/issues/16); [draft PR #17](https://github.com/dinhkhoiIT15/smartpos/pull/17) on `feature/POS-012-postgres-migration-v1`, not merged.
-- Drizzle ORM v0.45.4 / Kit v0.31.11, code-first 17 PostgreSQL tables matching the locked schema baseline, checked-in initial SQL, migration snapshot + journal.
-- Enforced PK/FK, same-store constraints, partial unique index on active offline device, unique SKU, nonnegative VND, line-level amount consistency, cash-only payment/change consistency. Immutable/append-only triggers protect posted sale history and financial audit rows.
-- Script `migrate:dev` requires explicit confirmation and reads only ignored local API `.env`; **not executed on Neon**. No production credentials, migrations, or data used.
-- CI on branch checkpoint `d730d6babd1693d7ddeade68e97902c5b4bfdc9c`: [Foundation & PostgreSQL tests](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42165991774) and [Docs checks](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42165991788) SUCCEEDED. Disposable PostgreSQL 16 created 17 tables, reapplied migration idempotently, tested SKU/tenant FKs/cash checks/posted immutability and append-only audit; 4/4 migration tests passed. Recheck CI on any later HEAD.
-- Manual Neon development migration remains pending explicit human review and approval. No real sale or inventory data created.
+## Verified main and developer acceptance
+- POS-001 PR #5, POS-002/POS-004 PR #3 merged.
+- POS-007 Electron demo PR #8 merged; developer confirmed Windows window launched; [Issue #7](https://github.com/dinhkhoiIT15/smartpos/issues/7) remains open pending explicit IPC smoke closure.
+- POS-008 Fastify /v1/health PR #10 merged and Windows health response confirmed; Issue #9 closed.
+- POS-009 Neon development read-only probe PR #12/#13 merged and user confirmed SELECT 1 succeeded via TLS; Issue #11 closed.
+- POS-010 shared contracts and bigint VND PR #15 merged; Issue #14 closed.
+- POS-012 PostgreSQL migration PR #17 merged to verified [main SHA `85744631`](https://github.com/dinhkhoiIT15/smartpos/commit/857446310b0b1ba61bb27374fac3c13f3dc94050); Issue #16 closed. Developer reported **17 public tables + one Drizzle history entry** after manually applying migration to a separate Neon development branch, not production. CI PostgreSQL 16 migration 4/4 tests also passed.
+- `verified_commit` is the GitHub main SHA observed at session start; feature branch commits have different SHAs.
 
-## Open boundaries and work
-- PostgreSQL is central database only; SQLite local migration (POS-013), domain services, receipt posting and sync remain future issues.
-- Matching sum of all sale items to sale total, current cashier authorization and negative-stock reconciliation still require transactional API services; bare schema does not guarantee those application invariants.
-- M0 governance remains: POS-003 GitHub board/backlog, POS-005 branch protection by owner/admin, POS-006 handoff drill.
+## POS-013 current implementation (PR #19, not done)
+- [Issue #18](https://github.com/dinhkhoiIT15/smartpos/issues/18), [draft PR #19](https://github.com/dinhkhoiIT15/smartpos/pull/19), branch `feature/POS-013-local-sqlite-v1`.
+- Uses Node 24 built-in `node:sqlite` in Electron main; **release candidate** stability 1.2. No additional native addon/lockfile update; owner must approve [ADR-0003](../docs/ADR-0003-local-sqlite-driver.md) with real Windows/macOS smoke evidence.
+- Embedded versioned migration creates nine SQLite tables (journal, device metadata, SKU cache, inventory server+pending state, sales/items/CASH payments, outbox, cursor) with FK/CHECK, signed INTEGER VND and immutable financial/outbox triggers.
+- Local file stored only under Electron `userData`; database is initialized on launch, no query path or DB handle is bridged to React. Existing guarded getAppInfo IPC exposes only `localSchemaVersion`.
+- WAL + FULL synchronous, quick_check, schema compatibility guard, transaction helper and WAL-safe snapshot helper. Snapshot backups remain **unencrypted**; encryption/backup policy unresolved before pilot.
+- Node24 CI test suite 6/6 passed at checkpoint `9568cc888beaa1788c0452282b01cf5d7a8fe717` (rollback, reopen, money/FK, future/unknown schema, WAL backup). Existing API/Electron checks passed; latest PR HEAD must be rechecked after subsequent docs.
+- **NOT verified:** Windows/macOS real Electron runtime after SQLite integration, IPC `SQLite schema v1` button and second launch, production backup encryption/recovery.
+- No real sales, auth, sync, SQLite customer data, production Neon changes or deployment.
 
-## Next actions
-1. Re-fetch latest PR #17 HEAD and verify frozen pnpm CI + PostgreSQL migration tests and docs checks.
-2. Review generated SQL, its custom history guards and the [forward-fix plan](../packages/db/README.md); get peer/owner approval.
-3. Only after explicit user approval and selection of disposable Neon development branch, developer may run guarded migration CLI locally, then verify table list and migration log.
-4. Do **not** run production migration or infer Neon DDL was executed from CI. Update main SHA/handoff after merge.
+## Next actions and governance
+1. Verify latest PR #19 CI, including file-backed tests and all prior PostgreSQL/Fastify/Electron checks.
+2. Developer checks out feature branch; tests Windows Electron startup, IPC schema version, close/reopen persistence without entering real sale data.
+3. Review PR and ADR; after CI and human smoke, merge and close POS-013 Issue #18.
+4. Then plan POS-011 offline staff/device authorization, POS-014/015 services, POS-017 catalog cache, POS-019 atomic sale path.
+5. M0 outstanding: POS-003 GitHub backlog+Project board; POS-005 owner/admin branch protection; POS-006 fresh-session handoff drill. Do not treat stale Markdown snapshots as live GitHub state.
