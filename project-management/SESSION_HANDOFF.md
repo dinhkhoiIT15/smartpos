@@ -17,8 +17,8 @@
 - Temporary generation workflow was removed after committing the generated SQL, snapshot, journal and actual pnpm lockfile.
 
 ## Test evidence and remaining gate
-- On feature checkpoint `00a985cfddea6ad61630a85762d68fb0a5d59c26`: [PostgreSQL CI run 42165675077](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42165675077) built fresh PostgreSQL 16 and passed 4/4 database tests; typecheck, existing API + Electron checks passed.
-- New immutability/audit regression tests and docs commits were added after that checkpoint; **verify newest PR #17 HEAD CI** before marking ready for review.
+- On feature checkpoint `d730d6babd1693d7ddeade68e97902c5b4bfdc9c`: [Foundation CI run 42165991774](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42165991774) PASSED (PostgreSQL 16 migration 4/4 tests including immutability, TypeScript, existing API/Electron), [Docs CI run 42165991788](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42165991788) PASSED.
+- The test source and migration were verified at that checkpoint; any subsequent documentation-only commits require a **newest PR #17 HEAD CI** recheck.
 - No test has used the developer's Neon database. SQLite, online checkout, sync APIs are not implemented.
 
 ## Next session
