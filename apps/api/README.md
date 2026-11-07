@@ -1,72 +1,68 @@
-# SmartPOS API — POS-008 Fastify Foundation
+# SmartPOS API — Fastify foundation and POS-014 catalog service
 
-**Status:** POS-008 health API merged. POS-009 adds an optional read-only Neon **development** connection CLI in an open PR. Not production-ready; no database migrations, authentication, catalog, sales or sync.
+**Status:** POS-008 health and POS-009 Neon development diagnostics merged; POS-012 PostgreSQL v1 migration applied to **Neon development only** by owner. POS-014 catalog/variants live under a [reviewable PR #26](https://github.com/dinhkhoiIT15/smartpos/pull/26), **but are not enabled in the normal API entrypoint because real staff authentication has not yet been implemented**. No deployed catalog writes, checkout or cloud sync.
 
-## Requirements
+## Requirements / run health API
 
-Node.js 24.x and pnpm 10.20.0. From the **repository root**:
+Node.js **24.x** and pnpm **10.20.0**. From the repository root:
 
 ```powershell
 pnpm install --frozen-lockfile
 pnpm --filter @smartpos/api dev
 ```
 
-On Windows PowerShell in a **second terminal**:
+In a second Windows PowerShell terminal:
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:3001/v1/health
 ```
 
-Or open `http://127.0.0.1:3001/v1/health` in a browser.
+Expected JSON: `{"status":"ok","service":"smartpos-api"}`. This only verifies Fastify liveness, **not** Neon readiness or a POS checkout.
 
-Expected JSON:
+The server binds `127.0.0.1:3001`. To explicitly choose another port set `$env:API_PORT="3101"` before starting. Stop with `Ctrl+C`.
 
-```json
-{"status":"ok","service":"smartpos-api"}
-```
+## POS-014 catalog service — what's available in code
 
-This endpoint reports **Fastify process liveness only**. It DOES NOT verify Neon connectivity, migrations, offline sync, or POS functionality.
+- `src/catalog/schemas.ts`: Zod validation; normalized uppercase SKU; deterministic variant attributes; nonnegative canonical VND bigint-decimal strings (never JSON numbers).
+- `src/catalog/service.ts`: store-scoped PostgreSQL create/update/soft-deactivate for categories/brands/products/variants, get/list/search, SKU and attribute uniqueness, optimistic variant revisions, audit + catalog delta transaction.
+- `src/catalog/routes.ts`: Fastify HTTP route definitions **only** if injected with an externally **trusted** authenticated principal resolver. ADMIN/MANAGER write, CASHIER read only. No `x-role` or untrusted `storeId` header can grant privileges.
+- `src/main.ts`: still starts `buildServer({logger:true})` **without registering the catalog routes**. This fail-closed default is intentional while D-013 real authentication/OS keys and POS-025 RBAC remain unimplemented.
 
-The default API server binds `127.0.0.1:3001` for local development (not public `0.0.0.0`). To use another port in PowerShell:
+### Catalog route surface (not exposed by main.ts yet)
 
-```powershell
-$env:API_PORT="3101"
-pnpm --filter @smartpos/api dev
-```
+| Method | Path | Operation |
+|---|---|---|
+| POST / PATCH | `/v1/catalog/categories`, `/v1/catalog/categories/:id` | Add / rename category |
+| POST / PATCH | `/v1/catalog/brands`, `/v1/catalog/brands/:id` | Add / rename brand |
+| POST / PATCH | `/v1/catalog/products`, `/v1/catalog/products/:id` | Add / update or deactivate product |
+| GET | `/v1/catalog/products`, `/v1/catalog/products/:id` | Search/list / get product |
+| POST / PATCH | `/v1/catalog/variants`, `/v1/catalog/variants/:id` | Add / price/attributes/active update with expectedRevision |
+| GET | `/v1/catalog/variants`, `/v1/catalog/variants/:id` | Search/list / get variant |
 
-macOS/Linux: `API_PORT=3101 pnpm --filter @smartpos/api dev`. Port must be an integer in the 1..65535 range.
+**Intentional 404:** normal `GET /v1/catalog/products` returns 404, because no verified server session resolver exists. Do not enable open admin CRUD routes as a workaround. The test harness uses Fastify `inject()` and explicitly supplied synthetic principals without listening on the network.
 
-## Build, test and start compiled server
+## Run tests and Windows acceptance
 
 ```powershell
 pnpm --filter @smartpos/api typecheck
-pnpm --filter @smartpos/api build
+pnpm --filter @smartpos/api test:catalog
 pnpm --filter @smartpos/api test
+pnpm --filter @smartpos/db schema:check
+```
+
+Expected `fail 0` for Node test suites, no TypeScript errors, Drizzle `Everything's fine`. See [POS-014 acceptance checklist](../../docs/POS-014_CATALOG_ACCEPTANCE.md) for exact commands and expected results. These Windows tests **do not write to Neon** or create real shop products.
+
+GitHub CI separately runs `pnpm --filter @smartpos/api test:catalog:pg` on a **disposable PostgreSQL 16 database**, after Drizzle migrations, to verify store FK isolation, duplicate SKU/attributes, price bigint, audit rollback, price revision conflict and soft deactivation. That test is guarded to `127.0.0.1/smartpos_ci`; **never** point it at Neon or production.
+
+## Build and optional Neon diagnostic
+
+```powershell
+pnpm --filter @smartpos/api build
 pnpm --filter @smartpos/api start
 ```
 
-- `build`: strict TypeScript compilation to `apps/api/dist`.
-- `test`: builds and executes Node `node:test` tests with `Fastify.inject()`, without opening a TCP port.
-- `start`: runs compiled JavaScript, bound to loopback by default.
-- Stop dev/start server with `Ctrl+C`.
+`build` compiles strict TypeScript; `start` serves loopback health. If a developer needs the **read-only** Neon development `SELECT 1` diagnostic, follow [Neon checklist](../../docs/NEON_SETUP.md) and run `pnpm --filter @smartpos/api db:check`. Connection string must remain in locally ignored `apps/api/.env`; do not paste or share it. This CLI does not migrate or write data.
 
-## Optional Neon development connection check (POS-009)
+## Next milestones
 
-Follow the [Neon setup checklist](../../docs/NEON_SETUP.md). Keep all passwords in `apps/api/.env` locally and out of Git/ChatGPT.
-
-```powershell
-Copy-Item .\apps\api\.env.example .\apps\api\.env
-notepad .\apps\api\.env
-pnpm --filter @smartpos/api db:check
-```
-
-Expected: `Neon development database: SELECT 1 succeeded (TLS connection).`. Never share connection strings, screenshots showing credentials or the .env file. `db:check` is a read-only CLI, **not** an unauthenticated API route. `/v1/health` stays independent of the database.
-
-## Source layout and next steps
-
-- `src/server.ts`: factory, route and no-store response; no real database dependency.
-- `src/config.ts`: validated port and explicit loopback host.
-- `src/main.ts`: starts API listener and fails on invalid port.
-- `src/server.test.ts`: happy-path, 404, safe response and invalid port regression.
-
-POS-009 introduces Neon development connectivity in an opt-in server-only CLI; actual developer credential setup is not automated. POS-010 introduces shared DTO/Zod contracts, POS-012 PostgreSQL migrations and later POS-016/021 sync endpoints. Never put `DATABASE_URL` or authentication secrets in the renderer or repository.
+POS-015 audited stock adjustments, POS-016 versioned sync contracts, POS-017 SQLite catalog cache, real staff authentication/RBAC, POS-019 checkout and POS-021 push synchronization are separate work. No customer payment data or production deployment is permitted as part of POS-014.
