@@ -9,7 +9,7 @@ repo_connection: CONFIRMED — GitHub collaborator may create branches/Issues/PR
 last_github_synced_at: MANUAL GITHUB REVIEW 2026-11-07
 current_milestone: M2 — local catalog cache
 current_phase: POS-017 initial trusted catalog snapshot + SQLite local SKU lookup — feature branch pending CI/owner acceptance
-ci_status: POS-017 latest feature HEAD NOT YET VERIFIED; do not infer CI from prior POS-016 runs
+ci_status: POS-017 code checkpoint 5f8231d Foundation CI 42394398241 SUCCESS (Linux/Windows local SQLite 7+6, API/Electron/PostgreSQL), Docs CI 42394398264 SUCCESS; recheck latest HEAD after documentation-only updates
 production_status: NOT DEPLOYED — no live auth, checkout, sync route, worker or Neon writes
 
 ## Verified accepted milestones and main source of truth
@@ -31,11 +31,11 @@ production_status: NOT DEPLOYED — no live auth, checkout, sync route, worker o
 - New disposable Node 24 tests for persistence/reopen, fault rollback, collisions, cross-store, invalid money/cursor, replay, pending evidence preservation. Both Linux and Windows CI configured to run suite.
 - No runtime API, network importer, renderer IPC or authentication bypass; real source verification and incremental pull belong to POS-023/D-013.
 - Acceptance guide: [POS-017_CATALOG_CACHE_ACCEPTANCE](../docs/POS-017_CATALOG_CACHE_ACCEPTANCE.md).
-- **Verification not complete**: owner Windows and latest feature commit CI remain pending. Do not mark Issue/PR Done or merge automatically.
+- **GitHub CI verification:** [Foundation run 42394398241](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42394398241) succeeded on code checkpoint 5f8231d, including cache 6/6 and baseline 7/7 on Linux + Windows, full API/Electron/PostgreSQL. [Docs run 42394398264](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42394398264) succeeded. Owner local Windows acceptance remains pending; verify CI on any subsequent docs-only HEAD before merge. Do not mark Issue/PR Done or merge automatically.
 
 ## Next
 
-1. Check GitHub Actions on latest POS-017 HEAD for Node 24 typecheck + new cache suite, SQLite baseline on Windows/Linux, Electron security/build, API/contract tests and disposable PostgreSQL 16.
+1. CI passed on 5f8231d; recheck GitHub Actions after documentation-only updates on the final POS-017 PR HEAD.
 2. Developer Windows: `pnpm install --frozen-lockfile`, `pnpm --filter @smartpos/desktop typecheck`, `pnpm --filter @smartpos/desktop test:local-db`, `pnpm --filter @smartpos/desktop test:catalog-cache`, `pnpm --filter @smartpos/desktop security:check`, `pnpm --filter @smartpos/desktop build`, `pnpm run check`; optional existing demo window.
 3. Owner reviews and merges feature PR only after all acceptance evidence; then close Issue #31.
 4. POS-018 next (cash cart UX/calculator), POS-019 offline sale/outbox; POS-021/022/023 real authenticated sync + reconcile. D-013 and D-009 security/backups remain OPEN. No Neon/production writes for POS-017.
