@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID, createHash } from 'node:crypto';
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -320,6 +322,49 @@ test('committed financial evidence and event payload cannot be edited/deleted',t
   assert.throws(()=>x.db.prepare("UPDATE outbox_events SET payload_hash=?").run('a'.repeat(64)),/immutable/);
   assert.throws(()=>x.db.prepare('DELETE FROM outbox_events').run(),/cannot be deleted/);
   assert.deepEqual(allCounts(x.db),[1,2,1,1]);
+});
+
+test('real child process kill before COMMIT restores all tables and stock after SQLite WAL reopen', async t=>{
+  const x=fixture(t),req=x.request();
+  const fixturePath=fileURLToPath(new URL('./fixtures/offline-sale-crash-child.mjs',import.meta.url));
+  const child=spawn(process.execPath,
+    ['--experimental-strip-types',fixturePath,x.file,JSON.stringify(req)],
+    {stdio:['ignore','pipe','pipe']});
+  let stderr='',gotBoundary=false,output='';
+  await new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>{
+      child.kill('SIGKILL');
+      reject(new Error('POS-019 crash-child did not reach pre-COMMIT boundary: '+stderr.slice(0,500)));
+    },20_000);
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data',data=>{
+      output+=data;
+      if(!gotBoundary && output.includes('POS019_BEFORE_COMMIT')) {
+        gotBoundary=true;
+        child.kill('SIGKILL');
+      }
+    });
+    child.stderr.on('data',data=>{stderr+=data;});
+    child.once('error',error=>{clearTimeout(timer);reject(error);});
+    child.once('exit',(code,signal)=>{
+      clearTimeout(timer);
+      if(!gotBoundary) reject(new Error('Child failed before COMMIT boundary: '+stderr.slice(0,700)));
+      else if(code===0) reject(new Error('Child unexpectedly exited cleanly'));
+      else resolve();
+    });
+  });
+  // Parent closes/reopens to force physical SQLite WAL recovery, not merely
+  // reading a still-open handle; all stock and sales must be unchanged.
+  x.db.close();
+  const reopened=x.open();
+  assert.deepEqual(allCounts(reopened),[0,0,0,0]);
+  assert.equal(pending(reopened,x.ids.phoneId),0n);
+  assert.equal(pending(reopened,x.ids.caseId),0n);
+  assert.equal(count(reopened,'local_catalog_variants'),2);
+  assert.equal(count(reopened,'sync_cursors'),1);
+  assert.equal(commitLocalCashSale(reopened,req).replay,false);
+  assert.deepEqual(allCounts(reopened),[1,2,1,1]);
 });
 
 test('parser normalizes nothing silently: canonical IDs, exact fields, price and cache revision required',t=>{
