@@ -67,7 +67,7 @@ test('initial import is atomic, restart durable and local SKU lookup returns big
   assert.equal(exact[0].serverRevision, '2');
   assert.equal(typeof exact[0].priceVnd, 'string');
   assert.deepEqual(lookupLocalCatalogBySku(db, snapshot.storeId, 'ABC').map((row) => row.sku),
-    ['ABCX1', 'ABC_1'].sort((a, b) => a.localeCompare(b, 'en'))); 
+    ['ABCX1', 'ABC_1']); 
   assert.deepEqual(lookupLocalCatalogBySku(db, snapshot.storeId, 'OFF'), []);
   db.close();
   db = open();
