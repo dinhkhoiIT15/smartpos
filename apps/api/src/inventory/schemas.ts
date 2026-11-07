@@ -7,10 +7,10 @@ import { z } from 'zod';
 export const MAX_QTY = 9_223_372_036_854_775_807n;
 export const MIN_QTY = -9_223_372_036_854_775_808n;
 
-export const quantityDeltaSchema = z.string()
+export const quantityDeltaSchema = z.string().max(20)
   .regex(/^-?[1-9][0-9]*$/, 'quantity must be a nonzero canonical signed integer string')
   .refine(
-    (value) => /^-?[1-9][0-9]*$/.test(value) &&
+    (value) => value.length <= 20 && /^-?[1-9][0-9]*$/.test(value) &&
       BigInt(value) >= MIN_QTY && BigInt(value) <= MAX_QTY,
     'quantity is outside signed BIGINT range',
   );
@@ -26,7 +26,8 @@ export const adjustInventorySchema = z.strictObject({
 }).superRefine((input, ctx) => {
   // Zod may evaluate this refinement after an earlier regex failure.
   // Never call BigInt on malformed untrusted strings.
-  if (!/^-?[1-9][0-9]*$/.test(input.deltaQty)) return;
+  if (typeof input.deltaQty !== 'string' || input.deltaQty.length > 20 ||
+    !/^-?[1-9][0-9]*$/.test(input.deltaQty)) return;
   const delta = BigInt(input.deltaQty);
   if (input.kind === 'RECEIPT' && delta <= 0n) {
     ctx.addIssue({ code: 'custom', path: ['deltaQty'], message: 'receipt requires positive quantity' });
