@@ -1,0 +1,14 @@
+{
+  "protocolVersion": 1,
+  "deviceId": "a1111111-1111-4111-8111-111111111111",
+  "results": [
+    {
+      "eventId": "e5555555-5555-4555-8555-555555555555",
+      "saleId": "f6666666-6666-4666-8666-666666666666",
+      "status": "ACKED",
+      "resultCode": "APPLIED",
+      "serverReceivedAt": "2026-11-07T08:15:00.000Z",
+      "conflictIds": []
+    }
+  ]
+}
