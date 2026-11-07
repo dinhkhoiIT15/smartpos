@@ -1,48 +1,52 @@
 # Session Handoff — SmartPOS
 
-## POS-018 cash cart preview — 2026-11-08
+## 2026-11-08: POS-019 atomic offline cash sale storage core
 
-- Repo: https://github.com/dinhkhoiIT15/smartpos
-- GitHub verified `main` SHA `28d38555d358c0fad012702a529fbd0c2bffb5d3` is [POS-017 PR #32](https://github.com/dinhkhoiIT15/smartpos/pull/32) merged and owner Windows PASS. POS-016/#30 and preceding merged work accepted.
-- Current [POS-018 Issue #33](https://github.com/dinhkhoiIT15/smartpos/issues/33), branch `feature/POS-018-cash-cart-preview`, **NOT MERGED**. `DEVELOPMENT_STATUS.verified_commit` is verified main not feature HEAD.
+**Verified GitHub main:** `fef16b3083a7e6f1fc691bae122820bdd81c8597`, merged owner-accepted [POS-018 PR #34](https://github.com/dinhkhoiIT15/smartpos/pull/34). POS-017 merged #32; POS-018 Issue #33 now closed. Development status's `verified_commit` tracks **main**, not the POS-019 branch.
 
-## Changed scope
+**Current branch:** `feature/POS-019-atomic-offline-sale`, [Issue #35](https://github.com/dinhkhoiIT15/smartpos/issues/35), [draft PR #36](https://github.com/dinhkhoiIT15/smartpos/pull/36); **NOT MERGED** until owner accepts Windows.
 
-- `packages/domain/src/index.ts` factors `calculateCartAmounts` so both cash calculation and pre-tender totals use one bigint arithmetic source.
-- `packages/domain/src/cart.ts` pure cart APIs add/merge/update/remove/preview/format. Immutable price/name/SKU/attributes snapshots, exact VND decimal strings, max 100 lines/quantity 2,147,483,647, validated synthetic available stock, detect duplicate/stale variant, insufficient tender/overflow; **not persisted**.
-- `packages/domain/src/cart.test.ts` 7 unit cases with 9.340.000→9.500.000→160.000 business example.
-- `apps/desktop/src/renderer/src/app.tsx` and `styles.css`: responsive demo cart tab with SKU search, static synthetic catalog, quantity controls, cash input, shortfall/change. Huge DEMO warning and no payment-complete button.
-- `apps/desktop/package.json`, `packages/domain/package.json`, `pnpm-lock.yaml`: existing workspace dependency `@smartpos/domain/cart`, no new external package. Windows CI domain tests and desktop TS; existing Linux CI remains.
-- [Full Windows acceptance](../docs/POS-018_CASH_CART_ACCEPTANCE.md), relevant README and traceability. [Draft PR #34](https://github.com/dinhkhoiIT15/smartpos/pull/34).
-- No change to SQLite schema, local device real data, Neon, server authentication, Fastify, sales, payments, outbox or actual stock. Demo renderer fixture is not authorized source data; POS-019 must reverify real sale inputs in MAIN under authenticated device/cashier.
+## Code changed
 
-## CI checkpoint
+- New MAIN-only `apps/desktop/src/main/local-db/offline-sale.ts`: pure internal storage with no runtime UI/IPC entry point. Strict sale request parser; catalog SKU/name/attributes/price/revision + cursor and device metadata scoped checks; read stock as bigint; exact cash totals; update only `pending_delta`; insert immutable sale, items, CASH payment, POS-016-compatible `SALE_COMPLETED` canonical hash outbox event `PENDING` atomically via existing `withLocalTransaction`. Exact sale retry checks original payment+sale+event and does not double debit stock; changed IDs/data denied. Zero new migrations/dependencies.
+- New `apps/desktop/tests/offline-sale.test.mjs` **15** file-backed tests with temp cleanup (Windows-safe), late outbox/payment failure injection and rollback, reopen, idempotency/collisions, wrong store/device, insufficient/stale catalog/stock/cash, bigint > 2^53 and overflow, immutable financial evidence.
+- New `apps/desktop/tests/offline-sale-wire.test.ts` **1** exact POS-016 `syncSaleCompletedEventSchema` / PUSH validation + `computeSyncPayloadHash`. Uses `@smartpos/contracts`'s existing `tsx` via desktop script; not linked into runtime.
+- Updated `apps/desktop/package.json` scripts `test:offline-sale`, `test:offline-sale:wire`. Linux + Windows CI execute both, existing M0/DB/API/PostgreSQL tests unchanged.
+- [Windows acceptance + security](../docs/POS-019_OFFLINE_SALE_ACCEPTANCE.md), README, docs traceability, status and handoff.
 
-- POS-018 code `cb8b3d5364cbe52426d1c221ef8abd4e1b65d5de` verified [Foundation CI 42395959688](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42395959688) **SUCCESS**: domain **12/12** Linux + Windows, SQLite **7/7** + catalog cache **6/6**, Electron/TypeScript/security/build, Fastify, disposable PostgreSQL 16. [Docs CI 42395959676](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42395959676) **SUCCESS**.
-- One initial incorrect test expected overflow for `9007199254740993 × 2` despite being below signed-int64; fixed assertion for exact `18014398509481986`. UI now retains correct due when tender string invalid. Recheck latest SHA after docs-only updates. Owner UI smoke not yet done, DO NOT MERGE.
+## CI checkpoints
 
-## Owner checks Windows
+- [Foundation #42397754048](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42397754048) **SUCCESS**: Linux/Windows Node24 offline sale **13/13**, wire **1/1**, existing SQLite 7+6, API/Electron/TS/ephemeral PostgreSQL.
+- [Foundation #42397918186](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42397918186) **SUCCESS** on code revision `68590ba`, after 2 additional negative tests = **15** SQLite cases. Later docs-only commits require latest-HEAD CI confirmation. Do not claim local Windows owner PASS yet.
+
+## Windows command checklist
 
 ```powershell
 git status --short
 git fetch origin
-git switch feature/POS-018-cash-cart-preview
-git pull --ff-only origin feature/POS-018-cash-cart-preview
+git switch feature/POS-019-atomic-offline-sale
+git pull --ff-only origin feature/POS-019-atomic-offline-sale
+node --version
 pnpm install --frozen-lockfile
-pnpm --filter @smartpos/domain typecheck
-pnpm --filter @smartpos/domain test
 pnpm --filter @smartpos/desktop typecheck
 pnpm --filter @smartpos/desktop test:local-db
 pnpm --filter @smartpos/desktop test:catalog-cache
+pnpm --filter @smartpos/desktop test:offline-sale
+pnpm --filter @smartpos/desktop test:offline-sale:wire
 pnpm --filter @smartpos/desktop security:check
 pnpm --filter @smartpos/desktop build
+pnpm --filter @smartpos/contracts test
+pnpm --filter @smartpos/domain test
 pnpm run check
 pnpm --filter @smartpos/desktop dev
 ```
 
-Open **Giỏ hàng & tiền mặt (demo)**. Add `PHONE-128` (8.990.000 ₫) and `CASE-01` (350.000 ₫), due 9.340.000 ₫. Receive `9500000`: change 160.000 ₫. Receive `9000000`: shortfall 340.000 ₫. Invalid decimal/over-limit/malformed input shows validation. Quantity beyond sample stock denied; out-of-stock/inactive disabled. Verify **no real sale** and original `getAppInfo` IPC works. Review code/security and accept only after all CI successful.
+Expected Node24 + pnpm10.20.0; SQLite baseline 7/7, catalog 6/6, new sale 15/15, wire 1/1, other checks all green; Electron **still DEMO_ONLY**, cannot complete payment. Only synthetic OS-temp DB transactions in tests, no calls to Neon or real userData.
 
-## Pending after POS-018
+## Critical blocking dependency
 
-- POS-019 verified offline device/cashier + SQLite transaction (sale/items/payment/stock/outbox), robust retry and abort/crash tests, no completed sale from untrusted renderer calculation. Real staff auth D-013 unresolved.
-- POS-020 internal receipt, POS-021 server idempotent push, POS-022 retry outbox, POS-023 authenticated catalog pulls. No production rollout or Neon writes.
+D-010 four-hour offline grant policy is signed-off **as design only**. D-013 must implement real staff role/shift authorization, server-issued signed offline grant and OS-bound device key proof, known revocation and clock anti-rollback before live payment can be enabled. `local_device_metadata` and `offlineGrantId` are not credentials. Do not wire `commitLocalCashSale` to renderer IPC or demo cart until verified authenticated MAIN orchestrator; do not claim sale receipt/live sync or production-ready payments.
+
+## Next after owner approval
+
+Owner reviews draft PR and CI, passes Windows CLI+demo smoke, merges manually, closes Issue #35. POS-020 internal receipt UI must not falsely claim posted payment without signed authorization; POS-021/022/023 sync and D-013 remain unresolved. Data restore/encryption POS-027/029 pending.
