@@ -4,7 +4,7 @@
 
 | PRD | Nghiệp vụ | Các issue chính | Evidence để Done (dự kiến) |
 |---|---|---|---|
-| FR-01 | Auth / RBAC | POS-011, POS-025, POS-027 | Permission tests + offline session review |
+| FR-01 | Auth / RBAC | [POS-011 #20](https://github.com/dinhkhoiIT15/smartpos/issues/20), POS-025, POS-027 | [ADR-0004](ADR-0004-offline-auth-device-provisioning.md), [threat model](security/POS-011_THREAT_MODEL.md), design-only [reference tests](security/offline-access-reference.test.mjs). Actual API login, signatures, OS keys and Windows E2E remain **UNIMPLEMENTED** |
 | FR-02 | Danh mục, SKU, biến thể | POS-014, POS-017 | Unique SKU + variant CRUD tests |
 | FR-03 | Tồn kho | POS-015, POS-013 | Stock transaction, movement tests |
 | FR-04 | Giỏ hàng | POS-018 | Calculation/quantity tests |
