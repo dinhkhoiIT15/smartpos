@@ -16,3 +16,9 @@ pnpm --filter @smartpos/domain test
 ```
 
 This is an isolated calculation primitive, **not** offline checkout implementation. Atomic SQLite write/outbox, audit, price validation and server reconciliation are future issues.
+
+## POS-018 cart + cash-change preview
+
+`@smartpos/domain/cart` exports `addCartVariant`, `setCartQuantity`, `removeCartVariant`, `previewCashCart` and `formatVnd`. All amounts are canonical decimal VND strings for UI input/output, internally using `bigint`; no float money arithmetic. Duplicate SKU adds quantity; price/attributes are snapshot-locked, with bounded stock and quantity. `calculateCartAmounts` previews subtotal/discount/amount due without inventing a payment; `calculateCashTotals` continues to reject insufficient tender.
+
+This is an in-memory **estimate**, not trusted sale authentication, card processing, persistent checkout or stock mutation. The Electron demo does not call POST APIs, import a real catalog or write sales. Execute `pnpm --filter @smartpos/domain test` to run the unit cases. Review [POS-018 acceptance](../../docs/POS-018_CASH_CART_ACCEPTANCE.md).
