@@ -1,0 +1,315 @@
+openapi: 3.1.0
+info:
+  title: SmartPOS Offline Sync Wire Contract (PROPOSED, NOT DEPLOYED)
+  version: 1.0.0
+  description: |
+    POS-016 contract only. Neither endpoint is registered by normal Fastify.
+    Server/device authentication, PostgreSQL idempotent transactions and
+    Electron SQLite outbox/cursor handling belong to POS-021/022/023.
+    This document is NOT evidence of a working sync API.
+servers:
+  - url: https://api.example.invalid
+    description: Documentation placeholder, NOT a functioning server
+tags:
+  - name: Sync
+    description: Future authenticated offline POS exchange
+security:
+  - bearerAuth: []
+paths:
+  /v1/sync/push:
+    post:
+      tags: [Sync]
+      summary: Upload up to 25 immutable SALE_COMPLETED events (future endpoint)
+      operationId: pushSyncEventsV1
+      description: |
+        Exactly-once **effect** only via PostgreSQL transaction + receipt UNIQUE
+        (device_id,event_id) and UNIQUE(sale_id). All ACKs are server-generated,
+        never inferred from a client event alone. On retry with equal hash return
+        the original stored ACK byte-for-byte (same result/conflicts/timestamp);
+        mismatched hash or reused sale id must be NEEDS_REVIEW, not ACKED.
+        Authenticated device/employee/store/offline grant are checked by server.
+        A NEEDS_REVIEW or RETRY result must not delete an outbox event.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PushRequest'
+      responses:
+        '200':
+          description: Per-event acknowledged/review/retry outcomes in input order
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PushResponse'
+        '400':
+          description: Invalid input or unsupported schema version; preserve outbox
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SyncError' }
+        '401':
+          description: Authentication failed; reauthenticate online
+        '403':
+          description: Device/store/role not authorized; quarantine pending events
+        '413':
+          description: Batch too large; split and retry without modifying sale IDs
+        '429':
+          description: Rate limited, use backoff
+        '503':
+          description: Temporarily unavailable, retry with same event IDs
+  /v1/sync/pull:
+    get:
+      tags: [Sync]
+      summary: Page forward through global catalog-change sequence (future endpoint)
+      operationId: pullSyncChangesV1
+      description: |
+        Cursor represents a global monotonically increasing sequence. Results
+        are filtered by authenticated store, never a client-supplied storeId.
+        Client must apply ALL page changes to SQLite atomically with advancing
+        nextCursor; on crash/retry the old cursor is re-used. The server's
+        highWatermark is a stable upper bound for this page. If hasMore=false,
+        nextCursor equals highWatermark; if hasMore=true, nextCursor equals
+        the last returned change.seq.
+        Inventory balance delta materialization is POS-023 scope.
+      parameters:
+        - in: query
+          name: cursor
+          schema: { $ref: '#/components/schemas/Cursor' }
+          required: false
+          description: Defaults to "0"
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 100
+      responses:
+        '200':
+          description: Page with strictly increasing change sequence
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PullResponse' }
+        '400':
+          description: Invalid cursor/limit
+        '401':
+          description: Authentication required
+        '403':
+          description: Store/device access denied
+        '503':
+          description: Temporarily unavailable
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: OpaqueAccessToken
+      description: |
+        Server-issued credential supplied in Authorization header, never inside
+        event payload or SQLite catalog data. Auth not yet implemented.
+  schemas:
+    Uuid:
+      type: string
+      format: uuid
+    Cursor:
+      type: string
+      pattern: '^(0|[1-9][0-9]*)$'
+      maxLength: 19
+      description: Canonical signed BIGINT-range nonnegative decimal string; compare with bigint
+    MoneyVnd:
+      type: string
+      pattern: '^(0|[1-9][0-9]*)$'
+      maxLength: 19
+      description: Nonnegative PostgreSQL BIGINT VND as canonical JSON string, never number
+    UtcMs:
+      type: string
+      format: date-time
+      pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$'
+    Sha256:
+      type: string
+      pattern: '^[a-f0-9]{64}$'
+    SaleItemSnapshot:
+      type: object
+      additionalProperties: false
+      required: [itemId, variantId, skuSnapshot, nameSnapshot, attributesSnapshot, quantity, unitPriceVnd, discountVnd, lineTotalVnd]
+      properties:
+        itemId: { $ref: '#/components/schemas/Uuid' }
+        variantId: { $ref: '#/components/schemas/Uuid' }
+        skuSnapshot: { type: string, minLength: 1, maxLength: 64 }
+        nameSnapshot: { type: string, minLength: 1, maxLength: 200 }
+        attributesSnapshot:
+          type: object
+          maxProperties: 8
+          additionalProperties: { type: string, minLength: 1, maxLength: 64 }
+        quantity: { type: integer, minimum: 1, maximum: 2147483647 }
+        unitPriceVnd: { $ref: '#/components/schemas/MoneyVnd' }
+        discountVnd: { $ref: '#/components/schemas/MoneyVnd' }
+        lineTotalVnd: { $ref: '#/components/schemas/MoneyVnd' }
+    CashPayment:
+      type: object
+      additionalProperties: false
+      required: [method, dueVnd, tenderedVnd, changeVnd]
+      properties:
+        method: { type: string, const: CASH }
+        dueVnd: { $ref: '#/components/schemas/MoneyVnd' }
+        tenderedVnd: { $ref: '#/components/schemas/MoneyVnd' }
+        changeVnd: { $ref: '#/components/schemas/MoneyVnd' }
+    SaleSnapshot:
+      type: object
+      additionalProperties: false
+      required: [status, totalVnd, items, payment]
+      properties:
+        status: { type: string, const: POSTED }
+        totalVnd: { $ref: '#/components/schemas/MoneyVnd' }
+        items:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { $ref: '#/components/schemas/SaleItemSnapshot' }
+        payment: { $ref: '#/components/schemas/CashPayment' }
+      description: |
+        Server must validate lineTotal = quantity * unitPrice - discount,
+        total = sum(lineTotal), due=total, tendered>=due and
+        change=tendered-due using BigInt, with signed-64 overflow protection.
+    SaleCompletedEvent:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, eventType, eventId, saleId, storeId, deviceId, cashierId, offlineGrantId, clientCreatedAt, catalogRevision, sale, payloadHash]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        eventType: { type: string, const: SALE_COMPLETED }
+        eventId: { $ref: '#/components/schemas/Uuid' }
+        saleId: { $ref: '#/components/schemas/Uuid' }
+        storeId: { $ref: '#/components/schemas/Uuid' }
+        deviceId: { $ref: '#/components/schemas/Uuid' }
+        cashierId: { $ref: '#/components/schemas/Uuid' }
+        offlineGrantId: { $ref: '#/components/schemas/Uuid' }
+        clientCreatedAt: { $ref: '#/components/schemas/UtcMs' }
+        catalogRevision: { $ref: '#/components/schemas/Cursor' }
+        sale: { $ref: '#/components/schemas/SaleSnapshot' }
+        payloadHash: { $ref: '#/components/schemas/Sha256' }
+      description: |
+        Hash = lowercase hex SHA-256(UTF8(sorted-key canonical JSON of every
+        event field EXCEPT payloadHash)). Integrity only, NOT authentication.
+    PushRequest:
+      type: object
+      additionalProperties: false
+      required: [protocolVersion, deviceId, events]
+      properties:
+        protocolVersion: { type: integer, const: 1 }
+        deviceId: { $ref: '#/components/schemas/Uuid' }
+        events:
+          type: array
+          minItems: 1
+          maxItems: 25
+          items: { $ref: '#/components/schemas/SaleCompletedEvent' }
+      description: |
+        Max serialized JSON size 512 KiB. Duplicate eventId or saleId, mixed
+        device/store in one batch rejected. Requires real server auth.
+    PushAck:
+      type: object
+      additionalProperties: false
+      required: [eventId, saleId, status, resultCode, serverReceivedAt, conflictIds]
+      properties:
+        eventId: { $ref: '#/components/schemas/Uuid' }
+        saleId: { $ref: '#/components/schemas/Uuid' }
+        status: { type: string, const: ACKED }
+        resultCode:
+          type: string
+          enum: [APPLIED, STOCK_SHORTAGE_RECONCILIATION, STALE_PRICE_REVIEW]
+        serverReceivedAt: { $ref: '#/components/schemas/UtcMs' }
+        conflictIds:
+          type: array
+          maxItems: 20
+          items: { $ref: '#/components/schemas/Uuid' }
+    PushNeedsReview:
+      type: object
+      additionalProperties: false
+      required: [eventId, saleId, status, resultCode, conflictIds]
+      properties:
+        eventId: { $ref: '#/components/schemas/Uuid' }
+        saleId: { $ref: '#/components/schemas/Uuid' }
+        status: { type: string, const: NEEDS_REVIEW }
+        resultCode:
+          type: string
+          enum: [PAYLOAD_HASH_MISMATCH, INVALID_EVENT, AUTH_EXPIRED, REVOKED_DEVICE, DUPLICATE_SALE, UNAUTHORIZED_DEVICE, UNSUPPORTED_VERSION]
+        conflictIds:
+          type: array
+          maxItems: 20
+          items: { $ref: '#/components/schemas/Uuid' }
+    PushRetry:
+      type: object
+      additionalProperties: false
+      required: [eventId, saleId, status, resultCode, retryAfterSeconds]
+      properties:
+        eventId: { $ref: '#/components/schemas/Uuid' }
+        saleId: { $ref: '#/components/schemas/Uuid' }
+        status: { type: string, const: RETRY }
+        resultCode: { type: string, const: TEMPORARY_UNAVAILABLE }
+        retryAfterSeconds: { type: integer, minimum: 1, maximum: 3600 }
+    PushResult:
+      oneOf:
+        - { $ref: '#/components/schemas/PushAck' }
+        - { $ref: '#/components/schemas/PushNeedsReview' }
+        - { $ref: '#/components/schemas/PushRetry' }
+      discriminator:
+        propertyName: status
+    PushResponse:
+      type: object
+      additionalProperties: false
+      required: [protocolVersion, deviceId, results]
+      properties:
+        protocolVersion: { type: integer, const: 1 }
+        deviceId: { $ref: '#/components/schemas/Uuid' }
+        results:
+          type: array
+          minItems: 1
+          maxItems: 25
+          items: { $ref: '#/components/schemas/PushResult' }
+      description: Results match request eventId+saleId in exactly the same order
+    PullChange:
+      type: object
+      additionalProperties: false
+      required: [seq, entityType, entityId, op, payload, createdAt]
+      properties:
+        seq: { $ref: '#/components/schemas/Cursor' }
+        entityType:
+          type: string
+          enum: [category, brand, product, product_variant, inventory_balance]
+        entityId: { $ref: '#/components/schemas/Uuid' }
+        op: { type: string, enum: [CREATE, UPDATE, DEACTIVATE, UPSERT] }
+        payload:
+          description: Entity-specific JSON payload; versioned schema to be finalized in POS-023
+        createdAt: { $ref: '#/components/schemas/UtcMs' }
+    PullResponse:
+      type: object
+      additionalProperties: false
+      required: [protocolVersion, storeId, fromCursor, nextCursor, highWatermark, hasMore, changes]
+      properties:
+        protocolVersion: { type: integer, const: 1 }
+        storeId: { $ref: '#/components/schemas/Uuid' }
+        fromCursor: { $ref: '#/components/schemas/Cursor' }
+        nextCursor: { $ref: '#/components/schemas/Cursor' }
+        highWatermark: { $ref: '#/components/schemas/Cursor' }
+        hasMore: { type: boolean }
+        changes:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/PullChange' }
+      description: |
+        0<=fromCursor<=nextCursor<=highWatermark. Change sequences strictly
+        increase and are within (fromCursor,nextCursor]. With hasMore=true
+        nextCursor is last sequence; with hasMore=false nextCursor equals
+        highWatermark (may skip global sequence gaps for other stores).
+    SyncError:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: string
+          enum: [VALIDATION_ERROR, UNSUPPORTED_VERSION, UNAUTHORIZED, FORBIDDEN, PAYLOAD_TOO_LARGE, RATE_LIMITED, SYNC_UNAVAILABLE]
+        supportedProtocolVersions:
+          type: array
+          items: { type: integer, const: 1 }

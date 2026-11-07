@@ -1,6 +1,6 @@
 # SmartPOS API — Fastify, catalog and POS-015 inventory foundations
 
-**Status:** POS-008 health, POS-009 Neon development read-only probe and POS-014 catalog/variants are merged; POS-012 PostgreSQL schema was applied by owner to **Neon development only**. POS-015 inventory/movements is under [PR #28 review](https://github.com/dinhkhoiIT15/smartpos/pull/28). Catalog AND inventory services are NOT enabled by normal Fastify startup because live staff authentication is not yet implemented. No deployed inventory or catalog writes, real cash checkout or cloud sync.
+**Status:** POS-008 health, POS-009 Neon development read-only probe, POS-014 catalog and POS-015 inventory services **merged and owner accepted**; POS-012 PostgreSQL 17-table schema was applied only to **Neon development** by owner. [POS-016 versioned sync wire PR #30](https://github.com/dinhkhoiIT15/smartpos/pull/30) defines **contracts only**. Catalog/inventory mutation routes and all sync endpoints remain **disabled** in normal Fastify startup pending real authenticated staff/device sessions. No deployed stock/catalog writes, live cash checkout or cloud sync.
 
 ## Requirements / run health API
 
@@ -69,6 +69,17 @@ pnpm --filter @smartpos/db schema:check
 ```
 
 No Neon credentials are needed. Disposable PostgreSQL CI alone runs `pnpm --filter @smartpos/api test:inventory:pg` after installing the POS-012 migration. See the [Windows acceptance guide](../../docs/POS-015_INVENTORY_ACCEPTANCE.md).
+
+## POS-016 future sync API (contract only; HTTP endpoints not registered)
+
+The [shared Zod v1 push/pull contract](../../docs/sync/POS-016_SYNC_CONTRACT.md) and [OpenAPI 3.1](../../docs/sync/openapi-v1.yaml) describe future `POST /v1/sync/push` and `GET /v1/sync/pull` with canonical money/hash, receipt ID matching and monotone cursors. **Neither route is live** in `src/main.ts`: both intentionally return HTTP **404**. This is a security gate while login/device grant verification, sale receipt transactions, outbox retry and SQLite cursor application remain unimplemented (POS-021–023).
+
+```powershell
+pnpm --filter @smartpos/contracts typecheck
+pnpm --filter @smartpos/contracts test
+```
+
+No Postgres/Neon environment variable, migration or live transaction data is required for POS-016 contract acceptance.
 
 ## Build and optional Neon diagnostic
 

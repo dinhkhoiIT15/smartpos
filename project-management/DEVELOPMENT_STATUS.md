@@ -2,37 +2,36 @@
 
 status_schema: 1
 last_reviewed_at: 2026-11-07
-verified_commit: 55659902b89e62a542cb5bb6b62a2c61ad3215e0
+verified_commit: 269f035da106e1ec6787e95c8fd9f91967b7599a
 verified_ref: main
 repository_url: https://github.com/dinhkhoiIT15/smartpos
-repo_connection: CONFIRMED — GitHub collaborator can create branches/PRs, not repository admin
-last_github_synced_at: GITHUB REVIEW 2026-11-07
-current_milestone: M2 — inventory services (M0 governance incomplete)
-current_phase: POS-015 TRANSACTIONAL STOCK MOVEMENTS — DRAFT PR #28, UNMERGED
-ci_status: Early POS-015 CI failed one erroneous role-test expectation; corrected. Latest PR HEAD CI must be rechecked after documentation commits.
-production_status: NOT DEPLOYED — no inventory/customer stock writes to Neon
+repo_connection: CONFIRMED — GitHub collaborator supports branches, Issues, PRs but not admin
+last_github_synced_at: MANUAL GITHUB REVIEW 2026-11-07
+current_milestone: M2 — versioned sync contracts (M0 governance still pending)
+current_phase: POS-016 ZOD + OPENAPI SYNC WIRE V1 — DRAFT PR #30, UNMERGED
+ci_status: POS-016 checkpoint 7af0dddc65008e6a05e9c84dca96fee7056681d1 verified Foundation CI 42392721677 and Docs CI 42392721705 SUCCESS; contracts suite 19/19 PASS; final docs-only HEAD needs recheck
+production_status: NOT DEPLOYED — no real checkout, sync worker, auth or Neon writes
 
-## Verified main and earlier milestone completion
-- POS-001 Node/pnpm monorepo PR #5, POS-002/004 docs & CI PR #3, POS-007 Electron PR #8, POS-008 Fastify health PR #10, POS-009 Neon read-only diagnostics PRs #12/#13, POS-010 Zod/bigint VND PR #15: merged.
-- POS-012 PostgreSQL 17-table Drizzle migration PR #17 merged; owner confirmed 17 tables plus Drizzle migration journal on **Neon development**; no production migration.
-- POS-013 SQLite local schema PR #19 and Windows temporary-file cleanup fix PR #22 merged and user-accepted, Issues #18/#21 closed.
-- POS-011 design PR #23 and four-hour offline authorization policy PR #24 merged; owner approved D-010. Issue #20 closed for DESIGN only. D-013 actual login/OS-key/clock implementation and risk R-005 remain OPEN.
-- [POS-014 PR #26](https://github.com/dinhkhoiIT15/smartpos/pull/26) merged; owner confirmed Windows unit/schema/health/intentional catalog-404 tests pass, [Issue #25](https://github.com/dinhkhoiIT15/smartpos/issues/25) closed. Verified [main SHA `55659902b89e`](https://github.com/dinhkhoiIT15/smartpos/commit/55659902b89e62a542cb5bb6b62a2c61ad3215e0).
-- The `verified_commit` above is **main**, not the POS-015 feature branch HEAD.
+## Verified main and owner-completed work
+- POS-001 Node/pnpm PR #5, POS-002/004 docs/CI PR #3, POS-007 Electron demo PR #8, POS-008 Fastify health PR #10, POS-009 Neon DEV read-only TLS check PR #12/#13, POS-010 Zod/bigint VND contracts PR #15 merged.
+- POS-012 PostgreSQL v1 17-table Drizzle migration PR #17 merged; owner separately verified 17 tables + migration journal in isolated **Neon development**, not production.
+- POS-013 SQLite v1 PR #19 and Windows SQLite cleanup PR #22 merged, user reported all Windows tests/demo accepted. Issues #18/#21 closed.
+- POS-011 offline device/staff authorization DESIGN PRs #23/#24 merged; owner approved D-010 maximum four-hour offline grant policy. Actual login/secure keys/clock anti-rollback remain unimplemented D-013/R-005.
+- POS-014 catalog/SKU service PR #26 merged, Windows accepted, Issue #25 closed. Catalog mutation routes disabled until real authentication exists.
+- [POS-015 inventory PR #28](https://github.com/dinhkhoiIT15/smartpos/pull/28) **merged and owner accepted on Windows**; [Issue #27](https://github.com/dinhkhoiIT15/smartpos/issues/27) CLOSED. Latest verified [main SHA `269f035da106`](https://github.com/dinhkhoiIT15/smartpos/commit/269f035da106e1ec6787e95c8fd9f91967b7599a). Server inventory routes remain disabled absent real login. `verified_commit` refers to actual main, NOT current feature head.
 
-## POS-015 implementation in [draft PR #28](https://github.com/dinhkhoiIT15/smartpos/pull/28)
-- Tracking [Issue #27](https://github.com/dinhkhoiIT15/smartpos/issues/27); branch `feature/POS-015-inventory-transactions`.
-- `apps/api/src/inventory/schemas.ts`: strict Zod manual receipt/issue/correction, canonical signed BIGINT quantity as decimal string, nonzero delta, reason and stable movement UUID idempotency key. Store/role cannot be passed as HTTP input.
-- `apps/api/src/inventory/service.ts`: only ADMIN/MANAGER may write, CASHIER read; active store membership and matching role verified in PostgreSQL, membership locked for adjustment transaction. Store+variant balance reads are zero for absent rows, without mutating database.
-- One PostgreSQL transaction: validate variant active and store-scoped, insert **append-only** movement with unique ID / idempotent replay check, create missing balance, atomic additive UPDATE with nonnegative and 64-bit bounds, increase revision, append actor/reason audit. Any failed quantity/permission/audit step rolls back all three. Distinct parallel adjustments cannot lose increments; duplicate IDs never apply twice. Ordinary manual changes cannot cause negative stock.
-- **BR-009 exception**: negative stock only under future auditable offline-sale reconciliation POS-021, not POS-015.
-- `apps/api/src/inventory/routes.ts`: optional, trusted-session-injected Fastify routes for stock reads/mutations. Normal `main.ts` still starts **health only**, so `/v1/inventory/*` must return **404**, even with a forged x-role header. No real login implemented.
-- `apps/api/src/inventory/{schemas.test.ts,routes.test.ts,inventory.pg.test.ts}`: Zod, HTTP default deny, PostgreSQL 16 concurrency/oversell/replay/revision overflow/audit rollback/immutable history tests.
-- Existing schema + Drizzle migration unchanged; no Neon migration, no SQLite schema changes, no data/credentials touched by CI. All PostgreSQL tests are bound to `127.0.0.1/smartpos_ci`.
+## POS-016 code/design in review
+- Tracking [Issue #29](https://github.com/dinhkhoiIT15/smartpos/issues/29), [draft PR #30](https://github.com/dinhkhoiIT15/smartpos/pull/30), branch `feature/POS-016-versioned-sync-contract`.
+- `packages/contracts/src/vnd.ts` factors existing VND schema out of `index.ts` to prevent circular import. Legacy exported `vndStringSchema`, `MAX_VND`, `parseVndString` and cart DTOs preserved.
+- `packages/contracts/src/sync-v1.ts`: Zod strict v1 cash `SALE_COMPLETED` event with immutable sale/items/payment snapshots and `BigInt` line/cash arithmetic; canonical sorted-key UTF-8 SHA-256 integrity digest; max 25 event batch/512 KiB; duplicate event/sale ID and mixed-device/store rejection; exact event/sale ACK matching and pure receipt replay identity (identical hash repeats original ACK; changed hash conflicts); ACKED/NEEDS_REVIEW/RETRY response and HTTP error schema; pull query + high watermark/order/page invariants.
+- [Sync design](../docs/sync/POS-016_SYNC_CONTRACT.md), [OpenAPI 3.1](../docs/sync/openapi-v1.yaml), 6 versioned JSON fixtures in `docs/sync/examples/`, `packages/contracts/src/sync-v1.test.ts` confirms fixture SHA-256/hash and rejects invalid protocol, money, sale ID, revision/page, auth payload fields.
+- Two CI regressions fixed: TypeScript duplicate `sale` object key in test; circular import from `index.ts` to `sync-v1.ts`; unsafe `BigInt('1.1')` in nested Zod refinement. All resolved on branch with VND module extraction and validation guard.
+- **No server sync route, real credential/signature validation, sync receipt transaction, desktop outbox worker or SQLite cursor writes.** Normal Fastify `/v1/sync/*` remains 404.
+- Source-of-truth locked offline policy and approved business rules unchanged. No migration, Neon/production data access, SQLite DB changes, package dependencies or credential files.
 
-## User acceptance / next gates
-1. Verify **latest PR #28 HEAD** CI: Node 24 TypeScript, API tests, Electron/security, Windows SQLite, PostgreSQL v1 migrations and **POS-015 inventory integration**, docs validation.
-2. Owner checks out POS-015 feature branch on Windows and runs `pnpm --filter @smartpos/api typecheck`, `test:inventory`, `test`, `pnpm --filter @smartpos/db schema:check`; then Fastify health 200 and intentional inventory 404.
-3. [Windows acceptance guide](../docs/POS-015_INVENTORY_ACCEPTANCE.md); do not run `test:inventory:pg` on Neon. Do not merge PR or close Issue #27 until owner accepts.
-4. Next dependency tasks: POS-016 versioned sync contract, POS-017 SQLite catalog cache, POS-021 reconciliation, real login/RBAC before exposing any mutation routes, POS-019 cash checkout and POS-027/029 encrypted backup/recovery.
-5. M0 POS-003 GitHub board, POS-005 branch protection and POS-006 fresh-session handoff remain incomplete. D-009 local encrypted backup policy and D-013 real offline authorization implementation remain OPEN.
+## Pending review and acceptance
+1. Verify CI on latest PR #30 HEAD: Node 24 strict TypeScript + full contracts tests/JSON examples, existing Fastify/Electron, Windows SQLite, PostgreSQL 16 and Docs checks.
+2. Owner checks out POS-016 branch, runs `pnpm --filter @smartpos/contracts typecheck`, `pnpm --filter @smartpos/contracts test`, `pnpm run check`. API health 200 and `GET /v1/sync/pull` 404 are manual smoke checks.
+3. Human review/merge PR #30 only after Windows acceptance; close Issue #29 only after verified merged/accepted. No Neon connection/test or migration for this issue.
+4. Follow-ups: POS-017 SQLite catalog cache; POS-021 live server idempotent sync/negative-stock reconciliation; POS-022 retry outbox; POS-023 pull cursor/canonical store stock delta stream; POS-024 conflict workflow, secure auth POS-025 and D-013 implementation before any real checkout.
+5. M0 management POS-003 board/POS-005 branch protection/POS-006 handoff remain unfinished. D-009 local backup encryption/restore still OPEN.

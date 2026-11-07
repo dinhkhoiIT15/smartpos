@@ -1,16 +1,7 @@
 import { z } from 'zod';
-
-/**
- * PostgreSQL BIGINT max. JSON never carries VND as a number:
- * values must be canonical decimal strings to preserve all 64-bit integers.
- */
-export const MAX_VND = 9_223_372_036_854_775_807n;
-export const vndStringSchema = z
-  .string()
-  .regex(/^(0|[1-9][0-9]*)$/, 'VND must be a non-negative canonical decimal integer string')
-  .refine((value) => /^(0|[1-9][0-9]*)$/.test(value) && BigInt(value) <= MAX_VND, 'VND exceeds signed PostgreSQL bigint limit');
-
-export type VndString = z.infer<typeof vndStringSchema>;
+import { vndStringSchema } from './vnd.js';
+export { MAX_VND, vndStringSchema, parseVndString } from './vnd.js';
+export type { VndString } from './vnd.js';
 
 /** A cart pricing input contract, NOT an authoritative completed sale or sync event. */
 export const cartLineSchema = z.strictObject({
@@ -29,7 +20,5 @@ export const cashCartEstimateSchema = z.strictObject({
 });
 export type CashCartEstimateInput = z.infer<typeof cashCartEstimateSchema>;
 
-/** Never parse untrusted VND JSON with Number(); use BigInt after schema validation. */
-export function parseVndString(input: unknown): bigint {
-  return BigInt(vndStringSchema.parse(input));
-}
+// POS-016 sync wire contract; transport/handlers are NOT enabled by exporting schemas.
+export * from './sync-v1.js';

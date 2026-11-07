@@ -11,8 +11,8 @@
 | FR-05 | Thu tiền mặt | POS-018, POS-019 | Integer currency + atomic checkout tests |
 | FR-06 | Phiếu bán hàng nội bộ | POS-020 | Receipt content review, no VAT invoice label |
 | FR-07 | Offline checkout | POS-013, POS-019, POS-029 | Restart/crash/local commit tests |
-| FR-08 | Đồng bộ | POS-016, POS-021, POS-022, POS-023 | Duplicate/ACK-lost/retry tests |
-| FR-09 | Xung đột | POS-024, POS-029 | Stock conflict preserved, reconciliation tests |
+| FR-08 | Đồng bộ | [POS-016 #29](https://github.com/dinhkhoiIT15/smartpos/issues/29), POS-021, POS-022, POS-023 | [v1 Zod push/pull schema, canonical hash, replay, ACK and cursor tests](../packages/contracts/src/sync-v1.test.ts), [OpenAPI 3.1](sync/openapi-v1.yaml), [checked JSON examples](sync/examples/push.request.json). **Real transport, idempotent DB transaction, retry and SQLite cursor apply still PENDING** |
+| FR-09 | Xung đột | [POS-016 #29](https://github.com/dinhkhoiIT15/smartpos/issues/29), POS-024, POS-029 | [Zod NEEDS_REVIEW vs ACK/RETRY and negative hash/version tests](../packages/contracts/src/sync-v1.test.ts) for contract only. Actual stock shortage reconciliation, pending sale persistence and manager review still PENDING |
 | FR-10 | Báo cáo | POS-026 | Local pending vs cloud synced tests |
 | FR-11 | Audit | [POS-015 #27](https://github.com/dinhkhoiIT15/smartpos/issues/27), POS-025, POS-027 | [Stock audit rollback/append-only integration tests](../apps/api/src/inventory/inventory.pg.test.ts); live RBAC and production auditing **PENDING** |
 
