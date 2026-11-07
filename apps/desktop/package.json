@@ -11,7 +11,8 @@
     "preview": "electron-vite preview",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "security:check": "node scripts/security-check.mjs",
-    "test:local-db": "node --experimental-strip-types --test tests/local-db.test.mjs"
+    "test:local-db": "node --experimental-strip-types --test tests/local-db.test.mjs",
+    "test:catalog-cache": "node --experimental-strip-types --test tests/catalog-cache.test.mjs"
   },
   "dependencies": {
     "react": "19.3.1",

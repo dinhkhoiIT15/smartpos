@@ -1,6 +1,6 @@
 # SmartPOS Desktop — Secure Electron shell + SQLite v1 (POS-013)
 
-**Status:** Development-only demo with a real **empty** SQLite database in the Electron main process. **No actual sales, staff authorization, catalog sync, receipts or checkout**.
+**Status:** Development-only Electron demo using SQLite v1. POS-017 adds a MAIN-only initial catalog cache/lookup primitive on a feature branch; **no authenticated catalog sync, real sales, staff authorization, receipt or checkout**.
 
 ## Run on Windows / macOS
 
@@ -10,6 +10,7 @@ Node 24.x and pnpm 10.20.0. From the repository root:
 pnpm install --frozen-lockfile
 pnpm --filter @smartpos/desktop typecheck
 pnpm --filter @smartpos/desktop test:local-db
+pnpm --filter @smartpos/desktop test:catalog-cache
 pnpm --filter @smartpos/desktop security:check
 pnpm --filter @smartpos/desktop build
 pnpm --filter @smartpos/desktop dev
@@ -54,6 +55,10 @@ pnpm --filter @smartpos/desktop test:local-db
 ```
 
 Expected after CI verification: all tests pass with 0 failures. The tests use temporary OS directories; they **never** point at Neon or the developer's Electron `userData`. Any example checkout rows exist only in temporary test databases.
+
+## POS-017 local catalog cache — not a live sync endpoint
+
+The new `src/main/local-db/catalog-cache.ts` validates an externally authenticated **future** initial snapshot and atomically persists `local_catalog_variants` plus `sync_cursors` using the existing v1 tables. It provides MAIN-only local SKU lookup, cursor read and idempotent initial import. No network endpoint, fake token, IPC mutation, production userData fixture or new migration is added. POS-023/D-013 will need to provide authorized catalog projection and incremental delta application. Run `pnpm --filter @smartpos/desktop test:catalog-cache` on Windows to verify six disposable file-backed tests. See [POS-017 acceptance](../../docs/POS-017_CATALOG_CACHE_ACCEPTANCE.md).
 
 ## Scope / security boundaries
 
