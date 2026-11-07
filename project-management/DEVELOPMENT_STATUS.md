@@ -9,7 +9,7 @@ repo_connection: CONFIRMED — GitHub collaborator supports branches, Issues, PR
 last_github_synced_at: MANUAL GITHUB REVIEW 2026-11-07
 current_milestone: M2 — versioned sync contracts (M0 governance still pending)
 current_phase: POS-016 ZOD + OPENAPI SYNC WIRE V1 — DRAFT PR #30, UNMERGED
-ci_status: POS-016 latest head pending final verification; checkpoint 580280602c632d7f1eaa1e877a559afc76a18fb9 included docs commits after green CI run 42392473429
+ci_status: POS-016 checkpoint 7af0dddc65008e6a05e9c84dca96fee7056681d1 verified Foundation CI 42392721677 and Docs CI 42392721705 SUCCESS; contracts suite 19/19 PASS; final docs-only HEAD needs recheck
 production_status: NOT DEPLOYED — no real checkout, sync worker, auth or Neon writes
 
 ## Verified main and owner-completed work
