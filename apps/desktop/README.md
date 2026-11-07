@@ -21,6 +21,20 @@ Close the window and re-run `pnpm --filter @smartpos/desktop dev`. The app shoul
 
 If a real app window does not open, stop and share sanitized logs. On Windows, a previously encountered missing Electron binary can often be resolved with `pnpm --filter @smartpos/desktop rebuild electron`; do not disable Electron sandbox or context isolation.
 
+## Windows test EPERM fix (BUG-013)
+
+On the original POS-013 merged PR #19, Windows could report **3/6 SQLite tests passing** and three `EPERM: Permission denied` failures at `rmSync` during test teardown. This was caused by deleting temporary SQLite/WAL files before calling `DatabaseSync.close()`, **not** by failing SQL assertions or a production database.
+
+[Bugfix PR #22](https://github.com/dinhkhoiIT15/smartpos/pull/22) tracks temporary DB connections and closes them first. It adds a seventh teardown regression test and a **Windows Node 24 CI** job. To verify locally after switching to that branch:
+
+```powershell
+pnpm --filter @smartpos/desktop test:local-db
+```
+
+Expected: `tests 7`, `pass 7`, `fail 0`. If Windows still reports `EPERM`, share only sanitized test output; do not delete the Electron userData database or run an Administrator shell as a workaround.
+
+The root workspace pins `pnpm@10.20.0`. Ignore a normal `pnpm self-update` announcement while testing this branch; do not change package manager major versions for the bugfix.
+
 ## Where SQLite lives
 
 In Electron main, `app.getPath('userData')/smartpos-local.sqlite` (per-user OS application data). The directory location is owned by Electron; it is **not** `apps/desktop` and **not** the working Git directory. Do not paste a database backup or real customer data into GitHub/chat. Do not rename/delete this file, and **never** manually copy an actively open WAL database while omitting its `-wal` and `-shm` files.
