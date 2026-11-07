@@ -81,7 +81,8 @@ test('large VND > JS safe range and 64-bit arithmetic overflow are exact', () =>
   const one = addCartVariant([], huge);
   assert.equal(previewCashCart(one, huge.priceVnd).dueVnd, huge.priceVnd);
   assert.equal(previewCashCart(one, huge.priceVnd).changeVnd, '0');
-  assert.throws(() => addCartVariant(one, huge), /64-bit/);
+  const doubled = addCartVariant(one, huge);
+  assert.equal(previewCashCart(doubled, '').dueVnd, '18014398509481986');
   assert.throws(() => addCartVariant([], { ...A, priceVnd: String(MAX_VND), availableQty: 2 }, 2), /64-bit/);
   assert.deepEqual(calculateCartAmounts([{quantity: 1, unitPriceVnd: 200n, discountVnd: 100n}]),
     {subtotalVnd: 200n, discountTotalVnd: 100n, dueVnd: 100n});
