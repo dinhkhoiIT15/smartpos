@@ -39,6 +39,7 @@ function CashCartDemo() {
       item.sku.toLocaleLowerCase('vi').includes(q) ||
       item.name.toLocaleLowerCase('vi').includes(q));
   }, [skuQuery]);
+  const baseQuote = useMemo(() => previewCashCart(lines, ''), [lines]);
   const quote = useMemo(() => {
     try { return previewCashCart(lines, tendered); } catch { return null; }
   }, [lines, tendered]);
@@ -102,7 +103,7 @@ function CashCartDemo() {
         <section className="checkout-panel" aria-label="Giỏ hàng và tính tiền mặt">
           <div className="checkout-heading">
             <div><h2>Giỏ hàng dự kiến</h2><p>Sửa số lượng, xóa dòng hoặc nhập tiền khách đưa.</p></div>
-            <span className="cart-count">{quote?.itemCount ?? 0} sản phẩm</span>
+            <span className="cart-count">{baseQuote.itemCount} sản phẩm</span>
           </div>
           {lines.length === 0
             ? <p className="empty-cart">Giỏ hàng đang trống. Hãy thêm một SKU mẫu ở bên trái.</p>
@@ -137,17 +138,17 @@ function CashCartDemo() {
           }
           {error && <p className="cart-error" role="alert">{error}</p>}
           <div className="cash-summary" aria-live="polite">
-            <div><span>Tạm tính</span><strong>{formatVnd(quote?.subtotalVnd ?? '0')}</strong></div>
-            <div><span>Chiết khấu</span><strong>{formatVnd(quote?.discountTotalVnd ?? '0')}</strong></div>
-            <div className="summary-due"><span>Tổng phải thu</span><strong>{formatVnd(quote?.dueVnd ?? '0')}</strong></div>
+            <div><span>Tạm tính</span><strong>{formatVnd(baseQuote.subtotalVnd)}</strong></div>
+            <div><span>Chiết khấu</span><strong>{formatVnd(baseQuote.discountTotalVnd)}</strong></div>
+            <div className="summary-due"><span>Tổng phải thu</span><strong>{formatVnd(baseQuote.dueVnd)}</strong></div>
           </div>
           <label className="field-label" htmlFor="cash-received">Tiền khách đưa (VND)</label>
           <div className="tender-row">
             <input id="cash-received" className="cart-input" type="text" inputMode="numeric"
               autoComplete="off" maxLength={19} placeholder="Nhập số nguyên, ví dụ 9500000"
               value={tendered} onChange={(e) => setTendered(e.target.value)} />
-            <button type="button" disabled={!quote || lines.length === 0}
-              onClick={() => setTendered(quote?.dueVnd ?? '')}>Nhận vừa đủ</button>
+            <button type="button" disabled={lines.length === 0}
+              onClick={() => setTendered(baseQuote.dueVnd)}>Nhận vừa đủ</button>
           </div>
           {!quote && <p className="cart-error" role="alert">Tiền nhận phải là số nguyên VND hợp lệ, không dấu phân cách và không vượt 64-bit.</p>}
           {quote && lines.length > 0 && (
