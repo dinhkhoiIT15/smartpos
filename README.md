@@ -1,6 +1,6 @@
 # SmartPOS Retail — Desktop + API Foundation
 
-**Status:** M2 inventory services development. Electron demo, Fastify health, bigint VND domain, PostgreSQL v1, SQLite v1, and [POS-014 catalog PR #26](https://github.com/dinhkhoiIT15/smartpos/pull/26) are merged. Owner confirmed the 17-table PostgreSQL schema on **Neon development only**, and SQLite Windows acceptance. POS-011 four-hour offline authorization **policy/design** is approved, but real login remains unimplemented. **POS-015 inventory transactions are under review in [PR #28](https://github.com/dinhkhoiIT15/smartpos/pull/28)**; neither catalog nor inventory mutation routes are publicly enabled. No cash checkout, sync worker or production pilot.
+**Status:** M2 sync-contract development. Catalog POS-014 and inventory POS-015 services are **merged and owner-accepted**, after PostgreSQL v1/SQLite v1 foundations; Neon contains only the owner-verified **development** 17-table migration. POS-011 four-hour offline auth **policy/design** is accepted, real login remains unimplemented. [POS-016 sync wire contract PR #30](https://github.com/dinhkhoiIT15/smartpos/pull/30) is **under review**; no sync endpoints, worker, live checkout, or production rollout are enabled.
 
 SmartPOS is a planned offline-first, cash-only POS for a single electronics store. The accepted baseline (one authorized offline cashier, immutable sales, integer VND, SKU inventory) is recorded in [AGENTS.md](AGENTS.md), [PRD](docs/PRODUCT_REQUIREMENTS.md), [Business Rules](docs/BUSINESS_RULES.md) and [Architecture](docs/SYSTEM_ARCHITECTURE.md).
 
@@ -112,6 +112,15 @@ The server-only [POS-015 inventory service](apps/api/src/inventory/service.ts) c
 Manual stock changes are ADMIN/MANAGER only and the server verifies active role/membership. **Normal Fastify startup still returns 404 for inventory routes** because real staff authentication has not been implemented; only isolated tests inject a fake trusted principal. POS-021 exceptional negative stock from paid offline-sale reconciliation remains out of scope.
 
 On Windows run `pnpm --filter @smartpos/api test:inventory` and `pnpm --filter @smartpos/api test`, plus the [full POS-015 acceptance guide](docs/POS-015_INVENTORY_ACCEPTANCE.md). Real PostgreSQL stock concurrency/rollback is tested only in a disposable database by GitHub CI; **do not run stock tests on Neon**.
+
+## POS-016 versioned offline synchronization contract (draft PR #30)
+
+The shared `@smartpos/contracts` package defines version-locked Zod v1 `SALE_COMPLETED` events, canonical signed-BIGINT VND cash payment snapshots, deterministic sorted-key SHA-256 event hashes, bounded `POST /v1/sync/push` requests and receipt/ACK/review/retry responses. It also defines `GET /v1/sync/pull` cursor/watermark pages and negative-case checks. These are **schemas and examples only**, not working HTTP routes.
+
+- [Versioned sync specification, JSON examples and Windows acceptance](docs/sync/POS-016_SYNC_CONTRACT.md)
+- [OpenAPI 3.1 contract](docs/sync/openapi-v1.yaml)
+- Unit/fixture tests: `pnpm --filter @smartpos/contracts typecheck` then `pnpm --filter @smartpos/contracts test`
+- Normal Fastify runtime still returns **404** on `/v1/sync/*`. Real auth, idempotent server transaction, desktop retry and SQLite cursor application are later issues POS-021/022/023. **No Neon access/migration required for POS-016.**
 
 ## Monorepo layout
 
