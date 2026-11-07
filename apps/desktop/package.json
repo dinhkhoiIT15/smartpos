@@ -12,7 +12,9 @@
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "security:check": "node scripts/security-check.mjs",
     "test:local-db": "node --experimental-strip-types --test tests/local-db.test.mjs",
-    "test:catalog-cache": "node --experimental-strip-types --test tests/catalog-cache.test.mjs"
+    "test:catalog-cache": "node --experimental-strip-types --test tests/catalog-cache.test.mjs",
+    "test:offline-sale": "node --experimental-strip-types --test tests/offline-sale.test.mjs",
+    "test:offline-sale:wire": "pnpm --filter @smartpos/contracts exec tsx --test ../../apps/desktop/tests/offline-sale-wire.test.ts"
   },
   "dependencies": {
     "@smartpos/domain": "workspace:*",
