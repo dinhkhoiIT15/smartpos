@@ -78,3 +78,20 @@ jobs:
         run: pnpm --filter @smartpos/db test:migrations
 
 # Database tests run ONLY against disposable CI PostgreSQL; Neon is never contacted.
+
+  sqlite-windows:
+    name: Windows Node 24 SQLite migration and cleanup tests
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.20.0'
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: 'pnpm'
+      - name: Frozen install without Electron postinstall (built-in SQLite tests only)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Exercise WAL, transactions, reopen and temp teardown on Windows
+        run: pnpm --filter @smartpos/desktop test:local-db
