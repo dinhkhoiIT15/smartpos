@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
-import { MAX_VND, vndStringSchema } from './index.js';
+import { MAX_VND, vndStringSchema } from './vnd.js';
 
 /**
  * POS-016: CONTRACTS ONLY. This file does not make HTTP requests, authenticate
@@ -78,6 +78,15 @@ function addSaleConsistencyIssues(
   ctx: z.RefinementCtx,
 ): void {
   const { sale } = event;
+  // Zod superRefine may still run when nested money strings failed validation.
+  // Do not let BigInt('1.1') throw: return ordinary Zod parse issues instead.
+  const amounts: unknown[] = [
+    sale.totalVnd, sale.payment?.dueVnd, sale.payment?.tenderedVnd, sale.payment?.changeVnd,
+    ...sale.items.flatMap((line) =>
+      [line.unitPriceVnd, line.discountVnd, line.lineTotalVnd]),
+  ];
+  if (!amounts.every((v) => vndStringSchema.safeParse(v).success) ||
+    !sale.items.every((line) => Number.isSafeInteger(line.quantity) && line.quantity > 0)) return;
   const ids = new Set<string>();
   let sum = 0n;
   for (const [i, line] of sale.items.entries()) {
