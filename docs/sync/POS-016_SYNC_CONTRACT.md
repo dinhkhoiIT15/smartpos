@@ -46,7 +46,7 @@ Ví dụ chuẩn: [push.request.json](examples/push.request.json) có `payloadHa
 ## 5. OpenAPI, ví dụ và trạng thái code
 
 - [OpenAPI 3.1](openapi-v1.yaml) mô tả **future endpoints**. `https://api.example.invalid` là placeholder, không phải server thật.
-- Ví dụ chính xác: [push request](examples/push.request.json), [push ACK](examples/push.response.json), [hash mismatch → review](examples/push.review.response.json), [pull query](examples/pull.query.json) và [pull page](examples/pull.response.json).
+- Ví dụ chính xác: [push request](examples/push.request.json), [push ACK](examples/push.response.json), [hash mismatch → review](examples/push.review.response.json), [pull query](examples/pull.query.json), [pull page](examples/pull.response.json) và [HTTP unsupported version](examples/error.unsupported-version.json).
 - Runtime server hiện tại vẫn chỉ trả `GET /v1/health`. `POST /v1/sync/push`, `GET /v1/sync/pull` **phải trả 404**, không được bật API mô phỏng quyền.
 - Không có DB migration, không có Postgres transaction sync, không có network retry, không có grant ký số thật, không có đồng bộ với Neon; không có test đang chạy trên dữ liệu thật.
 
