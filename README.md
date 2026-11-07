@@ -1,6 +1,6 @@
 # SmartPOS Retail — Desktop + API Foundation
 
-**Status:** M1 development. Electron demo, Fastify health, bigint VND domain and PostgreSQL v1 schema are merged. The owner confirmed the 17-table PostgreSQL migration on **Neon development only**. POS-013 local SQLite migration is in [draft PR #19](https://github.com/dinhkhoiIT15/smartpos/pull/19). **No real checkout, offline staff authorization, catalog sync or production pilot yet.**
+**Status:** M1 development. Electron demo, Fastify health, bigint VND domain and PostgreSQL v1 schema are merged. The owner confirmed the 17-table PostgreSQL migration on **Neon development only**. POS-013 SQLite and Windows cleanup PRs #19/#22 are merged and accepted by the owner. POS-011 [offline staff/device authorization design PR #23](https://github.com/dinhkhoiIT15/smartpos/pull/23) is **proposed, not implemented or approved**. **No real checkout, live login, catalog sync or production pilot yet.**
 
 SmartPOS is a planned offline-first, cash-only POS for a single electronics store. The accepted baseline (one authorized offline cashier, immutable sales, integer VND, SKU inventory) is recorded in [AGENTS.md](AGENTS.md), [PRD](docs/PRODUCT_REQUIREMENTS.md), [Business Rules](docs/BUSINESS_RULES.md) and [Architecture](docs/SYSTEM_ARCHITECTURE.md).
 
@@ -44,7 +44,7 @@ pnpm --filter @smartpos/api start
 
 This health probe confirms the API process only; it does **not** check Neon, SQLite or synchronization. The server listens on loopback `127.0.0.1` and defaults to port 3001.
 
-## Shared cart contracts and bigint money (POS-010 proposal)
+## Shared cart contracts and bigint money (POS-010 merged)
 
 ```bash
 pnpm --filter @smartpos/contracts typecheck
@@ -55,9 +55,9 @@ pnpm --filter @smartpos/domain test
 
 Contracts carry VND as **decimal JSON strings** to avoid loss of precision, validated with Zod. Domain uses `bigint` for quantity × unit price − line discounts and cash change. This is calculation/validation groundwork, **not a cash checkout or posted sale**. See [Contracts README](packages/contracts/README.md) and [Domain README](packages/domain/README.md).
 
-## POS-013 SQLite local demo (feature branch PR #19)
+## POS-013 SQLite local demo (PRs #19/#22 merged)
 
-Once POS-013 branch is checked out, `pnpm --filter @smartpos/desktop dev` creates an **empty** SQLite v1 schema under Electron `userData` and retains it after restarting. The demo window's **Kiểm tra Electron IPC** button reports a read-only `SQLite schema v1` after successful startup. It does NOT create a real sale.
+From `main`, `pnpm --filter @smartpos/desktop dev` creates an **empty** SQLite v1 schema under Electron `userData` and retains it after restarting. The demo window's **Kiểm tra Electron IPC** button reports a read-only `SQLite schema v1` after successful startup. It does NOT create a real sale.
 
 ```bash
 pnpm --filter @smartpos/desktop test:local-db
@@ -77,11 +77,23 @@ pnpm --filter @smartpos/db schema:check
 
 See [DB migration instructions and forward-fix plan](packages/db/README.md). Do **not** run migrations on production; the Neon development schema is already applied.
 
+## POS-011 offline staff/device authorization (DESIGN ONLY, PR #23)
+
+The [proposed ADR-0004](docs/ADR-0004-offline-auth-device-provisioning.md) and [threat model](docs/security/POS-011_THREAT_MODEL.md) define server-side staff RBAC, one-device offline pairing, signed/time-bound checkout grants and revocation/clock-tamper restrictions. These are **NOT** active login or checkout features; the owner still needs to approve D-010 policy decisions.
+
+The Node24 synthetic **reference model only** is checked in CI:
+
+```bash
+node --test docs/security/offline-access-reference.test.mjs
+```
+
+The test never signs/verifies a real token and must not be imported by the API/Electron app. The production implementation will require OS-backed keys, cryptographic proof, strict server checks and a separate reviewed scope.
+
 ## Monorepo layout
 
 | Workspace | What exists |
 |---|---|
-| `apps/desktop` | Electron + React/Vite demo, local SQLite v1 in POS-013 feature PR |
+| `apps/desktop` | Electron + React/Vite demo, local SQLite v1 merged and Windows test accepted |
 | `apps/api` | Fastify health and server-only optional Neon dev connectivity (POS-008/009) |
 | `packages/contracts` | Zod cart estimate DTOs, signed-bigint-safe VND strings, POS-010 merged |
 | `packages/domain` | Pure bigint cash calculation helpers, POS-010 merged |
@@ -92,7 +104,7 @@ See [Desktop README](apps/desktop/README.md), [API README](apps/api/README.md), 
 
 ## Boundaries
 
-- Neon development connectivity has been verified in read-only mode; no authentication flow, sales, stock, SQLite persistence or PostgreSQL migration exists yet.
+- Neon development SELECT 1 and 17-table PostgreSQL v1 migration were verified separately by owner; SQLite v1 local schema runs in Electron main. There is still **no login implementation, real sale, inventory service or sync API**.
 - All business values in VND are integer/bigint when those modules are implemented; no float money calculations.
 - Do not commit `.env`, local SQLite files, tokens, private data or real customer sales.
 - Keep secrets server-side in future issues; Electron renderer must never access Neon directly.
