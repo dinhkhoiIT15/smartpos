@@ -223,6 +223,36 @@ export function assertPushResponseMatchesRequest(request: unknown, response: unk
   return received;
 }
 
+/**
+ * Pure receipt-identity decision (no database access). POS-021 must SELECT
+ * under a unique/transactional constraint; this helper is NOT idempotent
+ * persistence and does not authorize any sale.
+ */
+export const syncReceiptIdentitySchema = z.strictObject({
+  deviceId: uuid,
+  eventId: uuid,
+  saleId: uuid,
+  payloadHash: sha256Schema,
+});
+export type SyncReceiptIdentity = z.infer<typeof syncReceiptIdentitySchema>;
+export type ReceiptReplayDecision = 'NEW' | 'REPLAY_ORIGINAL_ACK' | 'REJECT_CONFLICT';
+
+export function classifySyncReceiptReplay(
+  existing: SyncReceiptIdentity | null,
+  incoming: SyncReceiptIdentity,
+): ReceiptReplayDecision {
+  const input = syncReceiptIdentitySchema.parse(incoming);
+  if (!existing) return 'NEW';
+  const stored = syncReceiptIdentitySchema.parse(existing);
+  if (stored.saleId === input.saleId) {
+    if (stored.deviceId !== input.deviceId || stored.eventId !== input.eventId) return 'REJECT_CONFLICT';
+  } else if (stored.deviceId !== input.deviceId || stored.eventId !== input.eventId) {
+    return 'NEW';
+  }
+  return stored.payloadHash === input.payloadHash && stored.saleId === input.saleId
+    ? 'REPLAY_ORIGINAL_ACK' : 'REJECT_CONFLICT';
+}
+
 const pageLimit = z.union([
   z.string().regex(/^[1-9][0-9]{0,2}$/).transform(Number),
   z.number().int(),
