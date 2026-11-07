@@ -41,25 +41,25 @@ export function calculateLineTotalVnd(line: CashLine): bigint {
   return subtotal - discount;
 }
 
-/** Returns totals for a cash cart; doesn't create or post a sale. */
-export function calculateCashTotals(lines: readonly CashLine[], tenderedVnd: bigint): CashTotals {
+/** Cart amounts can be previewed before the customer hands over cash. */
+export function calculateCartAmounts(lines: readonly CashLine[]): Readonly<{
+  subtotalVnd: bigint; discountTotalVnd: bigint; dueVnd: bigint;
+}> {
   if (lines.length === 0) throw new RangeError('cart must contain at least one line');
-  const tendered = assertVnd(tenderedVnd, 'tenderedVnd');
   let subtotalVnd = 0n;
   let discountTotalVnd = 0n;
   for (const line of lines) {
-    // Reuse all amount/quantity invariants from line calculation.
     calculateLineTotalVnd(line);
     subtotalVnd = addVnd(subtotalVnd, BigInt(line.quantity) * line.unitPriceVnd);
     discountTotalVnd = addVnd(discountTotalVnd, line.discountVnd);
   }
-  const dueVnd = subtotalVnd - discountTotalVnd;
-  if (tendered < dueVnd) throw new RangeError('cash tendered cannot be lower than amount due');
-  return {
-    subtotalVnd,
-    discountTotalVnd,
-    dueVnd,
-    tenderedVnd: tendered,
-    changeVnd: tendered - dueVnd,
-  };
+  return { subtotalVnd, discountTotalVnd, dueVnd: subtotalVnd - discountTotalVnd };
+}
+
+/** Returns totals for a cash cart; doesn't create or post a sale. */
+export function calculateCashTotals(lines: readonly CashLine[], tenderedVnd: bigint): CashTotals {
+  const tendered = assertVnd(tenderedVnd, 'tenderedVnd');
+  const amounts = calculateCartAmounts(lines);
+  if (tendered < amounts.dueVnd) throw new RangeError('cash tendered cannot be lower than amount due');
+  return { ...amounts, tenderedVnd: tendered, changeVnd: tendered - amounts.dueVnd };
 }
