@@ -39,6 +39,8 @@ jobs:
         run: |
           pnpm --filter @smartpos/contracts test
           pnpm --filter @smartpos/domain test
+      - name: POS-011 offline authorization policy reference (design-only)
+        run: node --test docs/security/offline-access-reference.test.mjs
       - name: Read-only context report
         run: node scripts/context-report.mjs
 
