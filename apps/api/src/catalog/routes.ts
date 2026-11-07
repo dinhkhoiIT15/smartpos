@@ -1,6 +1,11 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { assertCatalogRole, CatalogError, type CatalogPrincipal, type CatalogService } from './service.js';
+import {
+  createCategorySchema, updateCategorySchema, createBrandSchema, updateBrandSchema,
+  createProductSchema, updateProductSchema, createVariantSchema, updateVariantSchema,
+  listCatalogSchema,
+} from './schemas.js';
 
 /**
  * POS-014 routes deliberately require a trusted server principal resolver.
@@ -32,11 +37,11 @@ export function registerCatalogRoutes(app: FastifyInstance, options: CatalogRout
     action: (actor: CatalogPrincipal, request: FastifyRequest) => Promise<unknown>,
   ): (request: FastifyRequest, reply: FastifyReply) => Promise<void> {
     return async (request, reply) => {
+      reply.header('Cache-Control', 'no-store');
       try {
         const actor = await options.resolvePrincipal(request);
         assertCatalogRole(actor, write);
         const result = await action(actor, request);
-        reply.header('Cache-Control', 'no-store');
         await reply.code(statusCode).send(result);
       } catch (error) {
         // No raw PostgreSQL/credential or Zod parsed input ever gets exposed.
@@ -51,24 +56,24 @@ export function registerCatalogRoutes(app: FastifyInstance, options: CatalogRout
     };
   }
 
-  app.post('/v1/catalog/categories', wrap(true, 201, (a, req) => options.service.createCategory(a, req.body)));
+  app.post('/v1/catalog/categories', wrap(true, 201, (a, req) => options.service.createCategory(a, createCategorySchema.parse(req.body))));
   app.patch('/v1/catalog/categories/:id', wrap(true, 200, (a, req) =>
-    options.service.updateCategory(a, idFrom(req), req.body)));
-  app.post('/v1/catalog/brands', wrap(true, 201, (a, req) => options.service.createBrand(a, req.body)));
+    options.service.updateCategory(a, idFrom(req), updateCategorySchema.parse(req.body))));
+  app.post('/v1/catalog/brands', wrap(true, 201, (a, req) => options.service.createBrand(a, createBrandSchema.parse(req.body))));
   app.patch('/v1/catalog/brands/:id', wrap(true, 200, (a, req) =>
-    options.service.updateBrand(a, idFrom(req), req.body)));
+    options.service.updateBrand(a, idFrom(req), updateBrandSchema.parse(req.body))));
 
-  app.post('/v1/catalog/products', wrap(true, 201, (a, req) => options.service.createProduct(a, req.body)));
+  app.post('/v1/catalog/products', wrap(true, 201, (a, req) => options.service.createProduct(a, createProductSchema.parse(req.body))));
   app.patch('/v1/catalog/products/:id', wrap(true, 200, (a, req) =>
-    options.service.updateProduct(a, idFrom(req), req.body)));
-  app.get('/v1/catalog/products', wrap(false, 200, (a, req) => options.service.listProducts(a, req.query)));
+    options.service.updateProduct(a, idFrom(req), updateProductSchema.parse(req.body))));
+  app.get('/v1/catalog/products', wrap(false, 200, (a, req) => options.service.listProducts(a, listCatalogSchema.parse(req.query))));
   app.get('/v1/catalog/products/:id', wrap(false, 200, (a, req) =>
     options.service.getProduct(a, idFrom(req))));
 
-  app.post('/v1/catalog/variants', wrap(true, 201, (a, req) => options.service.createVariant(a, req.body)));
+  app.post('/v1/catalog/variants', wrap(true, 201, (a, req) => options.service.createVariant(a, createVariantSchema.parse(req.body))));
   app.patch('/v1/catalog/variants/:id', wrap(true, 200, (a, req) =>
-    options.service.updateVariant(a, idFrom(req), req.body)));
-  app.get('/v1/catalog/variants', wrap(false, 200, (a, req) => options.service.listVariants(a, req.query)));
+    options.service.updateVariant(a, idFrom(req), updateVariantSchema.parse(req.body))));
+  app.get('/v1/catalog/variants', wrap(false, 200, (a, req) => options.service.listVariants(a, listCatalogSchema.parse(req.query))));
   app.get('/v1/catalog/variants/:id', wrap(false, 200, (a, req) =>
     options.service.getVariant(a, idFrom(req))));
 }
