@@ -13,8 +13,13 @@
 - `packages/domain/src/cart.test.ts` 7 unit cases with 9.340.000→9.500.000→160.000 business example.
 - `apps/desktop/src/renderer/src/app.tsx` and `styles.css`: responsive demo cart tab with SKU search, static synthetic catalog, quantity controls, cash input, shortfall/change. Huge DEMO warning and no payment-complete button.
 - `apps/desktop/package.json`, `packages/domain/package.json`, `pnpm-lock.yaml`: existing workspace dependency `@smartpos/domain/cart`, no new external package. Windows CI domain tests and desktop TS; existing Linux CI remains.
-- [Full Windows acceptance](../docs/POS-018_CASH_CART_ACCEPTANCE.md), relevant README and traceability.
+- [Full Windows acceptance](../docs/POS-018_CASH_CART_ACCEPTANCE.md), relevant README and traceability. [Draft PR #34](https://github.com/dinhkhoiIT15/smartpos/pull/34).
 - No change to SQLite schema, local device real data, Neon, server authentication, Fastify, sales, payments, outbox or actual stock. Demo renderer fixture is not authorized source data; POS-019 must reverify real sale inputs in MAIN under authenticated device/cashier.
+
+## CI checkpoint
+
+- POS-018 code `cb8b3d5364cbe52426d1c221ef8abd4e1b65d5de` verified [Foundation CI 42395959688](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42395959688) **SUCCESS**: domain **12/12** Linux + Windows, SQLite **7/7** + catalog cache **6/6**, Electron/TypeScript/security/build, Fastify, disposable PostgreSQL 16. [Docs CI 42395959676](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42395959676) **SUCCESS**.
+- One initial incorrect test expected overflow for `9007199254740993 × 2` despite being below signed-int64; fixed assertion for exact `18014398509481986`. UI now retains correct due when tender string invalid. Recheck latest SHA after docs-only updates. Owner UI smoke not yet done, DO NOT MERGE.
 
 ## Owner checks Windows
 
