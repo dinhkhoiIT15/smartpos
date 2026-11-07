@@ -1,6 +1,6 @@
 # SmartPOS Retail — Desktop + API Foundation
 
-**Status:** M2 sync-contract development. Catalog POS-014 and inventory POS-015 services are **merged and owner-accepted**, after PostgreSQL v1/SQLite v1 foundations; Neon contains only the owner-verified **development** 17-table migration. POS-011 four-hour offline auth **policy/design** is accepted, real login remains unimplemented. [POS-016 sync wire contract PR #30](https://github.com/dinhkhoiIT15/smartpos/pull/30) is **under review**; no sync endpoints, worker, live checkout, or production rollout are enabled.
+**Status:** M2 SQLite catalog-cache development. POS-014/POS-015 are owner-accepted; [POS-016 PR #30](https://github.com/dinhkhoiIT15/smartpos/pull/30) was merged into main at `beb7600`. [POS-017 Issue #31](https://github.com/dinhkhoiIT15/smartpos/issues/31) is under development on a feature branch. Neon contains only the owner-confirmed development 17-table migration; no real login, HTTP sync, worker, sale checkout or production rollout is enabled.
 
 SmartPOS is a planned offline-first, cash-only POS for a single electronics store. The accepted baseline (one authorized offline cashier, immutable sales, integer VND, SKU inventory) is recorded in [AGENTS.md](AGENTS.md), [PRD](docs/PRODUCT_REQUIREMENTS.md), [Business Rules](docs/BUSINESS_RULES.md) and [Architecture](docs/SYSTEM_ARCHITECTURE.md).
 
@@ -103,7 +103,7 @@ pnpm --filter @smartpos/api test:catalog
 pnpm --filter @smartpos/api test
 ```
 
-GitHub CI separately validates real CRUD and audit/rollback against **disposable PostgreSQL 16**; never point `test:catalog:pg` at Neon. POS-015 stock and POS-017 local catalog UI/cache remain later tasks.
+GitHub CI separately validates real CRUD and audit/rollback against **disposable PostgreSQL 16**; never point `test:catalog:pg` at Neon. POS-015 stock is merged; POS-017 local catalog cache is in a feature branch, with UI/auth integration deferred.
 
 ## POS-015 Stock and inventory movement services (draft PR #28)
 
@@ -113,7 +113,7 @@ Manual stock changes are ADMIN/MANAGER only and the server verifies active role/
 
 On Windows run `pnpm --filter @smartpos/api test:inventory` and `pnpm --filter @smartpos/api test`, plus the [full POS-015 acceptance guide](docs/POS-015_INVENTORY_ACCEPTANCE.md). Real PostgreSQL stock concurrency/rollback is tested only in a disposable database by GitHub CI; **do not run stock tests on Neon**.
 
-## POS-016 versioned offline synchronization contract (draft PR #30)
+## POS-016 versioned offline synchronization contract (merged PR #30)
 
 The shared `@smartpos/contracts` package defines version-locked Zod v1 `SALE_COMPLETED` events, canonical signed-BIGINT VND cash payment snapshots, deterministic sorted-key SHA-256 event hashes, bounded `POST /v1/sync/push` requests and receipt/ACK/review/retry responses. It also defines `GET /v1/sync/pull` cursor/watermark pages and negative-case checks. These are **schemas and examples only**, not working HTTP routes.
 
@@ -121,6 +121,17 @@ The shared `@smartpos/contracts` package defines version-locked Zod v1 `SALE_COM
 - [OpenAPI 3.1 contract](docs/sync/openapi-v1.yaml)
 - Unit/fixture tests: `pnpm --filter @smartpos/contracts typecheck` then `pnpm --filter @smartpos/contracts test`
 - Normal Fastify runtime still returns **404** on `/v1/sync/*`. Real auth, idempotent server transaction, desktop retry and SQLite cursor application are later issues POS-021/022/023. **No Neon access/migration required for POS-016.**
+
+## POS-017 local catalog cache (feature branch, Issue #31)
+
+An Electron MAIN-only importer validates a trusted initial catalog snapshot (strict UUID/store/SKU, attributes, int64 VND and cursor), then writes `local_catalog_variants` and the initial `sync_cursors` row atomically using existing SQLite v1. Local SKU prefix lookup returns decimal string prices and excludes inactive variants. Identical import replays are safe; invalid, divergent or failed writes never advance the cursor. Both Linux and Windows CI test file-backed database restart/rollback/data preservation.
+
+```powershell
+pnpm --filter @smartpos/desktop typecheck
+pnpm --filter @smartpos/desktop test:catalog-cache
+```
+
+See [POS-017 Windows acceptance and security boundary](docs/POS-017_CATALOG_CACHE_ACCEPTANCE.md). There is **no runtime network importer, renderer SQL interface or real catalog provisioning** without authenticated backend/device support (D-013/POS-023).
 
 ## Monorepo layout
 
@@ -137,7 +148,7 @@ See [Desktop README](apps/desktop/README.md), [API README](apps/api/README.md), 
 
 ## Boundaries
 
-- Neon development SELECT 1 and 17-table PostgreSQL v1 migration were verified separately by owner; SQLite v1 local schema runs in Electron main. There is still **no login implementation, real sale, inventory service or sync API**.
+- Neon development SELECT 1 and 17-table PostgreSQL v1 migration were verified separately by owner; SQLite v1 local schema runs in Electron main. There is still **no login implementation, real sale or sync API**.
 - All business values in VND are integer/bigint when those modules are implemented; no float money calculations.
 - Do not commit `.env`, local SQLite files, tokens, private data or real customer sales.
 - Keep secrets server-side in future issues; Electron renderer must never access Neon directly.
