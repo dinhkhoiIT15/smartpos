@@ -1,6 +1,6 @@
 # POS-017 — SQLite Catalog Cache Acceptance (M2/P0)
 
-**State:** feature branch `feature/POS-017-local-catalog-cache`; Issue [#31](https://github.com/dinhkhoiIT15/smartpos/issues/31). Owner Windows and CI evidence pending until review. Based on merged POS-013 SQLite v1, POS-014 PostgreSQL catalog service, POS-016 sync v1 wire contracts.
+**State:** draft [PR #32](https://github.com/dinhkhoiIT15/smartpos/pull/32), Issue [#31](https://github.com/dinhkhoiIT15/smartpos/issues/31). GitHub [Foundation CI #42394398241](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42394398241) and [Docs CI #42394398264](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42394398264) **PASS** on 5f8231d code checkpoint; owner local Windows acceptance pending. Based on merged POS-013 SQLite v1, POS-014 PostgreSQL catalog service, POS-016 sync v1 wire contracts.
 
 ## Delivered scope
 
@@ -52,7 +52,7 @@ Expected the existing `DEMO — CHƯA THỂ BÁN HÀNG` warning and `Kiểm tra 
 
 ## Review gates
 
-1. CI full Desktop/Electron and Node24 Windows test matrix, existing API/contracts/PostgreSQL jobs, docs validation all pass on **latest PR SHA**.
+1. CI full Desktop/Electron, Node24 Windows, API/contracts/PostgreSQL jobs and docs validation passed on code checkpoint `5f8231d`; reconfirm final PR HEAD after documentation changes.
 2. Owner runs commands above on Windows and reports test counts, missing Electron warnings if any, and launcher smoke.
 3. Review PR diff for whitelist/sanitized errors, no secrets, no schema edits and no unapproved paths; merge only after acceptance. Keep Issue #31 open until merge + owner confirmation.
 4. Subsequent POS-018 uses the MAIN-only lookup only after secure read exposure/session gating is designed; POS-023 owns live authenticated pull/delta.
