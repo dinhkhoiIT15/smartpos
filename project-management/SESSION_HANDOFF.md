@@ -21,7 +21,7 @@
 1. Initial TypeScript test object duplicated `sale` key — replaced by one safe spread.
 2. First runtime tests exposed ESM circular import (`index.ts` exports `sync-v1.ts` while sync imported VND from index): moved canonical money schema into `vnd.ts`, re-exported prior names. **Full contracts tests must pass both `index.test.ts` and `sync-v1.test.ts`**.
 3. Nested Zod refinement attempted `BigInt('1.1')` for malformed VND and threw rather than returning validation issues. Added guard verifying all nested money inputs using Zod before BigInt arithmetic; now should fail closed normally.
-4. OpenAPI/fixtures + oversized batch and HTTP version-error tests added later. Verify **latest PR HEAD CI**, not historical green checkpoint. Existing Windows SQLite and PostgreSQL services are independent regression checks.
+4. OpenAPI/fixtures + oversized batch, HTTP version-error and malformed cursor tests were verified at code checkpoint `7af0dddc65008e6a05e9c84dca96fee7056681d1`: [Foundation run 42392721677](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42392721677) **SUCCESS**, contracts **19/19** (including both legacy index and sync v1); existing Fastify/Electron, Windows SQLite, PostgreSQL 16 green; [Docs run 42392721705](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42392721705) **SUCCESS**. Verify latest PR HEAD after final docs commits.
 
 ## Windows owner acceptance
 From `C:\Users\dinhk\Desktop\smartpos` in VS Code PowerShell:
