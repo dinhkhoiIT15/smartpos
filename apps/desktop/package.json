@@ -15,6 +15,7 @@
     "test:catalog-cache": "node --experimental-strip-types --test tests/catalog-cache.test.mjs"
   },
   "dependencies": {
+    "@smartpos/domain": "workspace:*",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },
