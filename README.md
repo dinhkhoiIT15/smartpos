@@ -1,6 +1,6 @@
 # SmartPOS Retail — Desktop + API Foundation
 
-**Status:** M2 SQLite catalog-cache development. POS-014/POS-015 are owner-accepted; [POS-016 PR #30](https://github.com/dinhkhoiIT15/smartpos/pull/30) was merged into main at `beb7600`. [POS-017 Issue #31](https://github.com/dinhkhoiIT15/smartpos/issues/31) is under development on a feature branch. Neon contains only the owner-confirmed development 17-table migration; no real login, HTTP sync, worker, sale checkout or production rollout is enabled.
+**Status:** M3 POS-018 cash cart preview development. POS-017 [PR #32](https://github.com/dinhkhoiIT15/smartpos/pull/32) was owner-accepted and merged to main `28d3855`; POS-018 [Issue #33](https://github.com/dinhkhoiIT15/smartpos/issues/33) is on a feature branch. There is **no** real login, HTTP sync, actual payment/sale checkout, worker or production rollout. Neon has only the owner-verified development 17-table migration.
 
 SmartPOS is a planned offline-first, cash-only POS for a single electronics store. The accepted baseline (one authorized offline cashier, immutable sales, integer VND, SKU inventory) is recorded in [AGENTS.md](AGENTS.md), [PRD](docs/PRODUCT_REQUIREMENTS.md), [Business Rules](docs/BUSINESS_RULES.md) and [Architecture](docs/SYSTEM_ARCHITECTURE.md).
 
@@ -103,7 +103,7 @@ pnpm --filter @smartpos/api test:catalog
 pnpm --filter @smartpos/api test
 ```
 
-GitHub CI separately validates real CRUD and audit/rollback against **disposable PostgreSQL 16**; never point `test:catalog:pg` at Neon. POS-015 stock is merged; POS-017 local catalog cache is in a feature branch, with UI/auth integration deferred.
+GitHub CI separately validates real CRUD and audit/rollback against **disposable PostgreSQL 16**; never point `test:catalog:pg` at Neon. POS-015 stock is merged; POS-017 local catalog cache is merged; authenticated import/real catalog UI remain deferred.
 
 ## POS-015 Stock and inventory movement services (draft PR #28)
 
@@ -132,6 +132,20 @@ pnpm --filter @smartpos/desktop test:catalog-cache
 ```
 
 See [POS-017 Windows acceptance and security boundary](docs/POS-017_CATALOG_CACHE_ACCEPTANCE.md). There is **no runtime network importer, renderer SQL interface or real catalog provisioning** without authenticated backend/device support (D-013/POS-023).
+
+## POS-018 interactive demo cash cart (feature branch, Issue #33)
+
+The Electron React UI has a **clearly marked demo cart**: search fixed synthetic SKUs, add/update/remove lines, and preview cash tendered, shortfall and change without recording any sale. It imports the existing `@smartpos/domain` bigint calculations; no product or cash demo data is inserted into SQLite/Neon. Prices are immutable SKU snapshots within the demo cart. This is **not checkout**; real authorization, inventory verification and atomic sale/outbox writes belong to POS-019 and later.
+
+```powershell
+pnpm --filter @smartpos/domain typecheck
+pnpm --filter @smartpos/domain test
+pnpm --filter @smartpos/desktop typecheck
+pnpm --filter @smartpos/desktop build
+pnpm --filter @smartpos/desktop dev
+```
+
+See [POS-018 full Windows acceptance guide](docs/POS-018_CASH_CART_ACCEPTANCE.md). The cart tab is a preview only; never use it to charge customers.
 
 ## Monorepo layout
 
