@@ -179,6 +179,22 @@ export const syncPushRequestSchema = z.strictObject({
 });
 export type SyncPushRequest = z.infer<typeof syncPushRequestSchema>;
 
+/** Common error envelope for future HTTP-level sync validation/auth failures. */
+export const syncHttpErrorSchema = z.strictObject({
+  error: z.enum(['VALIDATION_ERROR', 'UNSUPPORTED_VERSION', 'UNAUTHORIZED',
+    'FORBIDDEN', 'PAYLOAD_TOO_LARGE', 'RATE_LIMITED', 'SYNC_UNAVAILABLE']),
+  supportedProtocolVersions: z.tuple([z.literal(SYNC_PROTOCOL_VERSION)]).optional(),
+}).superRefine((value, ctx) => {
+  if (value.error === 'UNSUPPORTED_VERSION' && !value.supportedProtocolVersions) {
+    ctx.addIssue({ code: 'custom', path: ['supportedProtocolVersions'],
+      message: 'unsupported version must advertise supported version 1' });
+  } else if (value.error !== 'UNSUPPORTED_VERSION' && value.supportedProtocolVersions) {
+    ctx.addIssue({ code: 'custom', path: ['supportedProtocolVersions'],
+      message: 'supported versions are only returned for unsupported version' });
+  }
+});
+export type SyncHttpError = z.infer<typeof syncHttpErrorSchema>;
+
 const ackFields = { eventId: uuid, saleId: uuid } as const;
 export const syncPushResultSchema = z.discriminatedUnion('status', [
   z.strictObject({
