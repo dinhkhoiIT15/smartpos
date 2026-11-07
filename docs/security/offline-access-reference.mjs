@@ -11,6 +11,11 @@
 const DENIED = (reason) => Object.freeze({ allowed: false, reason });
 const ALLOWED = Object.freeze({ allowed: true, reason: 'ALLOWED' });
 
+// Owner-approved D-010 upper bound: every offline authorization expires within
+// four hours of its server-issued timestamp, even if callers pass a larger value.
+// DESIGN REFERENCE ONLY: this is not a secure runtime authorization gate.
+export const APPROVED_MAX_OFFLINE_GRANT_MS = 4 * 60 * 60 * 1000;
+
 const ROLE_ACTIONS = Object.freeze({
   ADMIN: Object.freeze(['users:manage', 'devices:provision', 'devices:revoke', 'reports:read']),
   MANAGER: Object.freeze(['catalog:write', 'inventory:adjust', 'reports:read', 'conflicts:review']),
@@ -31,8 +36,9 @@ const validMs = (value) => Number.isSafeInteger(value) && value >= 0;
  * Returns a narrow decision, no tokens. The values in 'facts' must be trusted
  * server/key proofs in a REAL implementation; client-supplied booleans are unsafe.
  *
- * Policy duration is an injected hypothetical maximum for acceptance tests,
- * NOT an approved production TTL. No grace period is supported.
+ * The owner approved an absolute four-hour ceiling, without grace. The
+ * injected maxGrantLifetimeMs is an additional (shorter-or-equal) test-policy
+ * input; it must never override the owner-approved ceiling.
  */
 export function assessOfflineCheckout(facts) {
   if (!facts || typeof facts !== 'object' || Array.isArray(facts)) return DENIED('INVALID_CONTEXT');
@@ -85,7 +91,9 @@ export function assessOfflineCheckout(facts) {
   if (!antiRollbackStateAvailable || nowMs < lastObservedMs || grantIssuedMs > nowMs) {
     return DENIED('CLOCK_OR_STATE_UNTRUSTED');
   }
-  if (grantExpiresMs - grantIssuedMs > maxGrantLifetimeMs) {
+  if (maxGrantLifetimeMs > APPROVED_MAX_OFFLINE_GRANT_MS ||
+    grantExpiresMs - grantIssuedMs > APPROVED_MAX_OFFLINE_GRANT_MS ||
+    grantExpiresMs - grantIssuedMs > maxGrantLifetimeMs) {
     return DENIED('GRANT_DURATION_EXCEEDS_POLICY');
   }
   if (nowMs >= grantExpiresMs || nowMs >= cashierSessionExpiresMs) {
