@@ -283,6 +283,34 @@ test('signed-64-bit line product overflow aborts even when stock is sufficient',
   assert.deepEqual(allCounts(x.db),[0,0,0,0]);
 });
 
+
+test('reused event/payment/item IDs on a different sale roll back stock and financial rows',t=>{
+  const x=fixture(t),original=x.request();
+  commitLocalCashSale(x.db,original);
+  const pendingBefore=pending(x.db,x.ids.phoneId);
+  const variations=[
+    {eventId:original.eventId},
+    {paymentId:original.paymentId},
+    {items:null},
+  ];
+  for(const change of variations) {
+    const another=x.request();
+    if(change.items===null) another.items[0].itemId=original.items[0].itemId;
+    else Object.assign(another,change);
+    assert.throws(()=>commitLocalCashSale(x.db,another));
+    assert.deepEqual(allCounts(x.db),[1,2,1,1]);
+    assert.equal(pending(x.db,x.ids.phoneId),pendingBefore);
+  }
+});
+
+test('missing stock row on later SKU rolls back pending delta for the first SKU',t=>{
+  const x=fixture(t),req=x.request();
+  x.db.prepare('DELETE FROM local_inventory_balances WHERE variant_id=?').run(x.ids.caseId);
+  assert.throws(()=>commitLocalCashSale(x.db,req),/INSUFFICIENT_STOCK/);
+  assert.equal(pending(x.db,x.ids.phoneId),0n);
+  assert.deepEqual(allCounts(x.db),[0,0,0,0]);
+});
+
 test('committed financial evidence and event payload cannot be edited/deleted',t=>{
   const x=fixture(t),req=x.request();
   commitLocalCashSale(x.db,req);
