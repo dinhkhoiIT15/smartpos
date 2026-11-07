@@ -2,37 +2,35 @@
 
 status_schema: 1
 last_reviewed_at: 2026-11-07
-verified_commit: 36e73cd4bf97d1fe76a0001ed8cc1565bd58d06e
+verified_commit: e71e41398b912ea91c057e76dc044b38e552c7df
 verified_ref: main
 repository_url: https://github.com/dinhkhoiIT15/smartpos
-repo_connection: CONFIRMED — linked GitHub collaborator; feature branches and PR allowed, no admin role
-last_github_synced_at: MANUAL GITHUB REVIEW 2026-11-07
+repo_connection: CONFIRMED — GitHub collaborator; feature branches and PR allowed, not admin
+last_github_synced_at: GITHUB REVIEW 2026-11-07
 current_milestone: M1 (M0 management/governance still incomplete)
-current_phase: POS-011 STAFF AUTH + SINGLE OFFLINE DEVICE DESIGN — DRAFT PR #23; OWNER D-010 DECISIONS OPEN
-ci_status: POS-011 reference offline auth model 32/32 and existing CI passed on checkpoint c86e6541df5bdef9dade8c1d6a4c47008484d74f; recheck latest PR head
+current_phase: POS-011 OWNER-APPROVED OFFLINE POLICY FOLLOW-UP — PR #24 UNMERGED
+ci_status: Latest POS-011 approved-policy PR #24 CI must be verified at final head before code-review completion
 production_status: NOT DEPLOYED
 
-## Verified main / actual user acceptance
+## Verified main / accepted prerequisites
 - POS-001 PR #5, POS-002/POS-004 PR #3, POS-007 Electron shell PR #8, POS-008 Fastify health PR #10 merged.
-- POS-009 Neon DEV SELECT 1 over TLS verified by user, PR #12/#13 merged.
-- POS-010 Zod contracts and bigint money PR #15 merged.
-- POS-012 PostgreSQL 17-table schema PR #17 merged; user confirmed 17 SmartPOS public tables + one Drizzle migration history entry on isolated Neon **development** branch only.
-- POS-013 SQLite local schema PR #19 merged, follow-up [Windows bugfix PR #22](https://github.com/dinhkhoiIT15/smartpos/pull/22) merged into **verified main `36e73cd4bf97`**. User confirmed all Windows SQLite tests and runtime acceptance passed.
-- [POS-013 Issue #18](https://github.com/dinhkhoiIT15/smartpos/issues/18) and [BUG-013 Issue #21](https://github.com/dinhkhoiIT15/smartpos/issues/21) closed as completed with owner-reported acceptance. CI Windows 7/7 and Ubuntu SQLite tests passed.
-- `verified_commit` refers to inspected main SHA, **not** to the POS-011 feature branch or a database deployment.
+- POS-009 Neon development read-only TLS SELECT 1 confirmed; POS-010 Zod and bigint VND helpers merged.
+- POS-012 Drizzle 17-table PostgreSQL migration PR #17 merged; developer confirmed 17 tables + one migration journal entry on isolated Neon development, **not production**.
+- POS-013 SQLite local schema PR #19 and Windows EPERM bugfix PR #22 merged, developer confirmed tests and runtime acceptance; Issues #18 and #21 closed.
+- POS-011 auth/device **DESIGN** [PR #23](https://github.com/dinhkhoiIT15/smartpos/pull/23) merged into verified [main `e71e41398b91`](https://github.com/dinhkhoiIT15/smartpos/commit/e71e41398b912ea91c057e76dc044b38e552c7df). Issue #20 remains OPEN until the approved-policy follow-up is reviewed/merged.
+- `verified_commit` reflects actual main SHA, NOT POS-011 follow-up PR branch or deployed auth.
 
-## Current POS-011 design only (not Done)
-- [POS-011 Issue #20](https://github.com/dinhkhoiIT15/smartpos/issues/20), [draft PR #23](https://github.com/dinhkhoiIT15/smartpos/pull/23), branch `feature/POS-011-offline-auth-device-design`.
-- [ADR-0004](../docs/ADR-0004-offline-auth-device-provisioning.md) proposes Fastify server-authenticated staff roles, single offline register pairing, signed short-lived device/cashier-bound grant and fail-closed expiry/clock/revoke policy. Marked PROPOSED; **no grant duration/OS key choice approved**.
-- [Threat model](../docs/security/POS-011_THREAT_MODEL.md) includes revoked staff/device, second register, clone/restore, wall-clock rollback, token exposure, server uncertainty during outage and manual device handover risk.
-- [Executable reference](../docs/security/offline-access-reference.mjs) lives ONLY in docs, takes synthetic trusted facts, has NO signature verification, login endpoint, private keys or app runtime integration. [Test matrix](../docs/security/offline-access-reference.test.mjs) **32/32 passed** on [CI run 42383728487](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42383728487) at checkpoint `c86e6541df5bdef9dade8c1d6a4c47008484d74f`. Latest feature HEAD CI must be checked after documentation changes.
-- D-010 in [DECISIONS](DECISIONS.md) remains OPEN pending owner: max lifetime, shift expiry/idle lock, no new cashier login while offline, recovery after prolonged outage, device replacement/revoke overlap and secure key storage. R-005 remains HIGH OPEN.
-- Approved PRD/BUSINESS_RULES/SYSTEM_ARCHITECTURE/DATABASE_SCHEMA/OFFLINE_SYNC_DESIGN unchanged.
-- No real login/register/signature issuer/verifier, OS-backed key storage, migration to Neon, live cashier or checkout has been implemented or authorized.
+## Owner-approved POS-011 policy (2026-11-07)
+- Owner replied **“Duyệt”** explicitly to proposal: **4 hours maximum from server-issued offline grant**, start/switch cashier shift **online only**, **zero grace and no offline renewal**; expired grant prevents NEW checkout but never removes committed sale/outbox data.
+- When transferring the one designated offline POS, the old register must verifiably stop or all of its grants expire before new device offline checkout starts. **No emergency overlap exception approved**.
+- Owner acknowledges a disconnected device may not learn of revocation until grant expiry, **at most four hours after grant issuance**. Risk R-005 stays HIGH OPEN until cryptographic and end-to-end controls are tested.
+- [PR #24](https://github.com/dinhkhoiIT15/smartpos/pull/24) on `feature/POS-011-approved-four-hour-policy` records policy acceptance in ADR-0004 and DECISIONS D-010 and enforces a fixed four-hour ceiling in **design-only** reference tests.
+- Unapproved details explicitly remain D-013 OPEN: inactivity/screen-lock timeout, Windows/macOS non-exportable OS key implementation, key rotation, clock rollback strength, proving old device shutdown and restoring lost keys.
+- App still has NO login endpoint, signed grant issuer/verifier, real OS key storage, cashier sessions or enabled checkout. Reference tests use synthetic trusted boolean facts in `docs/security` and are not imported by app code. No Neon migrations or data changes in PR #24.
 
-## Boundaries and next gate
-1. Re-fetch latest PR #23 HEAD and full CI, review ADR/threat matrix/test scope.
-2. Owner must approve D-010 policy and acknowledge that disconnect prevents instant revocation, subject to bounded signed-grant expiry; do not silently replace proposed rules with production assumptions.
-3. After design approval, merge PR and close POS-011 design issue; **separate follow-up implementation** for actual API auth/device verification and versioned schema changes before real offline checkout POS-019.
-4. POS-014/015 catalog/inventory, POS-016 sync contracts, POS-017 SQLite catalog remain dependencies for checkout; POS-027/029 encrypted backup/recovery remain mandatory before pilot.
-5. M0 POS-003 GitHub backlog board, POS-005 owner-admin branch rules and POS-006 handoff drill remain outstanding. No production pilot/readiness claim.
+## Next gates
+1. Verify latest PR #24 HEAD Windows/Ubuntu SQLite, Fastify, PostgreSQL and POS-011 reference tests; review D-010 against exact owner approval.
+2. After green CI, make PR #24 READY for human code review (do not auto-merge). Close POS-011 Issue #20 only after its design follow-up is merged/accepted.
+3. Real authentication, signed grant verification, key storage, clock and device revocation require separately reviewed implementation and migrations **before** POS-019 offline sales.
+4. Other work: POS-014 catalog, POS-015 inventory, POS-016 sync contract, POS-017 cache; M0 POS-003/005/006 governance still outstanding.
+5. D-009 encryption and backup restore policy still OPEN, no production pilot.
