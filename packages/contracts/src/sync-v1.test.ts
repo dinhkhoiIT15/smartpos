@@ -5,7 +5,7 @@ import {
   SYNC_PROTOCOL_VERSION, MAX_PUSH_EVENTS, MAX_PULL_CHANGES, MAX_PUSH_JSON_BYTES,
   syncSaleWithoutHashSchema, syncSaleCompletedEventSchema, syncPushRequestSchema,
   syncPushResponseSchema, syncPullQuerySchema, syncPullResponseSchema,
-  syncCursorSchema, canonicalSyncJson, computeSyncPayloadHash,
+  syncCursorSchema, syncHttpErrorSchema, canonicalSyncJson, computeSyncPayloadHash,
   assertPushResponseMatchesRequest, assertPullResponseMatchesQuery,
   classifySyncReceiptReplay, type SyncSaleWithoutHash,
 } from './sync-v1.js';
@@ -274,8 +274,47 @@ test('committed JSON fixtures validate with Zod and exact canonical SHA-256 hash
   assert.equal(payloadHash, '64caf850ef884a5c682e1dc9c2dc54e80bb0f4a835df4f74ddaebe93079016fd');
   assertPushResponseMatchesRequest(requestFixture, read('push.response.json'));
   assertPushResponseMatchesRequest(requestFixture, read('push.review.response.json'));
+  assert.deepEqual(syncHttpErrorSchema.parse(read('error.unsupported-version.json')), {
+    error:'UNSUPPORTED_VERSION', supportedProtocolVersions:[1],
+  });
   const queryFixture = syncPullQuerySchema.parse(read('pull.query.json'));
   const pullFixture = assertPullResponseMatchesQuery(queryFixture, read('pull.response.json'));
   assert.equal(pullFixture.changes.length, 2);
   assert.equal(pullFixture.nextCursor, '12');
+});
+
+test('future HTTP version error schema is explicit and allows no secret fields', () => {
+  assert.deepEqual(syncHttpErrorSchema.parse({
+    error: 'UNSUPPORTED_VERSION', supportedProtocolVersions: [1],
+  }), { error: 'UNSUPPORTED_VERSION', supportedProtocolVersions: [1] });
+  for (const sample of [
+    { error: 'UNSUPPORTED_VERSION' },
+    { error: 'UNSUPPORTED_VERSION', supportedProtocolVersions: [2] },
+    { error: 'UNAUTHORIZED', supportedProtocolVersions: [1] },
+    { error: 'UNAUTHORIZED', token: 'private' },
+    { error: 'UNKNOWN' },
+  ]) assert.equal(syncHttpErrorSchema.safeParse(sample).success, false);
+});
+
+test('valid 25-event payload larger than 512 KiB is rejected even below event count cap', () => {
+  const fullAttrs = Object.fromEntries(
+    Array.from({ length: 8 }, (_, i) => [String.fromCharCode(97 + i), 'Z'.repeat(64)]),
+  );
+  const many = Array.from({length: MAX_PUSH_EVENTS}, (_, i) => {
+    const e = eventBody();
+    e.eventId = `a0000000-0000-4000-8000-${String(i+1).padStart(12, '0')}`;
+    e.saleId = `b0000000-0000-4000-8000-${String(i+1).padStart(12, '0')}`;
+    e.sale.items = Array.from({ length: 100 }, (_, j) => ({
+      ...e.sale.items[0]!,
+      itemId: `c0000000-0000-4000-8000-${String(j+1).padStart(12, '0')}`,
+      nameSnapshot: 'N'.repeat(200), attributesSnapshot: fullAttrs,
+      unitPriceVnd: '1', lineTotalVnd: '1',
+    }));
+    e.sale.totalVnd = '100';
+    e.sale.payment = { method: 'CASH', dueVnd: '100', tenderedVnd: '100', changeVnd: '0' };
+    return makeEvent(e);
+  });
+  const oversized = {protocolVersion:1,deviceId,events:many};
+  assert.ok(Buffer.byteLength(JSON.stringify(oversized), 'utf8') > MAX_PUSH_JSON_BYTES);
+  assert.equal(syncPushRequestSchema.safeParse(oversized).success, false);
 });
