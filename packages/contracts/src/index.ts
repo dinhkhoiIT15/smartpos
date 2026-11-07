@@ -33,3 +33,6 @@ export type CashCartEstimateInput = z.infer<typeof cashCartEstimateSchema>;
 export function parseVndString(input: unknown): bigint {
   return BigInt(vndStringSchema.parse(input));
 }
+
+// POS-016 sync wire contract; transport/handlers are NOT enabled by exporting schemas.
+export * from './sync-v1.js';
