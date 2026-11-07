@@ -1,41 +1,38 @@
 # Development Status — SmartPOS
 
 status_schema: 1
-last_reviewed_at: 2026-11-07
-verified_commit: beb760097e35ee5a7d39ed1c96f0b2f4f7e7c23b
+last_reviewed_at: 2026-11-08
+verified_commit: 28d38555d358c0fad012702a529fbd0c2bffb5d3
 verified_ref: main
 repository_url: https://github.com/dinhkhoiIT15/smartpos
-repo_connection: CONFIRMED — GitHub collaborator may create branches/Issues/PRs; no admin rights
-last_github_synced_at: MANUAL GITHUB REVIEW 2026-11-07
-current_milestone: M2 — local catalog cache
-current_phase: POS-017 initial trusted catalog snapshot + SQLite local SKU lookup — feature branch pending CI/owner acceptance
-ci_status: POS-017 code checkpoint 5f8231d Foundation CI 42394398241 SUCCESS (Linux/Windows local SQLite 7+6, API/Electron/PostgreSQL), Docs CI 42394398264 SUCCESS; recheck latest HEAD after documentation-only updates
-production_status: NOT DEPLOYED — no live auth, checkout, sync route, worker or Neon writes
+repo_connection: CONFIRMED — GitHub collaborator can open branches/Issues/PRs; no admin
+last_github_synced_at: MANUAL GITHUB REVIEW 2026-11-08
+current_milestone: M3 — cash cart and preview before persisted offline sales
+current_phase: POS-018 interactive demo cart / pure bigint VND cash preview — feature branch review pending
+ci_status: POS-018 latest feature HEAD CI NOT YET VERIFIED; must check GitHub before acceptance
+production_status: NOT DEPLOYED — no real login, checkout, sync API, worker or Neon payment writes
 
-## Verified accepted milestones and main source of truth
+## Owner-accepted and merged foundation
 
-- POS-001/002/004, POS-007/008/009/010 foundation/health/contracts; M0 management board/branch rules remain partially unfinished.
-- POS-012 PostgreSQL 17-table v1: migration committed and verified separately on isolated Neon **development** by owner, not production.
-- POS-013 SQLite v1 and Windows teardown fix: PRs #19/#22 merged; Node 24 + Electron demo owner-accepted. Existing schema has nine STRICT tables, including local_catalog_variants and sync_cursors.
-- POS-011 offline grant/device policy DESIGN merged, with four-hour max grant; **real auth/keys/revocation enforcement not implemented**.
-- POS-014 catalog service PR #26 and POS-015 stock transaction PR #28 owner-accepted/merged. Mutating endpoints intentionally not exposed without real authentication.
-- POS-016 versioned push/pull Zod contract PR #30 **merged** to main at [`beb760097e35`](https://github.com/dinhkhoiIT15/smartpos/commit/beb760097e35ee5a7d39ed1c96f0b2f4f7e7c23b), confirmed from GitHub commit on 2026-11-07. Only wire schemas/OpenAPI/example fixtures, not real HTTP routes.
-- No real sale processing, desktop worker, server sync transaction or production rollout.
+- POS-001/002/004 workspace/docs; POS-007 Electron; POS-008 Fastify health; POS-009 read-only Neon DEV connectivity; POS-010 shared Zod and bigint domain; POS-011 offline grant four-hour policy **design only**, D-013 real auth remains open.
+- POS-012 PostgreSQL schema v1 17 tables merged, owner confirmed only on Neon development. POS-013 SQLite v1 and Windows cleanup accepted, 9 STRICT tables, no production checkout.
+- POS-014 catalog/variants, POS-015 stock balances/atomic movements merged, normal runtime APIs still deny real routes absent auth.
+- POS-016 v1 sync contract PR #30 merged; no live HTTP sync.
+- POS-017 [PR #32](https://github.com/dinhkhoiIT15/smartpos/pull/32) **merged/owner Windows PASS** at verified [main SHA `28d38555d358`](https://github.com/dinhkhoiIT15/smartpos/commit/28d38555d358c0fad012702a529fbd0c2bffb5d3) on 2026-11-07. MAIN-only `catalog-cache.ts` supports atomic initial trusted snapshot + cursor and safe SKU read, no renderer importer. Source-of-truth GitHub merge and owner message supersede stale prior handoff.
 
-## Current POS-017 scope (draft code, not yet accepted)
+## POS-018 feature branch pending acceptance
 
-- [Issue #31](https://github.com/dinhkhoiIT15/smartpos/issues/31), branch `feature/POS-017-local-catalog-cache`, based on merged POS-016 main.
-- MAIN-only `apps/desktop/src/main/local-db/catalog-cache.ts` accepts a strictly validated trusted initial snapshot (store UUID, variant IDs, uppercase SKU, attributes, signed-int64 VND string price, revision/cursor, active). Duplicates, overflows and mixed stores reject before writing.
-- `applyInitialCatalogSnapshot`: atomic initial catalog rows + `sync_cursors` write via existing SQLite transaction. Identical retry is read-only; divergent/reversed snapshots are denied. Existing sale/payment/outbox and stock pending delta are never overwritten. No SQLite migration.
-- `lookupLocalCatalogBySku`: local bounded store-scoped prefix search, exact first, no inactive rows, bigint-safe string output, with initialized cursor prerequisite.
-- New disposable Node 24 tests for persistence/reopen, fault rollback, collisions, cross-store, invalid money/cursor, replay, pending evidence preservation. Both Linux and Windows CI configured to run suite.
-- No runtime API, network importer, renderer IPC or authentication bypass; real source verification and incremental pull belong to POS-023/D-013.
-- Acceptance guide: [POS-017_CATALOG_CACHE_ACCEPTANCE](../docs/POS-017_CATALOG_CACHE_ACCEPTANCE.md).
-- **GitHub CI verification:** [Foundation run 42394398241](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42394398241) succeeded on code checkpoint 5f8231d, including cache 6/6 and baseline 7/7 on Linux + Windows, full API/Electron/PostgreSQL. [Docs run 42394398264](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42394398264) succeeded. Owner local Windows acceptance remains pending; verify CI on any subsequent docs-only HEAD before merge. Do not mark Issue/PR Done or merge automatically.
+- [Issue #33](https://github.com/dinhkhoiIT15/smartpos/issues/33), branch `feature/POS-018-cash-cart-preview` based on verified `main`.
+- [POS-018 Windows acceptance](../docs/POS-018_CASH_CART_ACCEPTANCE.md) describes demo-only UI and no sale authorization.
+- Pure `@smartpos/domain/cart`: immutable SKU/price snapshots in memory, deterministic merge/update/remove with bounded quantity/store's sample stock, `BigInt` signed-64-bit canonical money string calculations, cash shortfall/change preview; extends `calculateCartAmounts` while retaining `calculateCashTotals`.
+- Electron React sidebar demo cart: hardcoded synthetic SKU examples, search, quantity increment/decrement/edit, remove/clear, tender input and summary, explicit DEMO warning and **no checkout/receipt/SQLite/network write**.
+- Unit tests `packages/domain/src/cart.test.ts`: 7 cases for BR-002 9,340,000 due / 9,500,000 received / 160,000 change, duplicate SKUs, stock bounds, malformed and overflow VND, insufficient tender and no fabricated sale.
+- Desktop adds existing workspace domain dependency to package/lock, no new remote dependency. Linux CI existing domain/build; Windows Node24 now runs domain test and desktop TS check in addition to SQLite checks.
+- CI and owner Windows UI acceptance still required. Do not claim PR merged, real sale processing, network sync or security-approved auth.
 
-## Next
+## Next actions
 
-1. CI passed on 5f8231d; recheck GitHub Actions after documentation-only updates on the final POS-017 PR HEAD.
-2. Developer Windows: `pnpm install --frozen-lockfile`, `pnpm --filter @smartpos/desktop typecheck`, `pnpm --filter @smartpos/desktop test:local-db`, `pnpm --filter @smartpos/desktop test:catalog-cache`, `pnpm --filter @smartpos/desktop security:check`, `pnpm --filter @smartpos/desktop build`, `pnpm run check`; optional existing demo window.
-3. Owner reviews and merges feature PR only after all acceptance evidence; then close Issue #31.
-4. POS-018 next (cash cart UX/calculator), POS-019 offline sale/outbox; POS-021/022/023 real authenticated sync + reconcile. D-013 and D-009 security/backups remain OPEN. No Neon/production writes for POS-017.
+1. Open/check POS-018 draft PR from feature branch and retrieve GitHub CI latest SHA.
+2. Owner Windows: `pnpm install --frozen-lockfile`, `pnpm --filter @smartpos/domain typecheck`, `pnpm --filter @smartpos/domain test`, `pnpm --filter @smartpos/desktop typecheck`, `pnpm --filter @smartpos/desktop security:check`, `pnpm --filter @smartpos/desktop build`, `pnpm run check`, `pnpm --filter @smartpos/desktop dev`; verify two-SKU example and no real completion button.
+3. Merge PR only after CI, owner review and local Windows UI PASS. Keep Issue #33 open until accepted merged.
+4. POS-019 follows for authenticated offline atomic sale/items/payment/stock/outbox; POS-020 receipt, POS-021–023 sync and D-013 real auth remain unimplemented. D-009 local backup encryption/recovery OPEN.
