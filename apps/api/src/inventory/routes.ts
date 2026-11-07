@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import {
-  InventoryError, type InventoryPrincipal, type InventoryService,
+  InventoryError, assertInventoryPrincipal, type InventoryPrincipal, type InventoryService,
 } from './service.js';
 import { adjustInventorySchema, inventoryHistoryQuerySchema } from './schemas.js';
 
@@ -28,7 +28,7 @@ export function registerInventoryRoutes(app: FastifyInstance, options: Inventory
       reply.header('Cache-Control', 'no-store');
       try {
         const actor = await options.resolvePrincipal(request);
-        if (!actor) throw new InventoryError('UNAUTHORIZED', 401);
+        assertInventoryPrincipal(actor, method === 'POST');
         const output = await execute(actor, request);
         await reply.code(status).send(output);
       } catch (error) {
