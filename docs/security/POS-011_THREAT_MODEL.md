@@ -1,6 +1,6 @@
 # POS-011 — Threat model: nhân viên, phiên offline và một thiết bị POS
 
-**Trạng thái:** PROPOSED / cần chủ dự án duyệt D-010
+**Trạng thái:** D-010 **ACCEPTED** (chính sách vận hành được chủ dự án duyệt ngày 2026-11-07); các kiểm soát kỹ thuật chưa triển khai, R-005 vẫn HIGH OPEN.
 **Nguồn:** [ADR-0004](../ADR-0004-offline-auth-device-provisioning.md), [Issue #20](https://github.com/dinhkhoiIT15/smartpos/issues/20), R-004/R-005, PRD FR-01/07, BR-005/006
 **Giới hạn:** Tài liệu và test tham chiếu; **không có hệ thống login, cấp grant, ký số, kiểm chứng khóa hay bán hàng thật** tại thời điểm này.
 
@@ -39,27 +39,28 @@
 
 1. API chỉ cho một `devices.offline_checkout_enabled=true AND revoked_at IS NULL` tại một store (đã có index PostgreSQL POS-012).
 2. Khi muốn đổi máy, ADMIN đăng nhập online lại; hệ thống ghi audit `DEVICE_TRANSFER_REQUESTED`. Nếu máy cũ có kết nối, nó xác nhận xóa grant và ngừng checkout.
-3. Nếu máy cũ mất mạng, **không cho phép kích hoạt máy thứ hai khi grant cũ còn hạn**, trừ quy trình khẩn cấp đã được chủ dự án duyệt và nhận rủi ro overlap; không cho chỉ dựa vào sửa `revoked_at` trên server.
+3. **ĐÃ DUYỆT:** Nếu máy cũ mất mạng, **không cho phép kích hoạt máy thứ hai khi grant cũ còn hạn**; chỉ khi máy cũ đã xác nhận dừng một cách có thể kiểm chứng hoặc mọi grant cũ hết hạn. **Chưa duyệt bất kỳ ngoại lệ khẩn cấp cho phép chồng lấn hai máy**; sửa `revoked_at` trên server không đủ để dừng máy offline.
 4. Thu hồi thiết bị phải chặn cấp grant mới, ngừng checkout khi máy kết nối, nhưng không xóa các sale/outbox đã thu tiền trước đó.
 5. Quá trình pair lại cùng `device_id` phải đổi revision/key fingerprint; không chấp nhận restore SQLite đơn thuần làm chứng thực máy.
+6. **ĐÃ DUYỆT:** thời hạn grant không vượt quá **4 giờ từ khi máy chủ cấp**, hết hạn không grace và không gia hạn khi offline; dừng đơn mới nhưng giữ nguyên sale/outbox đã thu trước đó.
 
-## Mốc vận hành đề xuất (chưa có chấp thuận)
+## Chính sách đã duyệt D-010 và chi tiết triển khai chưa chốt
 
 | Quyết định D-010 | Phương án thận trọng để chủ dự án duyệt | Ảnh hưởng nếu từ chối |
 |---|---|---|
-| Thời hạn grant offline | Ngắn, gắn với một ca; **4 giờ chỉ là ví dụ minh họa cho test**, chưa phải mặc định production | Cần xác định thời lượng đáp ứng ca làm và mức rủi ro không biết revoke |
-| Gia hạn khi offline | Không gia hạn, không grace; cần online xác minh lại | Mạng mất dài thì ngừng bán mới |
-| Đổi cashier khi offline | Mặc định không; yêu cầu online login để bắt đầu ca của người khác | Không thể tự chuyển ca khi mất mạng |
-| Máy mất / chuyển máy | Chỉ khi máy cũ xác nhận dừng hoặc grant cũ hết hạn; hỗ trợ quy trình khẩn cấp có audit | Có thể có thời gian chờ đổi máy |
-| Inactivity/khóa màn hình | Cần thời lượng và cơ chế mở khóa được duyệt; không tự chọn PIN offline | Thiếu chính sách sẽ làm sai yêu cầu trải nghiệm thực tế |
-| OS key store/clock protection | Phải xác minh Windows/macOS, key non-exportability, anti-rollback và restore | Không thể gọi offline grant là bảo đảm an toàn tuyệt đối |
+| Thời hạn grant offline | **ĐÃ DUYỆT: tối đa 4 giờ** kể từ thời điểm server cấp; nếu ca hết trước thì chặn sớm hơn, không gia hạn khi offline | Mất mạng quá hạn dừng đơn mới; cần online để gia hạn |
+| Gia hạn khi offline | **ĐÃ DUYỆT: Không gia hạn, không grace**; dừng tạo đơn mới khi hết hạn, giữ nguyên sale/outbox đã lưu | Mạng mất dài thì phải chờ kết nối để tiếp tục bán |
+| Đổi cashier khi offline | **ĐÃ DUYỆT: Không**; đăng nhập bắt đầu ca/chuyển cashier phải online | Không thể tự chuyển ca khi mất mạng |
+| Máy mất / chuyển máy | **ĐÃ DUYỆT: Chỉ khi xác minh máy cũ đã dừng hoặc mọi grant cũ hết hạn**; **chưa duyệt ngoại lệ khẩn cấp cho phép chồng lấn quyền** | Có thể chờ tối đa 4 giờ kể từ grant gần nhất; cần cách chứng minh máy cũ dừng |
+| Inactivity/khóa màn hình | **CHƯA CHỐT:** thời lượng khóa khi không thao tác, unlock/re-auth và xử lý giờ ca ngắn hơn 4 giờ | Phải quyết định trước khi tích hợp đăng nhập thật |
+| OS key store/clock protection | **CHƯA CHỐT:** API/kho khóa trên Windows/macOS, key non-exportability, anti-rollback và restore | Không thể coi chính sách đã duyệt là triển khai bảo mật hoàn chỉnh |
 | Backup encryption / restore | Phải phê duyệt POS-027/POS-029 trước khi có dữ liệu bán thật | SQLite plaintext copy có thể lộ dữ liệu |
 
 ## Test chấp nhận / negative cases
 
 Automated policy-reference tests map to the proposed behavior, run in CI using only synthetic facts. They cover: valid single device cashier grant, expired at boundary, future-issued grant, wrong store/device, invalid signature/key proof, unauthorized second device, known user/device revoke, cashier switch, wrong operation, oversized/invalid duration, lost anti-rollback state, clock rollback, and server-side role restrictions.
 
-**Không nên nhầm các bài test logic này với kiểm thử cryptography thật.** Trước khi mở bán thực tế phải có tích hợp test với server-issued signatures, tampering, key rotation, revocation concurrency, Node/Electron Windows/macOS E2E và ký duyệt owner D-010. Test app hiện tại vẫn là **DEMO ONLY**.
+**Không nên nhầm các bài test logic này với kiểm thử cryptography thật.** D-010 đã duyệt *chính sách*; trước khi mở bán thực tế phải có signature/key/OS-keystore thật, kiểm thử tampering, key rotation, revocation concurrency, Windows/macOS E2E và phê duyệt những chi tiết bảo mật còn mở. Test app hiện tại vẫn là **DEMO ONLY**.
 
 ## Hướng dẫn xử lý khi có sự cố
 
