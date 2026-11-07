@@ -83,7 +83,8 @@ async function checkActiveMembership(
      JOIN users u ON u.id=m.user_id
      WHERE m.store_id=$1 AND m.user_id=$2 AND m.role=$3
        AND m.active=true AND u.active=true
-       AND (NOT $4::boolean OR m.role IN ('ADMIN','MANAGER'))`,
+       AND (NOT $4::boolean OR m.role IN ('ADMIN','MANAGER'))
+       ${write ? 'FOR SHARE OF m,u' : ''}`,
     [actor.storeId, actor.userId, actor.role, write],
   );
   if (!result.rows[0]) throw new InventoryError('FORBIDDEN', 403);
