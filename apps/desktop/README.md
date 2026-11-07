@@ -1,6 +1,6 @@
 # SmartPOS Desktop — Secure Electron shell + SQLite v1 (POS-013)
 
-**Status:** Development-only Electron demo using SQLite v1. POS-017 adds a MAIN-only initial catalog cache/lookup primitive on a feature branch; **no authenticated catalog sync, real sales, staff authorization, receipt or checkout**.
+**Status:** Development-only Electron demo with SQLite v1 and merged POS-017 local catalog cache. POS-018 adds a clearly labeled **in-memory demo cart and cash-change preview**; **no authenticated catalog sync, real sales, staff authorization, receipt or checkout**.
 
 ## Run on Windows / macOS
 
@@ -59,6 +59,10 @@ Expected after CI verification: all tests pass with 0 failures. The tests use te
 ## POS-017 local catalog cache — not a live sync endpoint
 
 The new `src/main/local-db/catalog-cache.ts` validates an externally authenticated **future** initial snapshot and atomically persists `local_catalog_variants` plus `sync_cursors` using the existing v1 tables. It provides MAIN-only local SKU lookup, cursor read and idempotent initial import. No network endpoint, fake token, IPC mutation, production userData fixture or new migration is added. POS-023/D-013 will need to provide authorized catalog projection and incremental delta application. Run `pnpm --filter @smartpos/desktop test:catalog-cache` on Windows to verify six disposable file-backed tests. See [POS-017 acceptance](../../docs/POS-017_CATALOG_CACHE_ACCEPTANCE.md).
+
+## POS-018 demo cart (no sale writes)
+
+Use the new sidebar item **Giỏ hàng & tiền mặt (demo)** to test adding a fixed sample SKU, quantity, remove, cash entry and change. The UI uses `@smartpos/domain/cart` pure bigint operations; sample prices and stocks are **not read from real catalog or written into SQLite**. No real payment completion/receipt is implemented. Demo state resets when app is closed. See [POS-018 Windows acceptance guide](../../docs/POS-018_CASH_CART_ACCEPTANCE.md), including 9.340.000 VND total and 160.000 VND change tests.
 
 ## Scope / security boundaries
 
