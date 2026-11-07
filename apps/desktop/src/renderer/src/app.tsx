@@ -53,7 +53,7 @@ export function App() {
       <main className="content">
         <header className="topbar">
           <div className="breadcrumb">SmartPOS <span>/</span> Tổng quan</div>
-          <span className="top-label">POS-007 • Desktop Shell</span>
+          <span className="top-label">POS-013 • Local SQLite v1</span>
         </header>
         <div className="page">
           <div className="eyebrow">MILESTONE M1 / DEVELOPMENT</div>
@@ -64,7 +64,7 @@ export function App() {
             <span className="warning-icon">!</span>
             <div>
               <strong>CHẾ ĐỘ DEMO — CHƯA THỂ BÁN HÀNG</strong>
-              <p>Đây là bản kiểm tra giao diện và cầu nối Electron. Chưa có SQLite, API, Neon, nhân viên, sản phẩm hay thanh toán.</p>
+              <p>Đây là bản demo có cơ sở dữ liệu SQLite trống trên máy. Fastify và Neon development hiện độc lập; chưa có nhân viên, sản phẩm, bán hàng hay đồng bộ dữ liệu thật.</p>
             </div>
           </section>
 
@@ -74,8 +74,8 @@ export function App() {
           </div>
           <section className="stats">
             <div className="stat"><span>Desktop</span><strong>Electron</strong><small className="ready">● Giao diện demo</small></div>
-            <div className="stat"><span>Backend API</span><strong>Chưa có</strong><small>POS-008 • Fastify</small></div>
-            <div className="stat"><span>Dữ liệu offline</span><strong>Chưa có</strong><small>POS-013 • SQLite</small></div>
+            <div className="stat"><span>Backend API</span><strong>Fastify</strong><small>Health API độc lập</small></div>
+            <div className="stat"><span>Dữ liệu offline</span><strong>SQLite v1</strong><small className="ready">● Lưu trữ trên máy</small></div>
           </section>
 
           <div className="section-header"><h2>Các phân hệ trong lộ trình</h2><span>Chưa khả dụng</span></div>
@@ -92,8 +92,8 @@ export function App() {
           <section className="bridge-panel">
             <div>
               <h2>Kiểm tra kết nối Electron</h2>
-              <p>Nhấn nút để gọi IPC qua preload an toàn. Không truy cập file, database hoặc mạng.</p>
-              {appInfo && <div className="bridge-success">✓ {appInfo.name} v{appInfo.version} — {appInfo.mode}</div>}
+              <p>Nhấn nút kiểm tra IPC và phiên bản SQLite. Renderer không nhận đường dẫn file, kết nối database hay quyền thực thi SQL.</p>
+              {appInfo && <div className="bridge-success">✓ {appInfo.name} v{appInfo.version} — {appInfo.mode} • SQLite schema v{appInfo.localSchemaVersion}</div>}
               {bridgeError && <div className="bridge-error">⚠ {bridgeError}</div>}
             </div>
             <button type="button" onClick={() => void checkElectronBridge()} disabled={loading}>

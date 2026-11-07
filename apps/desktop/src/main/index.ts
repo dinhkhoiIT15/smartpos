@@ -1,9 +1,12 @@
-import { app, BrowserWindow, ipcMain, session } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, session } from 'electron';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import type { DatabaseSync } from 'node:sqlite';
+import { getLocalSchemaVersion, openLocalDatabase } from './local-db/index.ts';
 
 const APP_INFO_CHANNEL = 'smartpos:app-info';
 const DEV_RENDERER_URL = process.env.ELECTRON_RENDERER_URL;
+let localDatabase: DatabaseSync | undefined;
 
 function isAllowedDevUrl(value: string): boolean {
   try {
@@ -50,7 +53,11 @@ function createWindow(): void {
     ) {
       throw new Error('Untrusted IPC sender');
     }
-    return { name: 'SmartPOS Retail', version: app.getVersion(), mode: 'DEMO_ONLY' as const };
+    if (!localDatabase) throw new Error('Local database unavailable');
+    return {
+      name: 'SmartPOS Retail', version: app.getVersion(), mode: 'DEMO_ONLY' as const,
+      localSchemaVersion: getLocalSchemaVersion(localDatabase),
+    };
   });
 
   window.on('closed', () => ipcMain.removeHandler(APP_INFO_CHANNEL));
@@ -72,6 +79,15 @@ app.whenReady().then(() => {
     callback(false);
   });
   session.defaultSession.setPermissionCheckHandler(() => false);
+  try {
+    // Only Electron MAIN opens SQLite. Never expose file path, database handle or SQL to renderer.
+    localDatabase = openLocalDatabase(join(app.getPath('userData'), 'smartpos-local.sqlite'));
+  } catch {
+    dialog.showErrorBox('SmartPOS local database error',
+      'Cannot safely open the local database. Existing files were not deleted. Do not use this demo to record real sales.');
+    app.quit();
+    return;
+  }
   createWindow();
 
   app.on('activate', () => {
@@ -81,4 +97,9 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('before-quit', () => {
+  localDatabase?.close();
+  localDatabase = undefined;
 });

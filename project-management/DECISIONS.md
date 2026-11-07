@@ -12,7 +12,7 @@
 | D-006 | ACCEPTED | Electron+SQLite + Fastify API + Neon; modular monolith | ADR-0001 |
 | D-007 | ACCEPTED | Local atomic outbox, idempotent server; cash sales preserved on conflict | ADR-0002 |
 | D-008 | ACCEPTED | GitHub Issues + PR + CI truth; Markdown snapshot with commit evidence | AGENTS.md |
-| D-009 | OPEN | Specific SQLite driver, encryption & backup strategy | Future issue |
+| D-009 | OPEN | POS-013 proposes built-in Node 24 `node:sqlite` for Electron MAIN local data; **encryption, backup retention, restore/RPO/RTO still OPEN**, not pilot-approved | [ADR-0003](../docs/ADR-0003-local-sqlite-driver.md); POS-013/027/029 |
 | D-010 | OPEN | Offline auth cache expiry, device provision/revoke reconciliation | POS-011 |
 | D-011 | OPEN | Hosting API, Node LTS version pin, desktop signing/release | POS-001/POS-028 |
 | D-012 | OPEN | Operational refund/cancel/returns policy before live pilot | Pilot requirement |

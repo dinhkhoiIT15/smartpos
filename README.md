@@ -1,6 +1,6 @@
 # SmartPOS Retail — Desktop + API Foundation
 
-**Status:** Milestone M1 development. Electron demo, Fastify health and server-only Neon development connectivity are merged; POS-010 bigint VND contracts/domain are merged, and the **reviewable PostgreSQL migration v1** is in [draft PR #17](https://github.com/dinhkhoiIT15/smartpos/pull/17). **No real checkout, Neon schema migration or cloud sync yet.**
+**Status:** M1 development. Electron demo, Fastify health, bigint VND domain and PostgreSQL v1 schema are merged. The owner confirmed the 17-table PostgreSQL migration on **Neon development only**. POS-013 local SQLite migration is in [draft PR #19](https://github.com/dinhkhoiIT15/smartpos/pull/19). **No real checkout, offline staff authorization, catalog sync or production pilot yet.**
 
 SmartPOS is a planned offline-first, cash-only POS for a single electronics store. The accepted baseline (one authorized offline cashier, immutable sales, integer VND, SKU inventory) is recorded in [AGENTS.md](AGENTS.md), [PRD](docs/PRODUCT_REQUIREMENTS.md), [Business Rules](docs/BUSINESS_RULES.md) and [Architecture](docs/SYSTEM_ARCHITECTURE.md).
 
@@ -22,7 +22,7 @@ pnpm --filter @smartpos/desktop dev
 
 The SmartPOS window shows **DEMO ONLY** and has a small `getAppInfo()` preload IPC test. It does not process sales. On Windows, if Electron reports its binary is missing, try `pnpm --filter @smartpos/desktop rebuild electron` then start again.
 
-## Terminal 2 — Start Fastify health API (POS-008 branch)
+## Terminal 2 — Start Fastify health API (POS-008 merged)
 
 ```bash
 pnpm --filter @smartpos/api dev
@@ -55,26 +55,37 @@ pnpm --filter @smartpos/domain test
 
 Contracts carry VND as **decimal JSON strings** to avoid loss of precision, validated with Zod. Domain uses `bigint` for quantity × unit price − line discounts and cash change. This is calculation/validation groundwork, **not a cash checkout or posted sale**. See [Contracts README](packages/contracts/README.md) and [Domain README](packages/domain/README.md).
 
-## PostgreSQL schema v1 — POS-012 in draft PR #17
+## POS-013 SQLite local demo (feature branch PR #19)
 
-The proposed `packages/db` migration contains 17 retail tables, PK/FK/UNIQUE/CHECK constraints and immutability guards. GitHub CI applies SQL to **disposable PostgreSQL 16 only**, not to your Neon database.
+Once POS-013 branch is checked out, `pnpm --filter @smartpos/desktop dev` creates an **empty** SQLite v1 schema under Electron `userData` and retains it after restarting. The demo window's **Kiểm tra Electron IPC** button reports a read-only `SQLite schema v1` after successful startup. It does NOT create a real sale.
+
+```bash
+pnpm --filter @smartpos/desktop test:local-db
+pnpm --filter @smartpos/desktop dev
+```
+
+The SQLite test suite uses isolated temp databases and verifies WAL, full-sync, rollback, restart and backup consistency. Node 24 `node:sqlite` is stability 1.2 (release candidate); review [ADR-0003](docs/ADR-0003-local-sqlite-driver.md) and [Desktop README](apps/desktop/README.md) before use. Backups are not yet encrypted/automated.
+
+## PostgreSQL schema v1 — POS-012 merged
+
+PostgreSQL migration v1 contains 17 retail tables, PK/FK/UNIQUE/CHECK constraints and immutability guards. CI applies it to disposable PostgreSQL 16; the owner separately confirmed application and table count on **Neon development**, not production.
 
 ```bash
 pnpm --filter @smartpos/db typecheck
 pnpm --filter @smartpos/db schema:check
 ```
 
-The reviewer should inspect [DB migration instructions and forward-fix plan](packages/db/README.md). **Do not run `migrate:dev` until the PR and exact Neon development branch are reviewed and approved.** Production migrations are not permitted in this phase.
+See [DB migration instructions and forward-fix plan](packages/db/README.md). Do **not** run migrations on production; the Neon development schema is already applied.
 
 ## Monorepo layout
 
 | Workspace | What exists |
 |---|---|
-| `apps/desktop` | Electron + React/Vite secure demo with IPC test (POS-007) |
+| `apps/desktop` | Electron + React/Vite demo, local SQLite v1 in POS-013 feature PR |
 | `apps/api` | Fastify health and server-only optional Neon dev connectivity (POS-008/009) |
 | `packages/contracts` | Zod cart estimate DTOs, signed-bigint-safe VND strings, POS-010 merged |
 | `packages/domain` | Pure bigint cash calculation helpers, POS-010 merged |
-| `packages/db` | Drizzle PostgreSQL schema v1 and reviewed migration proposal in PR #17 |
+| `packages/db` | Drizzle PostgreSQL schema v1, merged, applied only to Neon development |
 | `packages/config` | Shared TypeScript tooling boundary |
 
 See [Desktop README](apps/desktop/README.md), [API README](apps/api/README.md), [Development Setup](docs/DEVELOPMENT_SETUP.md), [Development Status](project-management/DEVELOPMENT_STATUS.md), [Session Handoff](project-management/SESSION_HANDOFF.md) and [Backlog](project-management/BACKLOG.csv).
