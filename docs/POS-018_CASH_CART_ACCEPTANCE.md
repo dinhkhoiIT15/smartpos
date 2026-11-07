@@ -1,6 +1,6 @@
 # POS-018 — Giỏ hàng và xem trước tiền mặt (M3/P0)
 
-**Trạng thái:** branch `feature/POS-018-cash-cart-preview`, [Issue #33](https://github.com/dinhkhoiIT15/smartpos/issues/33). Owner Windows chưa nghiệm thu. POS-017 đã merge `main` tại `28d38555d358c0fad012702a529fbd0c2bffb5d3`.
+**Trạng thái:** [draft PR #34](https://github.com/dinhkhoiIT15/smartpos/pull/34), [Issue #33](https://github.com/dinhkhoiIT15/smartpos/issues/33). [Foundation CI #42395959688](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42395959688) và [Docs CI #42395959676](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42395959676) **PASS** trên code checkpoint `cb8b3d5` (Domain 12/12 cả Linux/Windows; SQLite 7+6; Electron/API/PostgreSQL). Owner Windows GUI chưa nghiệm thu. CI final SHA cần kiểm tra lại nếu có chỉnh tài liệu. POS-017 đã merge `main` tại `28d38555d358c0fad012702a529fbd0c2bffb5d3`.
 
 ## Phạm vi được triển khai
 
