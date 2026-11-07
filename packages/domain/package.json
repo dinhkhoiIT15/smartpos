@@ -5,7 +5,8 @@
   "description": "Pure bigint VND calculations for cash checkout, no database",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./cart": "./src/cart.ts"
   },
   "scripts": {
     "typecheck": "tsc --project tsconfig.json --noEmit",
