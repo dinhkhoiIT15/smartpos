@@ -1,54 +1,45 @@
 # Session Handoff — SmartPOS
 
-## Session focus: POS-014 catalog and SKU variants service (2026-11-07)
+## POS-015 Inventory movements and balances (2026-11-07)
+- Repo: https://github.com/dinhkhoiIT15/smartpos
+- Verified main: `55659902b89e62a542cb5bb6b62a2c61ad3215e0` — POS-014 [PR #26](https://github.com/dinhkhoiIT15/smartpos/pull/26) was MERGED, developer reported Windows full PASS; [Issue #25](https://github.com/dinhkhoiIT15/smartpos/issues/25) CLOSED. POS-011 policy approved but real staff authorization remains unimplemented.
+- Current [POS-015 Issue #27](https://github.com/dinhkhoiIT15/smartpos/issues/27), [draft PR #28](https://github.com/dinhkhoiIT15/smartpos/pull/28), branch `feature/POS-015-inventory-transactions`; UNMERGED, owner acceptance PENDING. `verified_commit` in status is main SHA, not PR head.
+- POS-012 PostgreSQL 17 tables were applied manually by owner to **Neon development** only. POS-015 made NO schema migrations, Neon queries or writes. DO NOT run any Neon migration for this issue.
 
-- Repository: https://github.com/dinhkhoiIT15/smartpos
-- Verified main SHA at start: `9be30b9f6a1a865fae79a3e8a321fe839b6d529a`, after [POS-011 policy PR #24](https://github.com/dinhkhoiIT15/smartpos/pull/24) merged. [POS-011 Issue #20](https://github.com/dinhkhoiIT15/smartpos/issues/20) was closed as **design-only**, with 35/35 policy reference tests and D-010 max 4h offline grant ACCEPTED. **Real server login/OS key issuer/verifier have not been implemented** (D-013/R-005).
-- POS-012 17-table Drizzle schema already applied to **Neon development only** by owner, not production. POS-013 SQLite/Windows regression merged and owner-accepted. None of those databases changed by POS-014.
-- Current [POS-014 Issue #25](https://github.com/dinhkhoiIT15/smartpos/issues/25), [draft PR #26](https://github.com/dinhkhoiIT15/smartpos/pull/26), branch `feature/POS-014-catalog-variants-api`, **not merged**. `verified_commit` in status is main SHA, NOT branch head.
+## Implementation on PR #28
+- `apps/api/src/inventory/schemas.ts`: strict UUID movement idempotency key/variant ID, signed BIGINT qty delta as canonical JSON string, required reason, `RECEIPT` (+), `ISSUE` (-), `CORRECTION` (signed nonzero), safe invalid input.
+- `apps/api/src/inventory/service.ts`: `getBalance`, `listMovements`, `adjust`. Requires valid server-trusted principal and **active PostgreSQL store membership with exactly matching role**. MANAGER/ADMIN only adjust; CASHIER read only. Adjustment transaction takes membership share lock (prevents concurrent revoke racing with completed write); no untrusted request role/store.
+- Mutation transaction: 1) verify current DB membership, 2) detect previous event id, 3) verify active variant belongs to store, 4) insert movement with unique `movementId`, 5) bootstrap missing zero balance, 6) additive conditional balance+revision update, 7) append reason/actor `audit_logs`. Entire transaction rollback on any failure. Replay of exact same UUID/payload/actor/reason returns `REPLAYED`; divergent reuse rejects. Both movement and audit tables use existing POS-012 append-only triggers.
+- Manual adjustments forbid final negative qty or signed bigint overflow; POS-021 exceptional negative stock from paid offline-sale conflict remains OUT OF SCOPE.
+- `apps/api/src/inventory/routes.ts` opt-in only with externally authenticated principal. Normal Fastify main.ts **does not register** catalog or inventory routes; intentional inventory 404 until real auth, no public writes. DB never accessed from React renderer.
+- `apps/api/src/inventory/schemas.test.ts`, `routes.test.ts`, `inventory.pg.test.ts` test strict input, default-deny HTTP, 0/negative/overflow, wrong store, revoked membership, idempotent retry/race, concurrent first balance creation, concurrent distinct receipts, simultaneous oversell, revision overflow, audit failure atomic rollback and append-only history.
+- CI uses existing disposable PostgreSQL 16 `127.0.0.1/smartpos_ci` after POS-012 migration and POS-014 catalog CI. SQLite Windows CI still separate.
+- `docs/POS-015_INVENTORY_ACCEPTANCE.md` has safe Windows commands; READMEs/status/traceability/TODO updated.
 
-## Implemented on POS-014 branch
+## CI evidence and regression
+- First POS-015 CI run [42390365155](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42390365155) failed ONLY one incorrect test expectation: forged CASHIER principal attempted a read while actual database membership was MANAGER, service correctly denied FORBIDDEN, test expected NOT_FOUND. Fixed test to assert forged role is denied and genuine DB-assigned CASHIER can read own store but not adjust.
+- Corrected integration tests succeeded in later [Foundation CI 42390505336](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42390505336), including PostgreSQL mutation/concurrency/audit, existing Fastify/TypeScript/Electron/Windows SQLite jobs. Additional new tests/README/status commits require verifying **latest PR HEAD CI** before final report.
+- No changes to locked docs/PRD, Drizzle SQL/schema, real .env or production Neon.
 
-- `apps/api/src/catalog/schemas.ts`: Zod strict payloads, canonical uppercase SKU and deterministic sorted variant attributes key, canonical signed 64-bit bigint VND represented as JSON decimal strings; bounded search/pagination.
-- `apps/api/src/catalog/service.ts`: parameterized PostgreSQL store-scoped create/update/get/list for categories, brands, products and SKU variants. Soft deactivate rather than delete; variant SKU immutable and price/attrs/active update uses optimistic revision. On successful mutation, append `catalog_change_log` plus `audit_logs` **in the same transaction**; sanitize DB errors, rollback all writes on failure.
-- `apps/api/src/catalog/routes.ts`: explicit opt-in Fastify routes requiring an injected **server-verified principal resolver**. Role checks deny cashier mutations, store scope never trusted from HTTP; **normal main.ts has no resolver and does NOT register these routes**. `/v1/catalog/*` 404 is expected for local API until real auth is ready.
-- Unit/HTTP tests validate fake-session access, role separation, unknown/untrusted headers, SKU/attributes/VND and errors; PostgreSQL integration test exercises real DB constraints, audit rollback, concurrency, variant revision.
-- `apps/api/package.json` and pinned `pnpm-lock.yaml` reuse existing Zod 4.6.7, no new runtime package versions/native modules.
-- `.github/workflows/ci.yml`: existing disposable PostgreSQL 16 job runs the existing POS-012 migration test first, then `pnpm --filter @smartpos/api test:catalog:pg`. **No Neon URL or direct access used.**
-- Docs: API README, [Windows acceptance checklist](../docs/POS-014_CATALOG_ACCEPTANCE.md), FR-02 traceability, root README, status/TODO/handoff.
-- No real checkout/cart/inventory, SQLite catalog cache, production deployment, secret exposure, new migrations or changes to locked requirement documents.
-
-## CI and tests
-
-- Early Foundation CI failed because Zod refinement called `BigInt('1.1')` on malformed price; fixed with a canonical-regex guard before `BigInt`.
-- [Foundation checkpoint run 42388296031](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42388296031) at head `ac5ca5022fcf147e835b8a9b03f120cfd5391fda`: all jobs SUCCESS: TypeScript/Fastify & local tests, Windows SQLite regression and PostgreSQL migration. PostgreSQL catalog integration suite **7/7 Passed**, including unique SKU, attributes, same-store FK, audited transaction rollback and concurrent revision.
-- **IMPORTANT:** Later documentation commits changed PR head; re-fetch actual latest PR #26 head and both CI workflows. Do not claim latest checks pass from the earlier checkpoint.
-
-## Windows owner manual acceptance — NO NEON OPERATIONS
-
-In VS Code PowerShell from repository root:
-
+## Windows manual acceptance (no local PostgreSQL required)
 ```powershell
+cd C:\Users\dinhk\Desktop\smartpos
 git status --short
 git fetch origin
-git switch feature/POS-014-catalog-variants-api
-git pull --ff-only origin feature/POS-014-catalog-variants-api
+git switch feature/POS-015-inventory-transactions
+git pull --ff-only origin feature/POS-015-inventory-transactions
 pnpm install --frozen-lockfile
 pnpm --filter @smartpos/api typecheck
-pnpm --filter @smartpos/api test:catalog
+pnpm --filter @smartpos/api test:inventory
 pnpm --filter @smartpos/api test
 pnpm --filter @smartpos/db schema:check
 ```
-
-Expected: all commands exit 0, API/catalog Node test reports `fail 0`, Drizzle Kit `Everything's fine`. Never force-reset an uncommitted worktree or post `.env`.
-
-Start API separately: `pnpm --filter @smartpos/api dev`, check `Invoke-RestMethod http://127.0.0.1:3001/v1/health` returns `status:ok`. `GET /v1/catalog/products` must return **404 intentional** until real server login/RBAC. No Neon migration or writing real products is needed. Follow exact [acceptance doc](../docs/POS-014_CATALOG_ACCEPTANCE.md).
+Expect all exit 0, Node test suites `fail 0`, Drizzle `Everything's fine`. In another terminal run `pnpm --filter @smartpos/api dev`; `Invoke-RestMethod http://127.0.0.1:3001/v1/health` returns `status=ok`, inventory GET returns 404 intentionally. Read [acceptance guide](../docs/POS-015_INVENTORY_ACCEPTANCE.md).
+- Do not run `migrate:dev`, `test:inventory:pg` pointing at Neon, direct SQL inserts/updates or seed real business inventory. PostgreSQL tests are proven only through isolated CI service.
+- Never delete local SQLite database or share credentials/connection strings in chat.
 
 ## Next
-
-1. Verify GitHub PR #26 newest HEAD/CI, diff no secret/lock design violations, then ready for human review (do not auto-merge).
-2. Developer reports Windows local tests and health/catalog-404 results. On acceptance merge PR #26; then close POS-014 Issue #25.
-3. Continue POS-015 audited stock/inventory, POS-016 sync contract, POS-017 local SQLite catalog; secure real staff auth before enabling API mutation routes and offline POS checkout.
-4. POS-003/005/006 M0 governance still outstanding; D-009 local backup encryption, D-013 real auth/keys remain open.
-
-Never connect catalog tests to production or Neon. Never send connection URLs/passwords, customer SQLite files or actual sales in chat/PR.
+1. Re-fetch PR #28 HEAD and CI all jobs, inspect diff/changes and no secrets, then document pass.
+2. Developer runs Windows smoke and reports pass; only then human reviews/merges PR and closes Issue #27.
+3. Backlog next POS-016 versioned sync contract and POS-017 local catalog cache; real staff authentication/RBAC and key storage (D-013/R-005) required before enabling catalog/inventory routes or cash checkout.
+4. M0 POS-003, POS-005, POS-006 still pending. D-009 encrypted backup/restore unresolved.
