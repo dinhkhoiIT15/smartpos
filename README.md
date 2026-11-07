@@ -1,6 +1,6 @@
 # SmartPOS Retail — Desktop + API Foundation
 
-**Status:** M1 development. Electron demo, Fastify health, bigint VND domain and PostgreSQL v1 schema are merged. The owner confirmed the 17-table PostgreSQL migration on **Neon development only**. POS-013 SQLite and Windows cleanup PRs #19/#22 are merged and accepted by the owner. POS-011 [auth/device design PR #23](https://github.com/dinhkhoiIT15/smartpos/pull/23) **merged**; owner approved the **four-hour offline grant operating policy**, documented in [follow-up PR #24](https://github.com/dinhkhoiIT15/smartpos/pull/24). **No real auth has been implemented.** **No real checkout, live login, catalog sync or production pilot yet.**
+**Status:** M2 catalog-services development. Electron demo, Fastify health, bigint VND domain, PostgreSQL v1 and SQLite v1 are merged; owner verified 17-table migration on **Neon development only** and Windows SQLite runtime. POS-011 **design and four-hour offline grant policy** PRs #23/#24 merged (no real login implementation). POS-014 catalog/variants service is under [review in PR #26](https://github.com/dinhkhoiIT15/smartpos/pull/26), **not publicly exposed** until real server-side login/RBAC. No real checkout, catalog sync or production pilot yet.
 
 SmartPOS is a planned offline-first, cash-only POS for a single electronics store. The accepted baseline (one authorized offline cashier, immutable sales, integer VND, SKU inventory) is recorded in [AGENTS.md](AGENTS.md), [PRD](docs/PRODUCT_REQUIREMENTS.md), [Business Rules](docs/BUSINESS_RULES.md) and [Architecture](docs/SYSTEM_ARCHITECTURE.md).
 
@@ -89,12 +89,28 @@ node --test docs/security/offline-access-reference.test.mjs
 
 The test never signs/verifies a real token and must not be imported by the API/Electron app. The production implementation will require OS-backed keys, cryptographic proof, strict server checks and a separate reviewed scope.
 
+## POS-014 Catalog and SKU variants (feature PR #26)
+
+POS-014 implements a **server-side only** catalog service with strict Zod validation, store-scoped categories/brands/products/variants, uppercase unique SKU, deterministic variant attribute keys, `BIGINT` VND decimal strings, optimistic price revision and transactionally recorded catalog change/audit events.
+
+**Security:** normal `apps/api/src/main.ts` does not register catalog mutation endpoints because real login/RBAC has not been implemented. `/v1/catalog/*` deliberately returns **404** in normal Fastify startup. Synthetic test sessions exist only in `Fastify.inject()`, not as an exposed admin bypass.
+
+For Windows acceptance, see [POS-014 checklist](docs/POS-014_CATALOG_ACCEPTANCE.md). Safe local tests:
+
+```bash
+pnpm --filter @smartpos/api typecheck
+pnpm --filter @smartpos/api test:catalog
+pnpm --filter @smartpos/api test
+```
+
+GitHub CI separately validates real CRUD and audit/rollback against **disposable PostgreSQL 16**; never point `test:catalog:pg` at Neon. POS-015 stock and POS-017 local catalog UI/cache remain later tasks.
+
 ## Monorepo layout
 
 | Workspace | What exists |
 |---|---|
 | `apps/desktop` | Electron + React/Vite demo, local SQLite v1 merged and Windows test accepted |
-| `apps/api` | Fastify health and server-only optional Neon dev connectivity (POS-008/009) |
+| `apps/api` | Fastify health, Neon development diagnostics and auth-gated catalog service in PR #26 (not runtime enabled) |
 | `packages/contracts` | Zod cart estimate DTOs, signed-bigint-safe VND strings, POS-010 merged |
 | `packages/domain` | Pure bigint cash calculation helpers, POS-010 merged |
 | `packages/db` | Drizzle PostgreSQL schema v1, merged, applied only to Neon development |
