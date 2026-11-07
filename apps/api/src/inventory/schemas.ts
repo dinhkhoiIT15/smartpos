@@ -24,6 +24,9 @@ export const adjustInventorySchema = z.strictObject({
   kind: manualMovementKindSchema,
   reason: z.string().trim().min(5).max(240),
 }).superRefine((input, ctx) => {
+  // Zod may evaluate this refinement after an earlier regex failure.
+  // Never call BigInt on malformed untrusted strings.
+  if (!/^-?[1-9][0-9]*$/.test(input.deltaQty)) return;
   const delta = BigInt(input.deltaQty);
   if (input.kind === 'RECEIPT' && delta <= 0n) {
     ctx.addIssue({ code: 'custom', path: ['deltaQty'], message: 'receipt requires positive quantity' });
