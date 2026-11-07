@@ -101,6 +101,11 @@ jobs:
           cache: 'pnpm'
       - name: Frozen install without Electron postinstall (built-in SQLite tests only)
         run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: POS-018 cash cart bigint tests and desktop TypeScript on Windows
+        run: |
+          pnpm --filter @smartpos/domain typecheck
+          pnpm --filter @smartpos/domain test
+          pnpm --filter @smartpos/desktop typecheck
       - name: Exercise WAL, transactions, reopen and temp teardown on Windows
         run: |
           pnpm --filter @smartpos/desktop test:local-db
