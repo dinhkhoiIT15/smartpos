@@ -1,7 +1,8 @@
 import Fastify, { type FastifyInstance } from 'fastify';
+import { registerCatalogRoutes, type CatalogRouteOptions } from './catalog/routes.js';
 
 /** Pure Fastify factory; no network listen, credentials, or database required by tests. */
-export function buildServer(options: { logger?: boolean } = {}): FastifyInstance {
+export function buildServer(options: { logger?: boolean; catalog?: CatalogRouteOptions } = {}): FastifyInstance {
   const app = Fastify({
     logger: options.logger ?? false,
     bodyLimit: 1024 * 1024,
@@ -12,6 +13,10 @@ export function buildServer(options: { logger?: boolean } = {}): FastifyInstance
     reply.header('Cache-Control', 'no-store');
     return { status: 'ok', service: 'smartpos-api' };
   });
+
+  // Fail closed: production/dev main.ts supplies no auth provider or catalog DB.
+  // Route registration is ONLY allowed via explicit server-side service/auth injection.
+  if (options.catalog) registerCatalogRoutes(app, options.catalog);
 
   return app;
 }
