@@ -17,7 +17,7 @@
 ## CI checkpoints
 
 - [Foundation #42397754048](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42397754048) **SUCCESS**: Linux/Windows Node24 offline sale **13/13**, wire **1/1**, existing SQLite 7+6, API/Electron/TS/ephemeral PostgreSQL.
-- [Foundation #42397918186](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42397918186) **SUCCESS** on code revision `68590ba`, after 2 additional negative tests = **15** SQLite cases. New commit `85854a33` adds one real subprocess termination during uncommitted sale, now **16** tests; [Foundation CI 42398260631](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42398260631) pending. Later docs-only commits require latest-HEAD CI confirmation. Do not claim local Windows owner PASS yet.
+- Final code `85854a33` **SUCCESS**: [Foundation CI 42398260631](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42398260631) verifies offline-sale **16/16** (including real SIGKILL/Windows TerminateProcess before COMMIT), wire **1/1** with actual sync contract on Linux/Windows, SQLite baseline 7/7, catalog 6/6, domain 12/12, TypeScript/Electron/API and disposable PostgreSQL 16. [Docs CI 42398260696](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42398260696) **SUCCESS**. Later docs-only commits require final-HEAD CI confirmation. Do not claim local Windows owner PASS yet.
 
 ## Windows command checklist
 
