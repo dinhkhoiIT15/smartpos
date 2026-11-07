@@ -57,7 +57,7 @@ function safePg(error: unknown): Error {
   return new InventoryError('DATABASE_UNAVAILABLE', 503);
 }
 
-function checkPrincipal(actor: InventoryPrincipal | null | undefined, write: boolean):
+export function assertInventoryPrincipal(actor: InventoryPrincipal | null | undefined, write: boolean):
   asserts actor is InventoryPrincipal {
   if (!actor || !uuid.safeParse(actor.userId).success ||
     !uuid.safeParse(actor.storeId).success) throw new InventoryError('UNAUTHORIZED', 401);
@@ -122,7 +122,7 @@ export class InventoryService {
   }
 
   async getBalance(actor: InventoryPrincipal, variantId: string): Promise<InventoryBalance> {
-    checkPrincipal(actor, false);
+    assertInventoryPrincipal(actor, false);
     uuid.parse(variantId);
     try {
       await checkActiveMembership(this.pool, actor, false);
@@ -133,7 +133,7 @@ export class InventoryService {
 
   async listMovements(actor: InventoryPrincipal, variantId: string, query: unknown):
     Promise<InventoryMovement[]> {
-    checkPrincipal(actor, false);
+    assertInventoryPrincipal(actor, false);
     uuid.parse(variantId);
     const { limit } = inventoryHistoryQuerySchema.parse(query);
     try {
@@ -165,7 +165,7 @@ export class InventoryService {
    * entirely out of scope and must use the POS-021 policy-specific workflow.
    */
   async adjust(actor: InventoryPrincipal, input: unknown): Promise<InventoryAdjustment> {
-    checkPrincipal(actor, true);
+    assertInventoryPrincipal(actor, true);
     const data = adjustInventorySchema.parse(input);
     return this.transaction(async (db) => {
       await checkActiveMembership(db, actor, true);
