@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   assessOfflineCheckout,
   canPerformServerRoleOperation,
+  APPROVED_MAX_OFFLINE_GRANT_MS,
 } from './offline-access-reference.mjs';
 
 // Entire suite uses synthetic trusted facts and fake grants. NO credentials,
@@ -23,9 +24,9 @@ function base() {
     knownDeviceRevoked: false, knownCashierRevoked: false,
     localDeviceKeyAvailable: true, antiRollbackStateAvailable: true,
     nowMs: T0 + HOUR, lastObservedMs: T0 + HOUR / 2,
-    grantIssuedMs: T0, grantExpiresMs: T0 + 2 * HOUR,
-    cashierSessionExpiresMs: T0 + 3 * HOUR,
-    maxGrantLifetimeMs: 3 * HOUR, // illustrative, not owner-approved
+    grantIssuedMs: T0, grantExpiresMs: T0 + 4 * HOUR,
+    cashierSessionExpiresMs: T0 + 4 * HOUR,
+    maxGrantLifetimeMs: 4 * HOUR, // approved D-010: max from server issuance
   };
 }
 function decide(overrides = {}) {
@@ -55,7 +56,10 @@ const denied = [
   ['OS clock rolled backwards', { nowMs: T0, lastObservedMs: T0 + HOUR / 2 }, 'CLOCK_OR_STATE_UNTRUSTED'],
   ['future-issued grant', { nowMs: T0 - 1, lastObservedMs: T0 - 2 }, 'CLOCK_OR_STATE_UNTRUSTED'],
   ['grant exceeds approved max duration', { grantExpiresMs: T0 + 5 * HOUR }, 'GRANT_DURATION_EXCEEDS_POLICY'],
-  ['grant exactly expired (no grace)', { nowMs: T0 + 2 * HOUR }, 'GRANT_OR_SHIFT_EXPIRED'],
+  ['caller tries larger max than owner-approved four hours',
+    { maxGrantLifetimeMs: 5 * HOUR, grantExpiresMs: T0 + 4 * HOUR },
+    'GRANT_DURATION_EXCEEDS_POLICY'],
+  ['grant exactly expired (no grace)', { nowMs: T0 + 4 * HOUR }, 'GRANT_OR_SHIFT_EXPIRED'],
   ['shift exactly expired', { cashierSessionExpiresMs: T0 + HOUR }, 'GRANT_OR_SHIFT_EXPIRED'],
   ['invalid negative signed timestamp', { nowMs: -1 }, 'INVALID_TIME_POLICY'],
   ['fractional clock timestamp', { nowMs: T0 + 0.3 }, 'INVALID_TIME_POLICY'],
@@ -109,4 +113,28 @@ test('offline grant expiry never deletes historical local sales/outbox in the re
   // The pure policy model has no file/DB access and cannot delete paid evidence.
   assert.equal(after.activeStoreId,before.activeStoreId);
   assert.equal(after.grantExpiresMs,before.grantExpiresMs);
+});
+
+test('owner-approved offline grant limit is exactly four hours', () => {
+  assert.equal(APPROVED_MAX_OFFLINE_GRANT_MS, 4 * HOUR);
+  assert.deepEqual(decide({
+    grantExpiresMs: T0 + 4 * HOUR,
+    cashierSessionExpiresMs: T0 + 4 * HOUR,
+    nowMs: T0 + 4 * HOUR - 1,
+    lastObservedMs: T0 + 3 * HOUR,
+  }), { allowed: true, reason: 'ALLOWED' });
+  assert.deepEqual(decide({
+    grantExpiresMs: T0 + 4 * HOUR,
+    nowMs: T0 + 4 * HOUR,
+    lastObservedMs: T0 + 3 * HOUR,
+  }), { allowed: false, reason: 'GRANT_OR_SHIFT_EXPIRED' });
+});
+
+test('a misleading twelve-hour policy input cannot bypass the approved four-hour bound', () => {
+  assert.deepEqual(decide({
+    grantExpiresMs: T0 + 10 * HOUR,
+    cashierSessionExpiresMs: T0 + 10 * HOUR,
+    maxGrantLifetimeMs: 12 * HOUR,
+    nowMs: T0 + HOUR,
+  }), { allowed: false, reason: 'GRANT_DURATION_EXCEEDS_POLICY' });
 });
