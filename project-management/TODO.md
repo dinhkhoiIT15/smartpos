@@ -14,10 +14,10 @@ GitHub PR/Issues and CI remain source of truth; this file is a snapshot.
 - [x] BUG-013 (PR #22) — Windows `EPERM` test cleanup fixed, local acceptance and Windows 7/7 tests passed. [Issue #21](https://github.com/dinhkhoiIT15/smartpos/issues/21) closed; main `36e73cd4bf97`.
 
 ## In progress — owner decisions pending
-- [ ] [POS-011 #20](https://github.com/dinhkhoiIT15/smartpos/issues/20) — design staff online login, one-device offline signed grant/revocation; [draft PR #23](https://github.com/dinhkhoiIT15/smartpos/pull/23). ADR-0004 + threat model + 32 reference tests, **D-010 still OPEN for approval**. There are no real login endpoints or offline checkout permissions.
+- [ ] [POS-011 #20](https://github.com/dinhkhoiIT15/smartpos/issues/20) — design PR #23 **merged**; owner **approved D-010 four-hour grant policy** on 2026-11-07, recorded in [follow-up PR #24](https://github.com/dinhkhoiIT15/smartpos/pull/24), still unmerged. ADR-0004, threat model, 4h boundary reference tests. There are no real login endpoints or offline checkout permissions; D-013 real key/idle-lock details still OPEN.
 
 ## Subsequent critical path
-- [ ] Owner approves D-010 grant lifetime, expiry, offline switch/outage and device replacement risk, key storage.
+- [x] Owner approved D-010 **operating policy** (4h max; no offline login/switch/renewal/grace; one device; preserve prior sales) on 2026-11-07. [PR #24](https://github.com/dinhkhoiIT15/smartpos/pull/24) awaits review/merge. D-013 idle lock and actual OS key implementation still OPEN.
 - [ ] Real staff login/provision/revoke + cryptographic grant-verification implementation with new reviewed issue, before POS-019 checkout.
 - [ ] POS-014 — catalog/variant API; POS-015 — inventory/adjustment/audit API (POS-012 prerequisite met).
 - [ ] POS-016 — versioned sync contract; POS-017 — catalog into SQLite after POS-014.

@@ -1,6 +1,6 @@
 # ADR-0004 — Staff authentication and one-device offline authorization
 
-**Status:** PROPOSED — awaiting owner approval for D-010; not implemented in API/Electron
+**Status:** ACCEPTED POLICY (D-010; owner approved 2026-11-07). Implementation, key storage and idle-lock details remain pending. **No login/authorization code deployed**.
 **Issue:** [POS-011 #20](https://github.com/dinhkhoiIT15/smartpos/issues/20) · **Date:** 2026-11-07
 **Risk:** R-005 (offline access after revocation), R-004 (credential exposure)
 **Baseline:** PRD FR-01/07, BR-005/006/007, SYSTEM_ARCHITECTURE and OFFLINE_SYNC_DESIGN. Do not change the locked one-store, one-offline-device, cash-only requirements.
@@ -11,7 +11,7 @@ POS-011 defines an **auditable design and executable acceptance model only**. Th
 
 The server (Fastify + Neon) owns identity, role authorization, provisioning, revocation and issuance. Electron **main** verifies and maintains the locally cached capability; preload/React never get bearer tokens, private keys, password hashes, or arbitrary SQL. The server MUST independently reauthorize every online request and each sync event; local offline checks do not replace server checks.
 
-## Proposed roles and server permissions (to approve)
+## Approved role policy / proposed technical implementation
 
 | Role | Online capabilities (server checks on every request) | Offline cash checkout |
 |---|---|---|
@@ -27,7 +27,7 @@ The roles are server facts, not fields supplied by Electron renderer. Changing p
 1. Staff logs in over **HTTPS to Fastify**, using an active user and active `store_memberships` record. Email/password checked server-side using a slow salted **Argon2id** password hash (parameters selected and benchmarked before implementation; no plaintext or unsalted hash). Add rate limits, generic failure messages and account-risk protections.
 2. Successful online login creates a server-side revocable session with short-lived access credential and bounded refresh, scoped to `store_id`, `user_id`, `session_id` and roles. Never use a frontend-supplied role or store ID as authority. Require reauthentication for device/credential changes.
 3. Electron main owns session storage through an approved **OS-backed credential storage** mechanism (Windows/macOS) still to be selected; do not write passwords, private keys or bearer tokens into the general SQLite catalog/renderer.
-4. Employee must login online to begin or switch a cashier shift. Under the proposed safe default, when offline **a new staff login or cashier switch is refused**. An already online-authenticated cashier may continue only within the bounded signed offline grant and shift expiry.
+4. **OWNER-APPROVED D-010:** Employee must login online to begin or switch a cashier shift. When offline, **new staff login or cashier switching is refused**. An already online-authenticated cashier may continue only within the bounded signed offline grant and shift expiry.
 5. Logout/login-user change clears the active offline authorization (not sale/outbox history). On reconnect, refresh role/device status before permitting any new checkout.
 
 **No real login or offline credential caching has been added by this design issue.**
@@ -38,17 +38,19 @@ The roles are server facts, not fields supplied by Electron renderer. Changing p
 2. API validates store membership and provisioning approval, and updates `devices` in one PostgreSQL transaction. Existing partial unique index `devices_one_active_offline_pos_per_store` rejects more than one unrevoked `offline_checkout_enabled` device per store.
 3. Device proves possession of the private key at issuance/renewal; API issues a **signed, short-lived, purpose-scoped offline grant**, containing issuer/audience/version/key ID, store/device IDs, device public-key thumbprint, cashier user ID, originating server session ID, grant ID, authorized operation `offline:cash_checkout`, server-issued time, not-before, expiration, device/grant revision and a random nonce. No passwords or bearer refresh tokens in that grant.
 4. Electron MAIN validates the signature using pinned/rotatable server verification keys, known issuer/audience/schema, all ID/permission bindings, clock/expiration and device key proof before every offline sale transaction. The **real cryptographic verification and secure key lifecycle are not in POS-011**; they need implementation and security tests before POS-019 can use this design.
-5. A new device cannot be granted offline privileges while the previous device holds a still-usable grant: require acknowledgement that the old grant/device is disabled **or wait out its maximum expiration and use an owner-approved recovery procedure**. Simply changing the server `devices.revoked_at` or the unique index does not invalidate a disconnected device's cached signed authorization.
+5. **APPROVED:** A new device cannot be granted offline privileges while the previous device holds a still-usable grant: require verifiable acknowledgement that the old grant/device is disabled **or wait until all grants issued to the old device expire (at most 4 hours from latest issuance)**. No emergency overlap exception has been approved. Simply changing the server `devices.revoked_at` or the unique index does not invalidate a disconnected device's cached signed authorization.
 
-### Offline expiry, clock and revocation — PROPOSED policy
+### Offline expiry, clock and revocation — OWNER-APPROVED D-010 policy
 
-- Absolute expiry: checkout is blocked at `now >= min(grant_expires_at, shift_expires_at)`; **no grace period** and no continuing sales while renewal is pending. Grant duration must not exceed an **owner-approved maximum** (D-010); no hard-coded production TTL here.
+- **Approved maximum: 4 hours (14,400 seconds)** from server `grant_issued_at`, inclusive cutoff: `grant_expires_at <= grant_issued_at + 4 hours`. Checkout is blocked at `now >= min(grant_expires_at, shift_expires_at)` with **zero grace period**. Issuing a new grant or extending a cashier shift requires successful online reauthentication and fresh server authorization; an offline computer may not renew it. A server may issue shorter grants, but never longer. The expiry applies to starting **new** cash checkout transactions; it must not erase a previously committed sale/outbox.
 - Clock: require plausibly monotonic wall-clock progress persisted in protected state. Detect `now < previous_observed_time`, future grant `issued_at > now`, invalid date/overflow, or loss of persisted anti-rollback state; **fail closed**. A privileged attacker can roll back both OS clock and mutable local state; this is not a hardware-trusted clock guarantee. Non-exportable key and signed server time lower but cannot eliminate that risk.
 - Known revocation: when online revoke/logout/inactive membership observed, stop new checkout immediately. If offline, an *unknown* revocation cannot be observed; a valid pre-existing grant may remain usable until its expiry. **This is an unavoidable bounded residual risk** requiring owner acceptance and operational process.
 - Device theft/clone/reinstall/restore: require online reprovision if the private key is missing or the device-binding/restore lineage is inconsistent. Merely copying SQLite must never provision another device. If an OS image with key material can be cloned, do not claim cryptographic clone prevention.
 - An offline outage past grant/shift expiry stops **new checkouts**. It must NOT erase or rewrite already locally committed sales/outbox events; pending events are quarantined or reauthenticated according to OFFLINE_SYNC_DESIGN and audited.
 
-**Decision needed from owner before implementation:** max offline grant age (e.g. consider a 4-hour shift-bound grant only as an illustrative test value), shift expiration/inactivity lock, management of long outages, offline cashier switching, emergency replacement and verified secure storage (including device key loss). These values are **not approved defaults**.
+**Owner decision on 2026-11-07 (D-010):** 4-hour absolute maximum per server-issued grant; cashier login or switch **online only**; no renewal/grace when offline; if outage exceeds the grant expiry, stop new sales but preserve previous sale/outbox evidence; transfer the single offline POS only after the old machine **verifiably stops** offline checkout or all its grants expire. There is **no approved emergency overlap exception**. The owner acknowledges that a revoked employee/device disconnected from the server may keep using an already issued unexpired grant, bounded by at most four hours from issue time.
+
+**Still open for implementation/security approval:** the distinct idle-lock duration and unlock behavior, OS-backed private-key storage on Windows/macOS, hardware/clock anti-rollback assurance, how to prove old device shutdown, recovery of lost device keys and actual cryptographic grant/server session implementation. These are NOT silently set by the four-hour grant decision and must be reviewed before active offline checkout.
 
 ## Integration / state flow (future implementation)
 
@@ -83,7 +85,7 @@ Copyable bearer tokens or a locally trusted boolean `offline_checkout_enabled` c
 ## Traceability and acceptance
 
 - Policy reference/negative-case tests: [offline-access-reference.test.mjs](security/offline-access-reference.test.mjs). This reference is intentionally **outside application code** and takes assertions from a simulated trusted boundary. It cannot verify signatures or protect a local key.
-- Risk matrix: [POS-011 threat model](security/POS-011_THREAT_MODEL.md). Owner review is required before marking D-010 ACCEPTED.
+- Risk matrix: [POS-011 threat model](security/POS-011_THREAT_MODEL.md). Owner approved the D-010 operational policy on 2026-11-07; R-005 remains HIGH OPEN until cryptographic verification, revocation/reconciliation and device failover are implemented and tested.
 - Controls: role checks server-side, bounded grant, no offline issuance, second device deny, revocation, clock rollback, restore/clone, app restart and clock manipulation.
 - No production readiness claim until real auth implementation, secure storage review, concurrency tests, Windows/macOS E2E and recovery drill.
 
