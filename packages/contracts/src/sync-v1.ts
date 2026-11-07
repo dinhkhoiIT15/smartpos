@@ -149,9 +149,13 @@ export const syncSaleCompletedEventSchema = z.strictObject({
   const { payloadHash, ...body } = input;
   // Compute directly rather than parsing again: an invalid arithmetic payload
   // must return ordinary Zod issues, not throw from a nested validation.
-  const actualHash = createHash('sha256').update(canonicalSyncJson(body), 'utf8').digest('hex');
-  if (actualHash !== payloadHash) {
-    ctx.addIssue({ code: 'custom', path: ['payloadHash'], message: 'hash mismatch' });
+  try {
+    const actualHash = createHash('sha256').update(canonicalSyncJson(body), 'utf8').digest('hex');
+    if (actualHash !== payloadHash) {
+      ctx.addIssue({ code: 'custom', path: ['payloadHash'], message: 'hash mismatch' });
+    }
+  } catch {
+    ctx.addIssue({ code: 'custom', path: ['payloadHash'], message: 'non-JSON event content' });
   }
 });
 export type SyncSaleCompletedEvent = z.infer<typeof syncSaleCompletedEventSchema>;
@@ -173,8 +177,12 @@ export const syncPushRequestSchema = z.strictObject({
     eventIds.add(event.eventId);
     saleIds.add(event.saleId);
   }
-  if (Buffer.byteLength(JSON.stringify(input), 'utf8') > MAX_PUSH_JSON_BYTES) {
-    ctx.addIssue({ code: 'custom', message: 'push batch exceeds byte limit' });
+  try {
+    if (Buffer.byteLength(JSON.stringify(input), 'utf8') > MAX_PUSH_JSON_BYTES) {
+      ctx.addIssue({ code: 'custom', message: 'push batch exceeds byte limit' });
+    }
+  } catch {
+    ctx.addIssue({ code: 'custom', message: 'invalid non-JSON push batch' });
   }
 });
 export type SyncPushRequest = z.infer<typeof syncPushRequestSchema>;
@@ -307,6 +315,12 @@ export const syncPullResponseSchema = z.strictObject({
   hasMore: z.boolean(),
   changes: z.array(syncPullChangeSchema).max(MAX_PULL_CHANGES),
 }).superRefine((page, ctx) => {
+  // As with money, Zod may still invoke superRefine on a malformed string.
+  // Never throw on untrusted cursor strings: let Zod report validation issues.
+  if (![page.fromCursor, page.nextCursor, page.highWatermark,
+    ...page.changes.map((row) => row.seq)].every(
+      (s) => syncCursorSchema.safeParse(s).success,
+    )) return;
   const from = BigInt(page.fromCursor), next = BigInt(page.nextCursor),
     watermark = BigInt(page.highWatermark);
   if (from > next || next > watermark) {
