@@ -11,8 +11,45 @@ import {
 
 function temporaryDatabase(t) {
   const dir = mkdtempSync(join(tmpdir(), 'smartpos-pos013-'));
-  t.after(() => rmSync(dir, { recursive: true, force: true }));
-  return { file: join(dir, 'smartpos-local.sqlite'), dir };
+  const connections = new Set();
+
+  // Register each handle at creation, including database reopen and backup reads.
+  // On Windows, SQLite holds a filesystem lock until every handle is closed.
+  function open(file) {
+    const db = openLocalDatabase(file);
+    connections.add(db);
+    return db;
+  }
+  function openRaw(file) {
+    const db = new DatabaseSync(file);
+    connections.add(db);
+    return db;
+  }
+
+  t.after(() => {
+    const errors = [];
+    for (const db of connections) {
+      if (db.isOpen) {
+        try {
+          db.close();
+        } catch (error) {
+          errors.push(error);
+        }
+      }
+    }
+    try {
+      // Only remove this test's OS-generated temp directory; never Electron userData.
+      // Bounded retries tolerate transient Windows antivirus/file-indexing locks.
+      rmSync(dir, { recursive: true, force: true, maxRetries: 8, retryDelay: 125 });
+    } catch (error) {
+      errors.push(error);
+    }
+    if (errors.length) {
+      throw new AggregateError(errors, 'SQLite test cleanup failed after closing handles');
+    }
+  });
+
+  return { file: join(dir, 'smartpos-local.sqlite'), dir, open, openRaw };
 }
 function count(db, table) {
   // 'table' comes only from test source, never user-controlled input.
@@ -25,8 +62,8 @@ function insertVariant(db, variantId = 'v1', storeId = 'store1', sku = 'SKU-A') 
 }
 
 test('POS-013 migration v1 is atomic, file-backed, idempotent, WAL and strict', (t) => {
-  const {file} = temporaryDatabase(t);
-  let db = openLocalDatabase(file);
+  const {file,open} = temporaryDatabase(t);
+  let db = open(file);
   assert.equal(getLocalSchemaVersion(db), SQLITE_SCHEMA_VERSION);
   assert.equal(db.prepare('PRAGMA foreign_keys').get().foreign_keys, 1);
   assert.equal(db.prepare('PRAGMA synchronous').get().synchronous, 2);
@@ -40,16 +77,15 @@ test('POS-013 migration v1 is atomic, file-backed, idempotent, WAL and strict', 
   assert.equal(count(db, 'local_schema_migrations'), 1);
   db.close();
   assert.equal(existsSync(file), true);
-  db = openLocalDatabase(file);
+  db = open(file);
   assert.equal(getLocalSchemaVersion(db), 1);
   assert.equal(count(db, 'local_schema_migrations'), 1);
   db.close();
 });
 
 test('rollback on injected failure leaves neither sale, payment, stock delta nor event', (t) => {
-  const {file} = temporaryDatabase(t);
-  const db = openLocalDatabase(file);
-  t.after(() => db.close());
+  const {file,open} = temporaryDatabase(t);
+  const db = open(file);
   insertVariant(db);
   assert.throws(() => withLocalTransaction(db, () => {
     db.prepare(`INSERT INTO local_sales
@@ -70,8 +106,8 @@ test('rollback on injected failure leaves neither sale, payment, stock delta nor
 });
 
 test('committed sale/items/CASH/stock/outbox remain on disk after close/reopen', (t) => {
-  const {file} = temporaryDatabase(t);
-  let db = openLocalDatabase(file);
+  const {file,open} = temporaryDatabase(t);
+  let db = open(file);
   insertVariant(db);
   withLocalTransaction(db, () => {
     db.prepare('INSERT INTO local_inventory_balances (store_id,variant_id,server_qty,pending_delta) VALUES (?,?,?,?)')
@@ -93,7 +129,7 @@ test('committed sale/items/CASH/stock/outbox remain on disk after close/reopen',
       .run('event1','sale1','store1','dev1','{"schema_version":1}', 'a'.repeat(64), '2026-11-07T00:00:00Z');
   });
   db.close();
-  db = openLocalDatabase(file);
+  db = open(file);
   assert.equal(count(db, 'local_sales'), 1);
   assert.equal(count(db, 'local_sale_items'), 1);
   assert.equal(count(db, 'local_payments'), 1);
@@ -113,9 +149,8 @@ test('committed sale/items/CASH/stock/outbox remain on disk after close/reopen',
 });
 
 test('SQLite enforces per-store SKU, same-store FK, CASH, quantity and bigint money', (t) => {
-  const {file} = temporaryDatabase(t);
-  const db = openLocalDatabase(file);
-  t.after(() => db.close());
+  const {file,open} = temporaryDatabase(t);
+  const db = open(file);
   insertVariant(db);
   assert.throws(() => insertVariant(db, 'v2', 'store1', 'SKU-A'), /UNIQUE/);
   assert.throws(() => db.prepare(`INSERT INTO local_catalog_variants
@@ -143,41 +178,40 @@ test('SQLite enforces per-store SKU, same-store FK, CASH, quantity and bigint mo
 });
 
 test('unknown, newer and tampered schema files are rejected without data deletion', (t) => {
-  const {dir} = temporaryDatabase(t);
+  const {dir,open,openRaw} = temporaryDatabase(t);
   const legacyPath = join(dir, 'legacy.sqlite');
-  let db = new DatabaseSync(legacyPath);
+  let db = openRaw(legacyPath);
   db.exec('CREATE TABLE original_data (id INTEGER PRIMARY KEY, payload TEXT)');
   db.prepare('INSERT INTO original_data (id,payload) VALUES (?,?)').run(1,'preserve');
   db.close();
   assert.throws(() => openLocalDatabase(legacyPath), /Existing data was preserved/);
-  db = new DatabaseSync(legacyPath);
+  db = openRaw(legacyPath);
   assert.equal(db.prepare('SELECT payload FROM original_data').get().payload, 'preserve');
   db.close();
 
   const futurePath = join(dir, 'future.sqlite');
-  db = openLocalDatabase(futurePath);
+  db = open(futurePath);
   db.exec('PRAGMA user_version = 99');
   db.close();
   assert.throws(() => openLocalDatabase(futurePath), /Existing data was preserved/);
-  db = new DatabaseSync(futurePath);
+  db = openRaw(futurePath);
   assert.equal(db.prepare('PRAGMA user_version').get().user_version, 99);
   db.close();
 
   const tamperedPath = join(dir,'tampered.sqlite');
-  db = openLocalDatabase(tamperedPath);
+  db = open(tamperedPath);
   db.prepare("UPDATE local_schema_migrations SET name='tampered' WHERE version=1").run();
   db.close();
   assert.throws(() => openLocalDatabase(tamperedPath), /Existing data was preserved/);
 });
 
 test('WAL-consistent SQLite backup reopens as separate DB, never overwrites files', async (t) => {
-  const {file,dir} = temporaryDatabase(t);
-  const db = openLocalDatabase(file);
-  t.after(() => db.close());
+  const {file,dir,open} = temporaryDatabase(t);
+  const db = open(file);
   insertVariant(db);
   const backupFile = join(dir,'backups','snapshot.sqlite');
   await backupLocalDatabase(db,backupFile);
-  const copy = openLocalDatabase(backupFile);
+  const copy = open(backupFile);
   try {
     assert.equal(getLocalSchemaVersion(copy),1);
     assert.equal(count(copy,'local_catalog_variants'),1);
@@ -188,4 +222,17 @@ test('WAL-consistent SQLite backup reopens as separate DB, never overwrites file
   await assert.rejects(() => backupLocalDatabase(db,backupFile),/Refusing to overwrite/);
   await assert.rejects(() => backupLocalDatabase(db,file),/existing SQLite backup/);
   await assert.rejects(() => backupLocalDatabase(db,'relative.sqlite'),/absolute/);
+});
+
+test('Windows cleanup closes an intentionally open WAL SQLite handle before removing the temp directory', (t) => {
+  const {file,dir,open} = temporaryDatabase(t);
+  const db = open(file);
+  insertVariant(db);
+  assert.equal(db.isOpen, true);
+  // Do not close manually; temporaryDatabase must close every tracked handle.
+  // The after-hook is registered later, so it verifies cleanup has completed.
+  t.after(() => {
+    assert.equal(db.isOpen, false);
+    assert.equal(existsSync(dir), false);
+  });
 });
