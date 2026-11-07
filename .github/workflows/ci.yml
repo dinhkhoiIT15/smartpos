@@ -31,6 +31,8 @@ jobs:
         run: pnpm --filter @smartpos/desktop build
       - name: SQLite local migration, rollback, reopen and WAL backup tests
         run: pnpm --filter @smartpos/desktop test:local-db
+      - name: POS-017 atomic local catalog cache tests
+        run: pnpm --filter @smartpos/desktop test:catalog-cache
       - name: Build and test Fastify API
         run: |
           pnpm --filter @smartpos/api build
@@ -100,4 +102,6 @@ jobs:
       - name: Frozen install without Electron postinstall (built-in SQLite tests only)
         run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Exercise WAL, transactions, reopen and temp teardown on Windows
-        run: pnpm --filter @smartpos/desktop test:local-db
+        run: |
+          pnpm --filter @smartpos/desktop test:local-db
+          pnpm --filter @smartpos/desktop test:catalog-cache
