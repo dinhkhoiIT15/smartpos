@@ -1,0 +1,45 @@
+{
+  "protocolVersion": 1,
+  "deviceId": "a1111111-1111-4111-8111-111111111111",
+  "events": [
+    {
+      "schemaVersion": 1,
+      "eventType": "SALE_COMPLETED",
+      "deviceId": "a1111111-1111-4111-8111-111111111111",
+      "storeId": "b2222222-2222-4222-8222-222222222222",
+      "cashierId": "c3333333-3333-4333-8333-333333333333",
+      "offlineGrantId": "d4444444-4444-4444-8444-444444444444",
+      "eventId": "e5555555-5555-4555-8555-555555555555",
+      "saleId": "f6666666-6666-4666-8666-666666666666",
+      "clientCreatedAt": "2026-11-07T08:10:00.000Z",
+      "catalogRevision": "12",
+      "sale": {
+        "status": "POSTED",
+        "totalVnd": "8990000",
+        "items": [
+          {
+            "itemId": "b8888888-8888-4888-8888-888888888888",
+            "variantId": "a7777777-7777-4777-8777-777777777777",
+            "skuSnapshot": "PHONE-128-BLK",
+            "nameSnapshot": "Điện thoại 128GB",
+            "attributesSnapshot": {
+              "color": "Black",
+              "storage": "128GB"
+            },
+            "quantity": 1,
+            "unitPriceVnd": "8990000",
+            "discountVnd": "0",
+            "lineTotalVnd": "8990000"
+          }
+        ],
+        "payment": {
+          "method": "CASH",
+          "dueVnd": "8990000",
+          "tenderedVnd": "9000000",
+          "changeVnd": "10000"
+        }
+      },
+      "payloadHash": "64caf850ef884a5c682e1dc9c2dc54e80bb0f4a835df4f74ddaebe93079016fd"
+    }
+  ]
+}
