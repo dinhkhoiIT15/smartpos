@@ -38,7 +38,7 @@ test('POS-019 outbox JSON is exactly interoperable with POS-016 hash + PUSH v1 w
     (store_id,variant_id,server_qty,pending_delta) VALUES(?,?,3,0)`).run(storeId,variantId);
   const result=commitLocalCashSale(db,{
     storeId,deviceId,cashierId,offlineGrantId,
-    saleId,itemId,paymentId,eventId,clientCreatedAt:at,
+    saleId,paymentId,eventId,clientCreatedAt:at,
     catalogRevision:'9007199254740993',tenderedVnd:'9000000',
     items:[{itemId,variantId,skuSnapshot:'PHONE-128',quantity:1,
       expectedUnitPriceVnd:'8990000',expectedServerRevision:'44'}],
