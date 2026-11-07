@@ -90,7 +90,7 @@ test('BR-002: one atomic local sale, cash snapshot, pending stock and hashed v1 
   assert.equal(sale.total_vnd,9340000n);
   assert.equal(sale.sync_status,'PENDING_SYNC');
   const payment=intRow(x.db,'SELECT method,due_vnd,tendered_vnd,change_vnd FROM local_payments');
-  assert.deepEqual(payment,{method:'CASH',due_vnd:9340000n,
+  assert.deepEqual({...payment},{method:'CASH',due_vnd:9340000n,
     tendered_vnd:9500000n,change_vnd:160000n});
   const outbox=x.db.prepare('SELECT state,payload_json,payload_hash,attempt_count FROM outbox_events').get();
   assert.equal(outbox.state,'PENDING');
@@ -213,7 +213,7 @@ test('sequential sales consume pending stock without mutating server snapshot; o
   assert.deepEqual(allCounts(x.db),[2,4,2,2]);
   const bal=intRow(x.db,`SELECT server_qty,pending_delta
     FROM local_inventory_balances WHERE variant_id=?`,[x.ids.phoneId]);
-  assert.deepEqual(bal,{server_qty:2n,pending_delta:-2n});
+  assert.deepEqual({...bal},{server_qty:2n,pending_delta:-2n});
   assert.equal(pending(x.db,x.ids.caseId),-2n);
   // Previous sale evidence and pending outbox remain on disk.
   x.db.close();
