@@ -10,7 +10,8 @@ export const uuidSchema = z.uuid();
 const name = z.string().trim().min(1).max(200);
 const canonicalNonnegativeInt64 = z.string()
   .regex(/^(0|[1-9][0-9]*)$/, 'must be a canonical integer string')
-  .refine((value) => BigInt(value) <= MAX_CATALOG_VND, 'exceeds signed bigint range');
+  .refine((value) => /^(0|[1-9][0-9]*)$/.test(value) && BigInt(value) <= MAX_CATALOG_VND,
+    'exceeds signed bigint range');
 
 export const catalogPriceSchema = canonicalNonnegativeInt64;
 
