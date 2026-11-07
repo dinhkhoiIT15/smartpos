@@ -33,7 +33,7 @@ pnpm run check
 
 Expected Node 24.x, 7 POS-013 local DB tests + 6 POS-017 cache tests all pass, plus full checks. Manual `pnpm --filter @smartpos/desktop dev` shows existing demo/SQLite v1, no product import UI; no unauthorized cache writes or real sale. Do not point PostgreSQL test suites at Neon.
 
-**Important:** GitHub CI and Windows verification for POS-017 must be fetched and reported before claims of PASS. Keep issue/feature PR open for owner acceptance, no merge.
+**CI evidence:** POS-017 code checkpoint `5f8231d` [Foundation CI 42394398241](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42394398241) **SUCCESS**: SQLite 7/7 baseline and POS-017 6/6 cache on Linux + Windows, Electron/API/PostgreSQL tests green. [Docs CI 42394398264](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42394398264) **SUCCESS**. Recheck final HEAD after docs-only status update. Owner *local Windows* testing is still pending. Keep Issue #31 and draft PR #32 open; no merge.
 
 ## Known pending work
 
