@@ -232,7 +232,17 @@ test('POS-015 manual stock adjustments: real PostgreSQL atomic, audit, replay an
     const countBefore = await movementCount(actor.storeId);
     const cashier: InventoryPrincipal = { ...actor, role: 'CASHIER' };
     await assert.rejects(inventory.adjust(cashier, command('10', 'RECEIPT')), hasError('FORBIDDEN'));
+    // Forging CASHIER while the database membership is MANAGER is forbidden
+    // even for read access; the server may not trust a principal's role claim.
+    await assert.rejects(inventory.getBalance(cashier, two.variantId), hasError('FORBIDDEN'));
+    // A genuinely assigned CASHIER can read their own store, but never adjust.
+    await pool.query("UPDATE store_memberships SET role='CASHIER' WHERE store_id=$1 AND user_id=$2",
+      [actor.storeId, actor.userId]);
+    assert.equal((await inventory.getBalance(cashier, variantId)).qty, '1');
+    await assert.rejects(inventory.adjust(cashier, command('10', 'RECEIPT')), hasError('FORBIDDEN'));
     await assert.rejects(inventory.getBalance(cashier, two.variantId), hasError('NOT_FOUND'));
+    await pool.query("UPDATE store_memberships SET role='MANAGER' WHERE store_id=$1 AND user_id=$2",
+      [actor.storeId, actor.userId]);
     const forged: InventoryPrincipal = { ...actor, userId: randomUUID() };
     await assert.rejects(inventory.adjust(forged, command('10', 'RECEIPT')), hasError('FORBIDDEN'));
     await pool.query('UPDATE store_memberships SET active=false WHERE store_id=$1 AND user_id=$2',
