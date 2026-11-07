@@ -1,6 +1,6 @@
 # SmartPOS Retail — Desktop + API Foundation
 
-**Status:** M1 development. Electron demo, Fastify health, bigint VND domain and PostgreSQL v1 schema are merged. The owner confirmed the 17-table PostgreSQL migration on **Neon development only**. POS-013 SQLite and Windows cleanup PRs #19/#22 are merged and accepted by the owner. POS-011 [offline staff/device authorization design PR #23](https://github.com/dinhkhoiIT15/smartpos/pull/23) is **proposed, not implemented or approved**. **No real checkout, live login, catalog sync or production pilot yet.**
+**Status:** M1 development. Electron demo, Fastify health, bigint VND domain and PostgreSQL v1 schema are merged. The owner confirmed the 17-table PostgreSQL migration on **Neon development only**. POS-013 SQLite and Windows cleanup PRs #19/#22 are merged and accepted by the owner. POS-011 [auth/device design PR #23](https://github.com/dinhkhoiIT15/smartpos/pull/23) **merged**; owner approved the **four-hour offline grant operating policy**, documented in [follow-up PR #24](https://github.com/dinhkhoiIT15/smartpos/pull/24). **No real auth has been implemented.** **No real checkout, live login, catalog sync or production pilot yet.**
 
 SmartPOS is a planned offline-first, cash-only POS for a single electronics store. The accepted baseline (one authorized offline cashier, immutable sales, integer VND, SKU inventory) is recorded in [AGENTS.md](AGENTS.md), [PRD](docs/PRODUCT_REQUIREMENTS.md), [Business Rules](docs/BUSINESS_RULES.md) and [Architecture](docs/SYSTEM_ARCHITECTURE.md).
 
@@ -79,7 +79,7 @@ See [DB migration instructions and forward-fix plan](packages/db/README.md). Do 
 
 ## POS-011 offline staff/device authorization (DESIGN ONLY, PR #23)
 
-The [proposed ADR-0004](docs/ADR-0004-offline-auth-device-provisioning.md) and [threat model](docs/security/POS-011_THREAT_MODEL.md) define server-side staff RBAC, one-device offline pairing, signed/time-bound checkout grants and revocation/clock-tamper restrictions. These are **NOT** active login or checkout features; the owner still needs to approve D-010 policy decisions.
+The [ADR-0004](docs/ADR-0004-offline-auth-device-provisioning.md) and [threat model](docs/security/POS-011_THREAT_MODEL.md) define server-side staff RBAC, one-device offline pairing, signed/time-bound grants and revocation/clock-tamper restrictions. **D-010 was approved**: up to four hours per grant, online-only cashier start/switch, no offline renewal or grace, and transfer only after the old POS stops or all old grants expire. This is policy only; **real cryptographic verification, OS-backed device keys, login and checkout remain unimplemented** (D-013 OPEN).
 
 The Node24 synthetic **reference model only** is checked in CI:
 
