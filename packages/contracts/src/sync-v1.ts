@@ -138,7 +138,10 @@ export const syncSaleCompletedEventSchema = z.strictObject({
 }).superRefine((input, ctx) => {
   addSaleConsistencyIssues(input, ctx);
   const { payloadHash, ...body } = input;
-  if (computeSyncPayloadHash(body) !== payloadHash) {
+  // Compute directly rather than parsing again: an invalid arithmetic payload
+  // must return ordinary Zod issues, not throw from a nested validation.
+  const actualHash = createHash('sha256').update(canonicalSyncJson(body), 'utf8').digest('hex');
+  if (actualHash !== payloadHash) {
     ctx.addIssue({ code: 'custom', path: ['payloadHash'], message: 'hash mismatch' });
   }
 });
