@@ -2,7 +2,7 @@
   "name": "@smartpos/api",
   "version": "0.1.0",
   "private": true,
-  "description": "Fastify API foundation with opt-in server-only Neon dev connectivity diagnostic",
+  "description": "Fastify health and safely gated catalog service for development (no real login yet)",
   "type": "module",
   "engines": {
     "node": ">=24 <25"
@@ -12,12 +12,15 @@
     "build": "tsc --project tsconfig.build.json",
     "start": "node dist/main.js",
     "typecheck": "tsc --project tsconfig.json --noEmit",
-    "test": "pnpm run build && node --test dist/server.test.js dist/db.test.js dist/db-diagnostics.test.js",
-    "db:check": "tsx src/db-check.ts"
+    "test": "pnpm run build && node --test dist/server.test.js dist/db.test.js dist/db-diagnostics.test.js dist/catalog/schemas.test.js dist/catalog/routes.test.js",
+    "db:check": "tsx src/db-check.ts",
+    "test:catalog": "pnpm run build && node --test dist/catalog/schemas.test.js dist/catalog/routes.test.js",
+    "test:catalog:pg": "tsx --test src/catalog/catalog.pg.test.ts"
   },
   "dependencies": {
     "fastify": "5.12.8",
-    "pg": "8.23.1"
+    "pg": "8.23.1",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/node": "24.19.2",
