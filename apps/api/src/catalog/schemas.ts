@@ -71,10 +71,21 @@ export const updateVariantSchema = z.strictObject({
   'empty variant update',
 );
 
+// HTTP query parameters are strings; a service may re-parse an already
+// validated numeric value without losing the safety boundary.
+const limit = z.union([
+  z.string().regex(/^[1-9][0-9]{0,2}$/).transform(Number),
+  z.number().int(),
+]).pipe(z.number().int().min(1).max(100));
+const offset = z.union([
+  z.string().regex(/^(0|[1-9][0-9]{0,4})$/).transform(Number),
+  z.number().int(),
+]).pipe(z.number().int().min(0).max(10000));
+
 export const listCatalogSchema = z.strictObject({
   q: z.string().trim().min(1).max(100).optional(),
-  limit: z.string().regex(/^[1-9][0-9]?$/).transform(Number).pipe(z.number().int().min(1).max(99)).optional().default(20),
-  offset: z.string().regex(/^(0|[1-9][0-9]{0,4})$/).transform(Number).pipe(z.number().int().min(0).max(10000)).optional().default(0),
+  limit: limit.optional().default(20),
+  offset: offset.optional().default(0),
 });
 
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
