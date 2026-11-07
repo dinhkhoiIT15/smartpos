@@ -1,6 +1,6 @@
 # SmartPOS Retail — Desktop + API Foundation
 
-**Status:** M2 catalog-services development. Electron demo, Fastify health, bigint VND domain, PostgreSQL v1 and SQLite v1 are merged; owner verified 17-table migration on **Neon development only** and Windows SQLite runtime. POS-011 **design and four-hour offline grant policy** PRs #23/#24 merged (no real login implementation). POS-014 catalog/variants service is under [review in PR #26](https://github.com/dinhkhoiIT15/smartpos/pull/26), **not publicly exposed** until real server-side login/RBAC. No real checkout, catalog sync or production pilot yet.
+**Status:** M2 inventory services development. Electron demo, Fastify health, bigint VND domain, PostgreSQL v1, SQLite v1, and [POS-014 catalog PR #26](https://github.com/dinhkhoiIT15/smartpos/pull/26) are merged. Owner confirmed the 17-table PostgreSQL schema on **Neon development only**, and SQLite Windows acceptance. POS-011 four-hour offline authorization **policy/design** is approved, but real login remains unimplemented. **POS-015 inventory transactions are under review in [PR #28](https://github.com/dinhkhoiIT15/smartpos/pull/28)**; neither catalog nor inventory mutation routes are publicly enabled. No cash checkout, sync worker or production pilot.
 
 SmartPOS is a planned offline-first, cash-only POS for a single electronics store. The accepted baseline (one authorized offline cashier, immutable sales, integer VND, SKU inventory) is recorded in [AGENTS.md](AGENTS.md), [PRD](docs/PRODUCT_REQUIREMENTS.md), [Business Rules](docs/BUSINESS_RULES.md) and [Architecture](docs/SYSTEM_ARCHITECTURE.md).
 
@@ -104,6 +104,14 @@ pnpm --filter @smartpos/api test
 ```
 
 GitHub CI separately validates real CRUD and audit/rollback against **disposable PostgreSQL 16**; never point `test:catalog:pg` at Neon. POS-015 stock and POS-017 local catalog UI/cache remain later tasks.
+
+## POS-015 Stock and inventory movement services (draft PR #28)
+
+The server-only [POS-015 inventory service](apps/api/src/inventory/service.ts) creates immutable stock movement events, adjusts PostgreSQL store+variant balances with atomic additive updates, increments revision, and appends manager/actor audit with a mandatory reason in one transaction. Each manual operation uses a stable movement UUID as an idempotency key; repeating it cannot double-count stock. Concurrent stock issues cannot silently make manual stock negative.
+
+Manual stock changes are ADMIN/MANAGER only and the server verifies active role/membership. **Normal Fastify startup still returns 404 for inventory routes** because real staff authentication has not been implemented; only isolated tests inject a fake trusted principal. POS-021 exceptional negative stock from paid offline-sale reconciliation remains out of scope.
+
+On Windows run `pnpm --filter @smartpos/api test:inventory` and `pnpm --filter @smartpos/api test`, plus the [full POS-015 acceptance guide](docs/POS-015_INVENTORY_ACCEPTANCE.md). Real PostgreSQL stock concurrency/rollback is tested only in a disposable database by GitHub CI; **do not run stock tests on Neon**.
 
 ## Monorepo layout
 

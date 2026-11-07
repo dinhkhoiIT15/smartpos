@@ -1,6 +1,6 @@
-# SmartPOS API — Fastify foundation and POS-014 catalog service
+# SmartPOS API — Fastify, catalog and POS-015 inventory foundations
 
-**Status:** POS-008 health and POS-009 Neon development diagnostics merged; POS-012 PostgreSQL v1 migration applied to **Neon development only** by owner. POS-014 catalog/variants live under a [reviewable PR #26](https://github.com/dinhkhoiIT15/smartpos/pull/26), **but are not enabled in the normal API entrypoint because real staff authentication has not yet been implemented**. No deployed catalog writes, checkout or cloud sync.
+**Status:** POS-008 health, POS-009 Neon development read-only probe and POS-014 catalog/variants are merged; POS-012 PostgreSQL schema was applied by owner to **Neon development only**. POS-015 inventory/movements is under [PR #28 review](https://github.com/dinhkhoiIT15/smartpos/pull/28). Catalog AND inventory services are NOT enabled by normal Fastify startup because live staff authentication is not yet implemented. No deployed inventory or catalog writes, real cash checkout or cloud sync.
 
 ## Requirements / run health API
 
@@ -53,6 +53,22 @@ pnpm --filter @smartpos/db schema:check
 Expected `fail 0` for Node test suites, no TypeScript errors, Drizzle `Everything's fine`. See [POS-014 acceptance checklist](../../docs/POS-014_CATALOG_ACCEPTANCE.md) for exact commands and expected results. These Windows tests **do not write to Neon** or create real shop products.
 
 GitHub CI separately runs `pnpm --filter @smartpos/api test:catalog:pg` on a **disposable PostgreSQL 16 database**, after Drizzle migrations, to verify store FK isolation, duplicate SKU/attributes, price bigint, audit rollback, price revision conflict and soft deactivation. That test is guarded to `127.0.0.1/smartpos_ci`; **never** point it at Neon or production.
+
+## POS-015 inventory balances and movement service (not public yet)
+
+- `src/inventory/schemas.ts`: Zod validates signed PostgreSQL BIGINT quantity decimal strings, nonzero manual stock deltas, positive receipts, negative issues, correction kind, stable UUID movement ID and audit reason.
+- `src/inventory/service.ts`: store-scoped and active membership-verified balance/history reads, manual adjustments for ADMIN/MANAGER only, atomic append-only stock movements + balance update/revision + audit. Same UUID on retry returns `REPLAYED`; mismatching reuse is rejected, preventing duplicate stock movements.
+- `src/inventory/routes.ts`: optional HTTP routes for `GET /v1/inventory/variants/:variantId/balance`, `GET /v1/inventory/variants/:variantId/movements`, `POST /v1/inventory/adjustments`. **Not registered by main.ts**: real auth and RBAC are still missing. This intentional 404 is part of security acceptance.
+- Ordinary manager adjustments cannot cause negative stock; BR-009 exceptions for already-paid offline sale conflicts remain reserved for POS-021.
+
+```powershell
+pnpm --filter @smartpos/api typecheck
+pnpm --filter @smartpos/api test:inventory
+pnpm --filter @smartpos/api test
+pnpm --filter @smartpos/db schema:check
+```
+
+No Neon credentials are needed. Disposable PostgreSQL CI alone runs `pnpm --filter @smartpos/api test:inventory:pg` after installing the POS-012 migration. See the [Windows acceptance guide](../../docs/POS-015_INVENTORY_ACCEPTANCE.md).
 
 ## Build and optional Neon diagnostic
 

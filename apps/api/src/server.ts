@@ -1,8 +1,9 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { registerCatalogRoutes, type CatalogRouteOptions } from './catalog/routes.js';
+import { registerInventoryRoutes, type InventoryRouteOptions } from './inventory/routes.js';
 
 /** Pure Fastify factory; no network listen, credentials, or database required by tests. */
-export function buildServer(options: { logger?: boolean; catalog?: CatalogRouteOptions } = {}): FastifyInstance {
+export function buildServer(options: { logger?: boolean; catalog?: CatalogRouteOptions; inventory?: InventoryRouteOptions } = {}): FastifyInstance {
   const app = Fastify({
     logger: options.logger ?? false,
     bodyLimit: 1024 * 1024,
@@ -17,6 +18,8 @@ export function buildServer(options: { logger?: boolean; catalog?: CatalogRouteO
   // Fail closed: production/dev main.ts supplies no auth provider or catalog DB.
   // Route registration is ONLY allowed via explicit server-side service/auth injection.
   if (options.catalog) registerCatalogRoutes(app, options.catalog);
+  // No trusted login resolver in main.ts: inventory is opt-in for test only.
+  if (options.inventory) registerInventoryRoutes(app, options.inventory);
 
   return app;
 }

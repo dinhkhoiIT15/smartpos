@@ -1,35 +1,35 @@
 # TODO — SmartPOS verified priorities
 
-**Snapshot:** 2026-11-07. Source of truth is GitHub Issues, PR status, main SHA and CI, not this Markdown file.
+**Manual status snapshot:** 2026-11-07. GitHub PR/Issue/CI and the actual main SHA remain authoritative.
 
-## Main — verified merged and developer accepted
-- [x] POS-001 PR #5 — Node 24 / pnpm 10.20.0 monorepo
-- [x] POS-002 + POS-004 PR #3 — approved M0 docs and CI
-- [x] POS-007 PR #8 — secure Electron demo; Windows GUI accepted (old [Issue #7](https://github.com/dinhkhoiIT15/smartpos/issues/7) remains open for governance reconciliation)
-- [x] POS-008 PR #10 — Fastify health endpoint verified on Windows
-- [x] POS-009 PRs #12/#13 — server-only Neon development SELECT 1 TLS connection check
-- [x] POS-010 PR #15 — Zod and signed BIGINT VND domain contracts
-- [x] POS-012 PR #17 — 17-table PostgreSQL migration; developer manually verified schema and Drizzle journal in **Neon development**; no production migration
-- [x] POS-013 PR #19 and BUG-013 PR #22 — local SQLite v1 and Windows EPERM cleanup; 7/7 Windows CI and user-accepted launch/reopen (Issues #18/#21 closed)
-- [x] POS-011 design PR #23 + owner-approved four-hour offline grant policy PR #24 — D-010 ACCEPTED, 35/35 synthetic reference tests. [Issue #20](https://github.com/dinhkhoiIT15/smartpos/issues/20) CLOSED for **design only**; real authentication/OS keys not implemented, R-005 HIGH OPEN. Verified main `9be30b9f6a1a`.
+## Merged and user-accepted milestones
+- [x] POS-001 PR #5 — pnpm/Node 24 workspace
+- [x] POS-002/POS-004 PR #3 — baseline docs and docs CI
+- [x] POS-007 PR #8 — secure Electron demo and Windows acceptance ([Issue #7](https://github.com/dinhkhoiIT15/smartpos/issues/7) still open for bookkeeping)
+- [x] POS-008 PR #10 — Fastify health
+- [x] POS-009 PR #12/#13 — server-only Neon development read-only TLS check
+- [x] POS-010 PR #15 — Zod contracts and bigint VND
+- [x] POS-012 PR #17 — PostgreSQL 17-table migration; owner reported 17 tables + Drizzle history on isolated **Neon development**
+- [x] POS-013 PR #19 + Windows bugfix #22 — SQLite local schema, Windows runtime and tests accepted (Issues #18/#21 closed)
+- [x] POS-011 design PR #23 and owner-approved four-hour grant policy PR #24 — D-010 ACCEPTED, Issue #20 closed **design only**, real authentication and secure OS key storage remain unimplemented D-013/R-005
+- [x] [POS-014 PR #26](https://github.com/dinhkhoiIT15/smartpos/pull/26) — catalog/variant service with store-scoped SKU, attrs, money, revisions and audit; Windows accepted, [Issue #25](https://github.com/dinhkhoiIT15/smartpos/issues/25) closed. Verified main `55659902b89e62a542cb5bb6b62a2c61ad3215e0`.
 
-## Current task — POS-014 review and Windows acceptance
-- [ ] [POS-014 Issue #25](https://github.com/dinhkhoiIT15/smartpos/issues/25), [draft PR #26](https://github.com/dinhkhoiIT15/smartpos/pull/26): strict Zod catalog/product/variant CRUD, uppercase per-store SKU and per-product attribute key, VND bigint decimal wire, optimistic variant revision and atomic catalog change/audit append. **Catalog routes intentionally disabled in normal API** until real auth/RBAC; no Neon writes.
-- [ ] Latest PR #26 CI green (including disposable PostgreSQL 16 integration), owner Windows `typecheck` / `test:catalog` / `test` / health and catalog-404 smoke. Then review/merge and close #25.
+## In progress / waiting for Windows owner acceptance
+- [ ] [POS-015 Issue #27](https://github.com/dinhkhoiIT15/smartpos/issues/27), [draft PR #28](https://github.com/dinhkhoiIT15/smartpos/pull/28): PostgreSQL stock balances + append-only movement and reason audit in one transaction, retry idempotency, non-lost concurrent updates, oversell/overflow protection, strict active-role checks and default 404 for unauthenticated API. CI isolated PostgreSQL 16, Windows tests and review required. **No Neon writes/migrations, no actual stock UI.**
+- [ ] Verify last PR #28 HEAD CI, then Windows `pnpm --filter @smartpos/api typecheck`, `test:inventory`, `test`, `pnpm --filter @smartpos/db schema:check`, Fastify health and intentional inventory-404. See [guide](../docs/POS-015_INVENTORY_ACCEPTANCE.md).
 
-## Next milestones, dependent work
-- [ ] POS-015 — inventory balances/movements + audit + non-lost concurrent stock updates
-- [ ] POS-016 — versioned sync API contracts
-- [ ] POS-017 — catalog sync/cache into local SQLite (requires POS-014 merged)
-- [ ] POS-018/019 — cash cart UI and atomic offline sale+payment+stock+outbox; real cryptographic offline device authorization must exist before checkout.
-- [ ] POS-020–024 — internal receipt, idempotent sync, retry/outbox and conflict reconciliation.
-- [ ] POS-025–030 — actual staff RBAC, reports, secrets/backup hardening, Windows/macOS release and pilot review.
-- [ ] Separately authorize implementation of staff login/device provisioning/signature verification and decide D-013 idle lock, OS key storage and device handover proof. **D-010 design approval is not live login.**
+## Next dependent tasks
+- [ ] POS-016 — versioned sync API contract (Zod/OpenAPI, negative cases).
+- [ ] POS-017 — catalog to SQLite cache with pull cursor and pending local deltas preserved.
+- [ ] POS-018/019/020 — cash cart, atomic local sale/outbox and internal receipt. Do not allow real offline checkout before actual auth/key issuance and tests.
+- [ ] POS-021–024 — server idempotent sync, retries, conflict visibility and safe reconciliation (including BR-009 exceptional negative stock).
+- [ ] POS-025–030 — real staff RBAC, audit/report, encryption/backup, packaging and production pilot safety.
+- [ ] Separately approve real staff login/device provisioning and cryptographic grant verification, OS key storage, clock protection and device transfer proof (D-013).
 
-## M0 governance still open
-- [ ] POS-003 — GitHub Issues / Project board imported
-- [ ] POS-005 — owner-admin protects `main` and configures PR review
-- [ ] POS-006 — independently verify fresh-session handoff
-- [ ] Reconcile old POS-007 Issue #7 after confirming its IPC acceptance record
+## M0 governance still OPEN
+- [ ] POS-003 GitHub Project board and full issue import
+- [ ] POS-005 owner-admin main branch protection/reviewer requirements
+- [ ] POS-006 fresh-session handoff rehearsal
+- [ ] Resolve old POS-007 Issue #7 if exact IPC acceptance is documented
 
-**Safety:** no secret `.env`, production data, SQLite binaries or Neon credentials; no production migration, no real customer checkout.
+No production deployment, no real sales/stock data, no secrets, no Neon migrations as part of POS-015.
