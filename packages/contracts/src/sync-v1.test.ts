@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   SYNC_PROTOCOL_VERSION, MAX_PUSH_EVENTS, MAX_PULL_CHANGES, MAX_PUSH_JSON_BYTES,
   syncSaleWithoutHashSchema, syncSaleCompletedEventSchema, syncPushRequestSchema,
@@ -261,4 +262,20 @@ test('pull cursor must match request, and client advances only AFTER atomic SQLi
   // Schema validation does NOT mutate SQLite; worker transaction remains POS-023.
   const before='10';
   assert.equal(before,'10');
+});
+
+test('committed JSON fixtures validate with Zod and exact canonical SHA-256 hash', () => {
+  const read = (filename: string): unknown =>
+    JSON.parse(readFileSync(new URL('../../../docs/sync/examples/' + filename, import.meta.url), 'utf8'));
+  const requestFixture = syncPushRequestSchema.parse(read('push.request.json'));
+  const event = requestFixture.events[0]!;
+  const { payloadHash, ...body } = event;
+  assert.equal(computeSyncPayloadHash(body), payloadHash);
+  assert.equal(payloadHash, '64caf850ef884a5c682e1dc9c2dc54e80bb0f4a835df4f74ddaebe93079016fd');
+  assertPushResponseMatchesRequest(requestFixture, read('push.response.json'));
+  assertPushResponseMatchesRequest(requestFixture, read('push.review.response.json'));
+  const queryFixture = syncPullQuerySchema.parse(read('pull.query.json'));
+  const pullFixture = assertPullResponseMatchesQuery(queryFixture, read('pull.response.json'));
+  assert.equal(pullFixture.changes.length, 2);
+  assert.equal(pullFixture.nextCursor, '12');
 });
