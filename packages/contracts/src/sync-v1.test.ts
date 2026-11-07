@@ -251,6 +251,9 @@ test('pull response handles increasing global sequences, sparse store changes an
     {...pullPage(),changes:[{...change('11'),entityType:'users'}]},
     {...pullPage(),changes:[{...change('11'),payload:()=>{}}]},
     {...pullPage(),protocolVersion:2},
+    {...pullPage(),fromCursor:'1.1'},
+    {...pullPage(),nextCursor:'9223372036854775808'},
+    {...pullPage(),changes:[{...change('1.1')}]},
   ];
   for(const p of bad) assert.equal(syncPullResponseSchema.safeParse(p).success,false);
 });
