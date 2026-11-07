@@ -1,6 +1,6 @@
 # POS-019 — Atomic offline sale/CASH/outbox SQLite core (M3/P0)
 
-**Status:** [Issue #35](https://github.com/dinhkhoiIT15/smartpos/issues/35), [draft PR #36](https://github.com/dinhkhoiIT15/smartpos/pull/36), branch `feature/POS-019-atomic-offline-sale`. POS-018 was owner Windows accepted and [PR #34](https://github.com/dinhkhoiIT15/smartpos/pull/34) merged on main SHA `fef16b3083a7e6f1fc691bae122820bdd81c8597`. **Human Windows POS-019 acceptance pending.**
+**Status:** [Issue #35](https://github.com/dinhkhoiIT15/smartpos/issues/35), [draft PR #36](https://github.com/dinhkhoiIT15/smartpos/pull/36), branch `feature/POS-019-atomic-offline-sale`. POS-018 was owner Windows accepted and [PR #34](https://github.com/dinhkhoiIT15/smartpos/pull/34) merged on main SHA `fef16b3083a7e6f1fc691bae122820bdd81c8597`. **Human Windows POS-019 acceptance pending.** Automated code-checkpoint `85854a33` [Foundation CI 42398260631](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42398260631) **PASS** (POS-019 SQLite 16/16 and shared POS-016 wire 1/1 on Linux/Windows, original SQLite 7/7, catalog 6/6, Electron/API/PostgreSQL). [Docs CI 42398260696](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42398260696) **PASS**. Verify latest docs-only PR HEAD CI before merging.
 
 ## Implemented — MAIN-only storage core
 
