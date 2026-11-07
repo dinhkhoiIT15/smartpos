@@ -1,42 +1,43 @@
 # Session Handoff — SmartPOS
 
-## Session 2026-11-07: POS-017 trusted initial SQLite catalog cache
+## POS-018 cash cart preview — 2026-11-08
 
-- GitHub repo: https://github.com/dinhkhoiIT15/smartpos
-- Latest verified main: `beb760097e35ee5a7d39ed1c96f0b2f4f7e7c23b` (merge POS-016 PR #30; owner reported Windows acceptance).
-- Current work: [Issue #31](https://github.com/dinhkhoiIT15/smartpos/issues/31), feature branch `feature/POS-017-local-catalog-cache`. Feature code is NOT yet accepted/merged. `DEVELOPMENT_STATUS.verified_commit` tracks main, not feature HEAD.
+- Repo: https://github.com/dinhkhoiIT15/smartpos
+- GitHub verified `main` SHA `28d38555d358c0fad012702a529fbd0c2bffb5d3` is [POS-017 PR #32](https://github.com/dinhkhoiIT15/smartpos/pull/32) merged and owner Windows PASS. POS-016/#30 and preceding merged work accepted.
+- Current [POS-018 Issue #33](https://github.com/dinhkhoiIT15/smartpos/issues/33), branch `feature/POS-018-cash-cart-preview`, **NOT MERGED**. `DEVELOPMENT_STATUS.verified_commit` is verified main not feature HEAD.
 
-## Implemented feature branch
+## Changed scope
 
-- `apps/desktop/src/main/local-db/catalog-cache.ts`: strict initial snapshot parser, atomic SQLite bootstrap into existing v1 catalog rows + first cursor, idempotent exact replay, reject different or older cursor/snapshot, fail on other-store or pre-populated uncursored cache. Read-only scoped SKU prefix lookup (escaped SQL wildcard, string VND, inactive excluded).
-- `apps/desktop/tests/catalog-cache.test.mjs`: Node24 file-backed tests with OS temp paths/Windows-safe handles to verify persist/reopen, strict validation, triggered transaction rollback, replay/rewind refusal, protected sale/item/payment/outbox and pending stock, other-store/no-cursor refusal.
-- `apps/desktop/package.json`: `test:catalog-cache`; Linux and Windows Node24 CI jobs run it. `docs/POS-017_CATALOG_CACHE_ACCEPTANCE.md` documents Windows checks, trust boundary and future POS-023 gap.
-- No migration, production/Neon access, external HTTP, auth bypass or renderer IPC import, no hidden real userData fixture. Security design: real auth and verified source required before actual online catalog; POS-023 handles incremental pull and pending stock rebase.
+- `packages/domain/src/index.ts` factors `calculateCartAmounts` so both cash calculation and pre-tender totals use one bigint arithmetic source.
+- `packages/domain/src/cart.ts` pure cart APIs add/merge/update/remove/preview/format. Immutable price/name/SKU/attributes snapshots, exact VND decimal strings, max 100 lines/quantity 2,147,483,647, validated synthetic available stock, detect duplicate/stale variant, insufficient tender/overflow; **not persisted**.
+- `packages/domain/src/cart.test.ts` 7 unit cases with 9.340.000→9.500.000→160.000 business example.
+- `apps/desktop/src/renderer/src/app.tsx` and `styles.css`: responsive demo cart tab with SKU search, static synthetic catalog, quantity controls, cash input, shortfall/change. Huge DEMO warning and no payment-complete button.
+- `apps/desktop/package.json`, `packages/domain/package.json`, `pnpm-lock.yaml`: existing workspace dependency `@smartpos/domain/cart`, no new external package. Windows CI domain tests and desktop TS; existing Linux CI remains.
+- [Full Windows acceptance](../docs/POS-018_CASH_CART_ACCEPTANCE.md), relevant README and traceability.
+- No change to SQLite schema, local device real data, Neon, server authentication, Fastify, sales, payments, outbox or actual stock. Demo renderer fixture is not authorized source data; POS-019 must reverify real sale inputs in MAIN under authenticated device/cashier.
 
-## Verification/owner acceptance
-
-From `C:\Users\dinhk\Desktop\smartpos` on Windows PowerShell:
+## Owner checks Windows
 
 ```powershell
 git status --short
 git fetch origin
-git switch feature/POS-017-local-catalog-cache
-git pull --ff-only origin feature/POS-017-local-catalog-cache
+git switch feature/POS-018-cash-cart-preview
+git pull --ff-only origin feature/POS-018-cash-cart-preview
 pnpm install --frozen-lockfile
+pnpm --filter @smartpos/domain typecheck
+pnpm --filter @smartpos/domain test
 pnpm --filter @smartpos/desktop typecheck
 pnpm --filter @smartpos/desktop test:local-db
 pnpm --filter @smartpos/desktop test:catalog-cache
 pnpm --filter @smartpos/desktop security:check
 pnpm --filter @smartpos/desktop build
 pnpm run check
+pnpm --filter @smartpos/desktop dev
 ```
 
-Expected Node 24.x, 7 POS-013 local DB tests + 6 POS-017 cache tests all pass, plus full checks. Manual `pnpm --filter @smartpos/desktop dev` shows existing demo/SQLite v1, no product import UI; no unauthorized cache writes or real sale. Do not point PostgreSQL test suites at Neon.
+Open **Giỏ hàng & tiền mặt (demo)**. Add `PHONE-128` (8.990.000 ₫) and `CASE-01` (350.000 ₫), due 9.340.000 ₫. Receive `9500000`: change 160.000 ₫. Receive `9000000`: shortfall 340.000 ₫. Invalid decimal/over-limit/malformed input shows validation. Quantity beyond sample stock denied; out-of-stock/inactive disabled. Verify **no real sale** and original `getAppInfo` IPC works. Review code/security and accept only after all CI successful.
 
-**CI evidence:** POS-017 code checkpoint `5f8231d` [Foundation CI 42394398241](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42394398241) **SUCCESS**: SQLite 7/7 baseline and POS-017 6/6 cache on Linux + Windows, Electron/API/PostgreSQL tests green. [Docs CI 42394398264](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42394398264) **SUCCESS**. Recheck final HEAD after docs-only status update. Owner *local Windows* testing is still pending. Keep Issue #31 and draft PR #32 open; no merge.
+## Pending after POS-018
 
-## Known pending work
-
-- Real backend authentication and catalog snapshot projection (D-013/POS-025); POS-023 bounded incremental catalog/stock pages, replay checks, atomic cursor advancement and pending stock reconciliation.
-- POS-018 cart/checkout totals, POS-019 offline sale atomic transaction/outbox, POS-021 server idempotent push, POS-022 retry worker. No paid-sale support yet.
-- D-009 local encryption/restore decision and pilot/production hardening. M0 management board/branch rules remain incomplete.
+- POS-019 verified offline device/cashier + SQLite transaction (sale/items/payment/stock/outbox), robust retry and abort/crash tests, no completed sale from untrusted renderer calculation. Real staff auth D-013 unresolved.
+- POS-020 internal receipt, POS-021 server idempotent push, POS-022 retry outbox, POS-023 authenticated catalog pulls. No production rollout or Neon writes.
