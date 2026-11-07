@@ -74,13 +74,11 @@ test('v1 PUSH SALE_COMPLETED cash snapshot, immutable schema and exact hash roun
 
 test('canonical SHA-256 is stable across object/attribute property order, sensitive to every value', () => {
   const base = eventBody();
-  const reordered = {
+  const reordered: SyncSaleWithoutHash = {
+    ...base,
     sale: { ...base.sale, items: [{ ...base.sale.items[0]!,
       attributesSnapshot: { storage: '128GB', color: 'Black' } }] },
-    ...base, // redeclare sale below to preserve inner reordering
   };
-  reordered.sale = { ...base.sale, items: [{ ...base.sale.items[0]!,
-    attributesSnapshot: { storage: '128GB', color: 'Black' } }] };
   assert.equal(computeSyncPayloadHash(base), computeSyncPayloadHash(reordered));
   assert.equal(canonicalSyncJson({ z: 2, a: { c: 3, b: 1 } }),
     canonicalSyncJson({ a: { b: 1, c: 3 }, z: 2 }));
