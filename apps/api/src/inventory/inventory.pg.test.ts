@@ -207,6 +207,51 @@ test('POS-015 manual stock adjustments: real PostgreSQL atomic, audit, replay an
       [actor.storeId, variantId]);
   });
 
+  await t.test('two independent first-ever receipts serialize on absent balance row', async () => {
+    const fresh = await seedStore();
+    const first = {
+      movementId: randomUUID(), variantId: fresh.variantId, deltaQty: '7',
+      kind: 'RECEIPT', reason: 'Fresh stock intake A',
+    };
+    const second = { ...first, movementId: randomUUID(), deltaQty: '11',
+      reason: 'Fresh stock intake B' };
+    const [a, b] = await Promise.all([
+      inventory.adjust(fresh.actor, first),
+      inventory.adjust(fresh.actor, second),
+    ]);
+    assert.equal(a.status, 'APPLIED');
+    assert.equal(b.status, 'APPLIED');
+    const balance = await inventory.getBalance(fresh.actor, fresh.variantId);
+    assert.equal(balance.qty, '18');
+    assert.equal(balance.revision, '2');
+    assert.equal(await movementCount(fresh.actor.storeId), 2);
+    assert.equal(await auditCount(fresh.actor.storeId), 2);
+  });
+
+  await t.test('balance revision bigint overflow rejects adjustment without mutation', async () => {
+    const before = await inventory.getBalance(actor, variantId);
+    const counts = {
+      movements: await movementCount(actor.storeId),
+      audits: await auditCount(actor.storeId),
+    };
+    await pool.query(
+      'UPDATE inventory_balances SET revision=$3::bigint WHERE store_id=$1 AND variant_id=$2',
+      [actor.storeId, variantId, MAX_QTY.toString()],
+    );
+    try {
+      await assert.rejects(inventory.adjust(actor, command('1', 'RECEIPT')),
+        hasError('REVISION_OVERFLOW'));
+      assert.equal((await inventory.getBalance(actor, variantId)).qty, before.qty);
+      assert.equal(await movementCount(actor.storeId), counts.movements);
+      assert.equal(await auditCount(actor.storeId), counts.audits);
+    } finally {
+      await pool.query(
+        'UPDATE inventory_balances SET revision=$3::bigint WHERE store_id=$1 AND variant_id=$2',
+        [actor.storeId, variantId, before.revision],
+      );
+    }
+  });
+
   await t.test('simultaneous oversells permit only one issue and never below zero', async () => {
     await pool.query('UPDATE inventory_balances SET qty=3 WHERE store_id=$1 AND variant_id=$2',
       [actor.storeId, variantId]);
