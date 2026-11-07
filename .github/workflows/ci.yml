@@ -33,6 +33,10 @@ jobs:
         run: pnpm --filter @smartpos/desktop test:local-db
       - name: POS-017 atomic local catalog cache tests
         run: pnpm --filter @smartpos/desktop test:catalog-cache
+      - name: POS-019 file-backed atomic offline cash sale and exact POS-016 wire contract
+        run: |
+          pnpm --filter @smartpos/desktop test:offline-sale
+          pnpm --filter @smartpos/desktop test:offline-sale:wire
       - name: Build and test Fastify API
         run: |
           pnpm --filter @smartpos/api build
@@ -110,3 +114,5 @@ jobs:
         run: |
           pnpm --filter @smartpos/desktop test:local-db
           pnpm --filter @smartpos/desktop test:catalog-cache
+          pnpm --filter @smartpos/desktop test:offline-sale
+          pnpm --filter @smartpos/desktop test:offline-sale:wire

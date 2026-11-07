@@ -1,6 +1,6 @@
 # SmartPOS Retail — Desktop + API Foundation
 
-**Status:** M3 POS-018 cash cart preview development. POS-017 [PR #32](https://github.com/dinhkhoiIT15/smartpos/pull/32) was owner-accepted and merged to main `28d3855`; POS-018 [Issue #33](https://github.com/dinhkhoiIT15/smartpos/issues/33) is on a feature branch. There is **no** real login, HTTP sync, actual payment/sale checkout, worker or production rollout. Neon has only the owner-verified development 17-table migration.
+**Status:** M3 POS-019 offline SQLite sale/outbox storage-core development. POS-018 [PR #34](https://github.com/dinhkhoiIT15/smartpos/pull/34) was owner Windows-accepted and merged into main `fef16b3`; POS-019 [Issue #35](https://github.com/dinhkhoiIT15/smartpos/issues/35) has [draft PR #36](https://github.com/dinhkhoiIT15/smartpos/pull/36). **No real login, public paid-sale checkout, HTTP sync, worker or production rollout**; D-013 cryptographic staff/device authorization remains unimplemented. Neon has only owner-verified development schema.
 
 SmartPOS is a planned offline-first, cash-only POS for a single electronics store. The accepted baseline (one authorized offline cashier, immutable sales, integer VND, SKU inventory) is recorded in [AGENTS.md](AGENTS.md), [PRD](docs/PRODUCT_REQUIREMENTS.md), [Business Rules](docs/BUSINESS_RULES.md) and [Architecture](docs/SYSTEM_ARCHITECTURE.md).
 
@@ -133,9 +133,9 @@ pnpm --filter @smartpos/desktop test:catalog-cache
 
 See [POS-017 Windows acceptance and security boundary](docs/POS-017_CATALOG_CACHE_ACCEPTANCE.md). There is **no runtime network importer, renderer SQL interface or real catalog provisioning** without authenticated backend/device support (D-013/POS-023).
 
-## POS-018 interactive demo cash cart (feature branch, Issue #33)
+## POS-018 interactive demo cash cart (merged PR #34)
 
-The Electron React UI has a **clearly marked demo cart**: search fixed synthetic SKUs, add/update/remove lines, and preview cash tendered, shortfall and change without recording any sale. It imports the existing `@smartpos/domain` bigint calculations; no product or cash demo data is inserted into SQLite/Neon. Prices are immutable SKU snapshots within the demo cart. This is **not checkout**; real authorization, inventory verification and atomic sale/outbox writes belong to POS-019 and later.
+The Electron React UI has a **clearly marked demo cart**: search fixed synthetic SKUs, add/update/remove lines, and preview cash tendered, shortfall and change without recording any sale. It imports the existing `@smartpos/domain` bigint calculations; no product or cash demo data is inserted into SQLite/Neon. Prices are immutable SKU snapshots within the demo cart. This is **not checkout**; POS-019 adds the **MAIN-only internal storage core** while real authorized checkout remains blocked by D-013.
 
 ```powershell
 pnpm --filter @smartpos/domain typecheck
@@ -146,6 +146,17 @@ pnpm --filter @smartpos/desktop dev
 ```
 
 See [POS-018 full Windows acceptance guide](docs/POS-018_CASH_CART_ACCEPTANCE.md). The cart tab is a preview only; never use it to charge customers.
+
+## POS-019 atomic offline sale/outbox storage core (draft PR #36)
+
+[POS-019 Issue #35](https://github.com/dinhkhoiIT15/smartpos/issues/35) adds a **MAIN-only, not IPC-exposed** SQLite storage method that rechecks cached SKU/revision/price and available `server_qty + pending_delta`, performs exact signed-int64 VND CASH arithmetic and commits `local_sales + local_sale_items + local_payments + pending_delta + outbox_events` in one transaction. The outbox stores a POS-016 v1 `SALE_COMPLETED` event with the shared-contract-compatible canonical SHA-256 hash; exact retries never double-debit stock. It is tested with disposable SQLite files and cross-contract Zod tests on Linux/Windows.
+
+```powershell
+pnpm --filter @smartpos/desktop test:offline-sale
+pnpm --filter @smartpos/desktop test:offline-sale:wire
+```
+
+**Not live sales:** `commitLocalCashSale` is intentionally **unreachable from renderer/preload and normal Electron app flow** because D-013 signed grant, cashier/device authorization and OS key/clock protections are not implemented. `offlineGrantId` in an input payload is not proof of a valid grant. The demo UI still never saves or acknowledges actual payments. Do not use fixtures with real customer information. Read the [full POS-019 Windows acceptance/security guide](docs/POS-019_OFFLINE_SALE_ACCEPTANCE.md).
 
 ## Monorepo layout
 

@@ -1,6 +1,6 @@
 # SmartPOS Desktop — Secure Electron shell + SQLite v1 (POS-013)
 
-**Status:** Development-only Electron demo with SQLite v1 and merged POS-017 local catalog cache. POS-018 adds a clearly labeled **in-memory demo cart and cash-change preview**; **no authenticated catalog sync, real sales, staff authorization, receipt or checkout**.
+**Status:** Development-only Electron demo with SQLite v1 and merged POS-017 cache/POS-018 cart. POS-019 implements **only an internal MAIN-only atomic SQLite cash sale/stock/outbox storage core** with no caller from Electron UI or IPC. **No authenticated catalog sync, real paid checkout, staff authorization, receipt or production sale**.
 
 ## Run on Windows / macOS
 
@@ -11,6 +11,8 @@ pnpm install --frozen-lockfile
 pnpm --filter @smartpos/desktop typecheck
 pnpm --filter @smartpos/desktop test:local-db
 pnpm --filter @smartpos/desktop test:catalog-cache
+pnpm --filter @smartpos/desktop test:offline-sale
+pnpm --filter @smartpos/desktop test:offline-sale:wire
 pnpm --filter @smartpos/desktop security:check
 pnpm --filter @smartpos/desktop build
 pnpm --filter @smartpos/desktop dev
@@ -64,8 +66,19 @@ The new `src/main/local-db/catalog-cache.ts` validates an externally authenticat
 
 Use the new sidebar item **Giỏ hàng & tiền mặt (demo)** to test adding a fixed sample SKU, quantity, remove, cash entry and change. The UI uses `@smartpos/domain/cart` pure bigint operations; sample prices and stocks are **not read from real catalog or written into SQLite**. No real payment completion/receipt is implemented. Demo state resets when app is closed. See [POS-018 Windows acceptance guide](../../docs/POS-018_CASH_CART_ACCEPTANCE.md), including 9.340.000 VND total and 160.000 VND change tests.
 
+## POS-019 internal atomic sale/outbox — no live checkout
+
+`src/main/local-db/offline-sale.ts` provides `commitLocalCashSale` only for a **future trusted MAIN-only orchestrator**, not `window.smartpos`. It revalidates catalog snapshot and stock inside `BEGIN IMMEDIATE`, persists sale/items/CASH/payment/pending stock delta/outbox v1 event atomically, and returns idempotent replay results for exact requests; outbox payload hash matches the POS-016 shared contract. Tests use OS temporary database files only, never the actual `userData` database.
+
+```powershell
+pnpm --filter @smartpos/desktop test:offline-sale
+pnpm --filter @smartpos/desktop test:offline-sale:wire
+```
+
+A SQLite device ID row is not a signed grant; **D-013 real offline authorization remains unimplemented**. Do not expose the internal function as a new renderer IPC, add a chốt đơn button or claim payment success before identity+device+cashier grant verification and owner approval. See [POS-019 Windows acceptance and security boundary](../../docs/POS-019_OFFLINE_SALE_ACCEPTANCE.md).
+
 ## Scope / security boundaries
 
-The schema and transaction primitive lay groundwork for POS-017/POS-019. They do **not** validate a cashier session (POS-011), implement real checkout/stock deduction (POS-018/019), network sync (POS-021/022/023) or completed backup/recovery (POS-027/029). Business policy remains one authorized offline cashier, cash only, money in signed 64-bit integer VND, no IMEI, paid sale snapshots immutable.
+The schema and transaction primitive lay groundwork for POS-017/POS-019. They do **not** validate a cashier session (POS-011), enable real checkout/stock deduction to a cashier (D-013/POS-019 integration), network sync (POS-021/022/023) or completed backup/recovery (POS-027/029). Business policy remains one authorized offline cashier, cash only, money in signed 64-bit integer VND, no IMEI, paid sale snapshots immutable.
 
 `node:sqlite` in Node 24 is stability **1.2 / release candidate**. Re-test on pinned Electron/Node, and require a Windows/macOS manual launch before merging. See [ADR-0003](../../docs/ADR-0003-local-sqlite-driver.md) for alternatives and risks.
