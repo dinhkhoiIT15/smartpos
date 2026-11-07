@@ -9,7 +9,7 @@ repo_connection: CONFIRMED — GitHub collaborator can open branches/Issues/PRs;
 last_github_synced_at: MANUAL GITHUB REVIEW 2026-11-08
 current_milestone: M3 — cash cart and preview before persisted offline sales
 current_phase: POS-018 interactive demo cart / pure bigint VND cash preview — feature branch review pending
-ci_status: POS-018 latest feature HEAD CI NOT YET VERIFIED; must check GitHub before acceptance
+ci_status: POS-018 code checkpoint cb8b3d5 [Foundation CI 42395959688](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42395959688) SUCCESS (domain 12/12 Linux+Windows, SQLite 7+6, Electron/API/PostgreSQL) and [Docs 42395959676](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42395959676) SUCCESS; verify final docs-only HEAD
 production_status: NOT DEPLOYED — no real login, checkout, sync API, worker or Neon payment writes
 
 ## Owner-accepted and merged foundation
@@ -28,11 +28,11 @@ production_status: NOT DEPLOYED — no real login, checkout, sync API, worker or
 - Electron React sidebar demo cart: hardcoded synthetic SKU examples, search, quantity increment/decrement/edit, remove/clear, tender input and summary, explicit DEMO warning and **no checkout/receipt/SQLite/network write**.
 - Unit tests `packages/domain/src/cart.test.ts`: 7 cases for BR-002 9,340,000 due / 9,500,000 received / 160,000 change, duplicate SKUs, stock bounds, malformed and overflow VND, insufficient tender and no fabricated sale.
 - Desktop adds existing workspace domain dependency to package/lock, no new remote dependency. Linux CI existing domain/build; Windows Node24 now runs domain test and desktop TS check in addition to SQLite checks.
-- CI and owner Windows UI acceptance still required. Do not claim PR merged, real sale processing, network sync or security-approved auth.
+- [POS-018 draft PR #34](https://github.com/dinhkhoiIT15/smartpos/pull/34). **Verified GitHub CI:** Foundation #42395959688 and Docs #42395959676 **SUCCESS** on code checkpoint `cb8b3d5`, Linux/Windows `@smartpos/domain` 12/12, SQLite 7 baseline + 6 catalog, Electron/API/PostgreSQL/Docs green. First feature test had a false overflow expectation (9,007,199,254,740,993 × 2 still fits signed-int64); corrected to assert exact doubled result. UI also keeps real due visible if tender input is malformed. **Owner Windows GUI acceptance still required**, do not merge/close yet.
 
 ## Next actions
 
-1. Open/check POS-018 draft PR from feature branch and retrieve GitHub CI latest SHA.
+1. Final docs-only HEAD CI recheck, review [draft PR #34](https://github.com/dinhkhoiIT15/smartpos/pull/34) and use green code checkpoint evidence; owner Windows UI acceptance remains separate.
 2. Owner Windows: `pnpm install --frozen-lockfile`, `pnpm --filter @smartpos/domain typecheck`, `pnpm --filter @smartpos/domain test`, `pnpm --filter @smartpos/desktop typecheck`, `pnpm --filter @smartpos/desktop security:check`, `pnpm --filter @smartpos/desktop build`, `pnpm run check`, `pnpm --filter @smartpos/desktop dev`; verify two-SKU example and no real completion button.
 3. Merge PR only after CI, owner review and local Windows UI PASS. Keep Issue #33 open until accepted merged.
 4. POS-019 follows for authenticated offline atomic sale/items/payment/stock/outbox; POS-020 receipt, POS-021–023 sync and D-013 real auth remain unimplemented. D-009 local backup encryption/recovery OPEN.
