@@ -41,10 +41,12 @@ jobs:
         run: |
           pnpm --filter @smartpos/desktop test:receipt-db
           pnpm --filter @smartpos/desktop test:receipt-boundary
-      - name: Build and test Fastify API
+          pnpm --filter @smartpos/api test:sync:parity
+      - name: Build and test Fastify API + POS-016 to POS-021 exact schema/hash parity
         run: |
           pnpm --filter @smartpos/api build
           pnpm --filter @smartpos/api test
+          pnpm --filter @smartpos/api test:sync:parity
       - name: Verify shared DTOs and bigint VND domain rules
         run: |
           pnpm --filter @smartpos/contracts test
