@@ -41,7 +41,6 @@ jobs:
         run: |
           pnpm --filter @smartpos/desktop test:receipt-db
           pnpm --filter @smartpos/desktop test:receipt-boundary
-          pnpm --filter @smartpos/api test:sync:parity
       - name: Build and test Fastify API + POS-016 to POS-021 exact schema/hash parity
         run: |
           pnpm --filter @smartpos/api build
@@ -126,3 +125,5 @@ jobs:
           pnpm --filter @smartpos/desktop test:offline-sale:wire
           pnpm --filter @smartpos/desktop test:receipt-db
           pnpm --filter @smartpos/desktop test:receipt-boundary
+      - name: POS-021 strict POS-016 contract and hash parity on Windows Node24
+        run: pnpm --filter @smartpos/api test:sync:parity
