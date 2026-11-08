@@ -9,7 +9,7 @@ repo_connection: CONFIRMED — connected GitHub Issues/branches/PRs; no admin
 last_github_synced_at: MANUAL GITHUB REVIEW 2026-11-08
 current_milestone: M4 — recoverable local outbox retry (not a live sync API)
 current_phase: POS-022 [Issue #41](https://github.com/dinhkhoiIT15/smartpos/issues/41), [Draft PR #42](https://github.com/dinhkhoiIT15/smartpos/pull/42) — implementation ready for CI/owner Windows review; NOT merged
-ci_status: POS-022 preliminary code checkpoint 1ebda765 [Foundation CI #42437612525](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42437612525) SUCCESS Linux/Windows Node24 (outbox file-backed tests 17/17 and boundary 2/2 each), disposable PG 16 POS-021 11/11; [Docs CI #42437612520](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42437612520) SUCCESS. Additional immutable-financial-evidence validation and forged-but-rehashed-event test committed subsequently; MUST verify final HEAD CI before owner acceptance.
+ci_status: POS-022 strengthened code checkpoint 047dd17a [Foundation CI #42437798730](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42437798730) SUCCESS Linux/Windows Node24 (outbox file-backed 18/18 + boundary 2/2 each, including validly rehashed forged event rejection), disposable PostgreSQL POS-021 11/11 and baseline Electron/API/SQLite; [Docs CI #42437798816](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42437798816) SUCCESS. Final docs-only HEAD CI must be verified before owner acceptance.
 production_status: NOT DEPLOYED — D-013 signed device/cashier grant not implemented, normal Electron outbox worker NOT activated, normal API PUSH HTTP 404, no real paid-sale IPC or Neon sale writes
 
 ## Owner-verified accepted main
@@ -32,7 +32,7 @@ production_status: NOT DEPLOYED — D-013 signed device/cashier grant not implem
 
 ## Next actions
 
-1. Verify final PR #42 HEAD GitHub Foundation CI Linux/Windows/PG and Docs CI, including extra forged-rehashed event check; fix failures. Keep draft.
+1. POS-022 strengthened code checkpoint confirmed green Linux/Windows/PG (outbox 18/18 + boundary 2/2 both OS). Verify final docs-only PR #42 HEAD Foundation/Docs; keep draft until owner acceptance.
 2. Owner Windows: frozen pnpm on Node24, `pnpm --filter @smartpos/desktop typecheck`, `test:outbox-worker`, `test:outbox-boundary`, existing `test:offline-sale`, `test:offline-sale:wire`, `test:receipt-db`, `security:check`, `build`, `pnpm run check`. File-backed tests are temp-file only and require NO Neon or network.
 3. Optionally open Electron demo to verify `DEMO_ONLY • SQLite schema v1`; no active outbox UI/progress is expected or authorized. Only tests exercise fake transport. No public sync allowed.
 4. After owner Windows PASS and security review, owner manually merges Draft PR #42 and closes Issue #41. Next POS-023 catalog delta pull, POS-024 conflicts and D-013 auth prerequisites; production release blocked.
