@@ -198,6 +198,7 @@ export class SyncPushService {
           [ctx.storeId,item.variantId,JSON.stringify({
             storeId:ctx.storeId,variantId:item.variantId,
             qty:updated.rows[0]!.qty,revision:updated.rows[0]!.revision,
+            saleId:event.saleId,eventId:event.eventId,
           })]);
         if(after<0n){
           shortage=true;
