@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Pool, PoolClient, QueryResultRow } from 'pg';
 import { z } from 'zod';
+import { lockCatalogStream } from '../sync/pull-service.js';
 import {
   createCategorySchema, createBrandSchema, createProductSchema, createVariantSchema,
   updateCategorySchema, updateBrandSchema, updateProductSchema, updateVariantSchema,
@@ -86,10 +87,41 @@ async function recordCatalogChange(
   c: PoolClient, actor: CatalogPrincipal, entityType: string, entityId: string,
   op: 'CREATE' | 'UPDATE' | 'DEACTIVATE', payload: Record<string, unknown>,
 ): Promise<void> {
+  // Variant deltas must carry immutable at-change product name for SQLite's
+  // denormalized cache. Do not reconstruct old pages from mutable products.
+  let delta=payload;
+  if(entityType==='product_variant'){
+    const found=await c.query<{name:string;active:boolean}>(`
+      SELECT p.name,p.active FROM products p
+      JOIN product_variants v ON v.store_id=p.store_id AND v.product_id=p.id
+      WHERE v.store_id=$1 AND v.id=$2`,[actor.storeId,entityId]);
+    if(!found.rows[0])throw new CatalogError('NOT_FOUND',404);
+    delta={...payload,name:found.rows[0].name,
+      active:Boolean(payload.active) && found.rows[0].active};
+  }
   await c.query(
     'INSERT INTO catalog_change_log (store_id,entity_type,entity_id,op,payload) VALUES ($1,$2,$3,$4,$5::jsonb)',
-    [actor.storeId, entityType, entityId, op, JSON.stringify(payload)],
+    [actor.storeId,entityType,entityId,op,JSON.stringify(delta)],
   );
+  // Product name/activation changes must also refresh ALL affected local
+  // SKU snapshot names/active flags; SQLite v1 doesn't store product_id.
+  if(entityType==='product' && op!=='CREATE'){
+    const linked=await c.query<VariantRow>(`
+      SELECT v.id,v.store_id,v.product_id,v.sku,v.attributes,
+       v.price_vnd::text AS price_vnd,v.revision::text AS revision,
+       (v.active AND p.active) AS active
+      FROM product_variants v JOIN products p
+       ON p.store_id=v.store_id AND p.id=v.product_id
+      WHERE v.store_id=$1 AND v.product_id=$2 ORDER BY v.id`,
+      [actor.storeId,entityId]);
+    for(const row of linked.rows){
+      const value={...asVariant(row),name:payload.name};
+      await c.query(`
+       INSERT INTO catalog_change_log(store_id,entity_type,entity_id,op,payload)
+       VALUES($1,'product_variant',$2,'UPDATE',$3::jsonb)`,
+       [actor.storeId,row.id,JSON.stringify(value)]);
+    }
+  }
   await c.query(
     'INSERT INTO audit_logs (id,store_id,actor_id,action,entity_type,entity_id,metadata) VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb)',
     [randomUUID(), actor.storeId, actor.userId, 'CATALOG_' + op, entityType, entityId,
@@ -100,11 +132,12 @@ async function recordCatalogChange(
 export class CatalogService {
   constructor(private readonly pool: Pool) {}
 
-  private async transact<T>(perform: (c: PoolClient) => Promise<T>): Promise<T> {
+  private async transact<T>(actor:CatalogPrincipal,perform: (c: PoolClient) => Promise<T>): Promise<T> {
     let c: PoolClient;
     try { c = await this.pool.connect(); } catch (error) { throw sanitized(error); }
     try {
       await c.query('BEGIN');
+      await lockCatalogStream(c,actor.storeId);
       const result = await perform(c);
       await c.query('COMMIT');
       return result;
@@ -122,7 +155,7 @@ export class CatalogService {
   async createCategory(actor: CatalogPrincipal, input: unknown): Promise<NameView> {
     assertCatalogRole(actor, true);
     const { name } = createCategorySchema.parse(input);
-    return this.transact(async (c) => {
+    return this.transact(actor,async (c) => {
       const { rows } = await c.query<NameRow>(
         'INSERT INTO categories (id,store_id,name) VALUES ($1,$2,$3) RETURNING id,store_id,name',
         [randomUUID(), actor.storeId, name],
@@ -138,7 +171,7 @@ export class CatalogService {
     assertCatalogRole(actor, true);
     uuidSchema.parse(id);
     const { name } = updateCategorySchema.parse(input);
-    return this.transact(async (c) => {
+    return this.transact(actor,async (c) => {
       const { rows } = await c.query<NameRow>(
         'UPDATE categories SET name=$3 WHERE store_id=$1 AND id=$2 RETURNING id,store_id,name',
         [actor.storeId, id, name],
@@ -153,7 +186,7 @@ export class CatalogService {
   async createBrand(actor: CatalogPrincipal, input: unknown): Promise<NameView> {
     assertCatalogRole(actor, true);
     const { name } = createBrandSchema.parse(input);
-    return this.transact(async (c) => {
+    return this.transact(actor,async (c) => {
       const { rows } = await c.query<NameRow>(
         'INSERT INTO brands (id,store_id,name) VALUES ($1,$2,$3) RETURNING id,store_id,name',
         [randomUUID(), actor.storeId, name],
@@ -168,7 +201,7 @@ export class CatalogService {
     assertCatalogRole(actor, true);
     uuidSchema.parse(id);
     const { name } = updateBrandSchema.parse(input);
-    return this.transact(async (c) => {
+    return this.transact(actor,async (c) => {
       const { rows } = await c.query<NameRow>(
         'UPDATE brands SET name=$3 WHERE store_id=$1 AND id=$2 RETURNING id,store_id,name',
         [actor.storeId, id, name],
@@ -183,7 +216,7 @@ export class CatalogService {
   async createProduct(actor: CatalogPrincipal, input: unknown): Promise<ProductView> {
     assertCatalogRole(actor, true);
     const { categoryId, brandId, name } = createProductSchema.parse(input);
-    return this.transact(async (c) => {
+    return this.transact(actor,async (c) => {
       // Store-scoped FK constraints also forbid cross-store category/brand references.
       const { rows } = await c.query<ProductRow>(
         'INSERT INTO products (id,store_id,category_id,brand_id,name) VALUES ($1,$2,$3,$4,$5) RETURNING id,store_id,category_id,brand_id,name,active',
@@ -199,7 +232,7 @@ export class CatalogService {
     assertCatalogRole(actor, true);
     uuidSchema.parse(id);
     const patch = updateProductSchema.parse(input);
-    return this.transact(async (c) => {
+    return this.transact(actor,async (c) => {
       const { rows } = await c.query<ProductRow>(
         'UPDATE products SET name=COALESCE($3::text,name), active=COALESCE($4::boolean,active) WHERE store_id=$1 AND id=$2 RETURNING id,store_id,category_id,brand_id,name,active',
         [actor.storeId, id, patch.name ?? null, patch.active ?? null],
@@ -214,7 +247,7 @@ export class CatalogService {
   async createVariant(actor: CatalogPrincipal, input: unknown): Promise<VariantView> {
     assertCatalogRole(actor, true);
     const { productId, sku, attributes, priceVnd } = createVariantSchema.parse(input);
-    return this.transact(async (c) => {
+    return this.transact(actor,async (c) => {
       const { rows } = await c.query<VariantRow>(
         `INSERT INTO product_variants
           (id,store_id,product_id,sku,attributes,attributes_key,price_vnd)
@@ -233,7 +266,7 @@ export class CatalogService {
     assertCatalogRole(actor, true);
     uuidSchema.parse(id);
     const patch = updateVariantSchema.parse(input);
-    return this.transact(async (c) => {
+    return this.transact(actor,async (c) => {
       // Optimistic revision check ensures two managers cannot silently overwrite
       // each other's price/attribute changes. SKU and product binding stay immutable.
       const { rows } = await c.query<VariantRow>(
