@@ -9,7 +9,7 @@ repo_connection: CONFIRMED — GitHub collaborator can manage branches/Issues/PR
 last_github_synced_at: MANUAL GITHUB REVIEW 2026-11-08
 current_milestone: M4 — internal PostgreSQL PUSH and idempotent offline sale reconciliation
 current_phase: POS-021 internal server-side sale sync, draft PR #40, owner Windows acceptance pending
-ci_status: POS-021 PostgreSQL code checkpoint 76a5628 [Foundation CI #42434326435](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42434326435) SUCCESS Linux/Windows/API/disposable PostgreSQL; strict POS-016 schema parity test added afterwards, latest PR HEAD CI pending verification
+ci_status: POS-021 full code checkpoint ca5ec609 [Foundation CI #42434713950](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42434713950) SUCCESS Linux/Windows Node24 (POS-016 Zod/hash parity 3/3 each), disposable PostgreSQL 16 POS-021 11/11 with ACK replay across fresh DB pool; [Docs CI #42434713907](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42434713907) SUCCESS. Latest docs-only HEAD must recheck CI.
 production_status: NOT DEPLOYED — no signed offline grant, real staff/device authorization, public sync HTTP route, desktop worker, paid checkout, Neon sale writes or production deployment
 
 ## Verified merged main
@@ -28,11 +28,11 @@ production_status: NOT DEPLOYED — no signed offline grant, real staff/device a
 - `apps/api/src/sync/routes.test.ts`, `apps/api/src/sync/sync.pg.test.ts`, `apps/api/tests/sync-parity.test.ts`. PG tests are strictly guarded for **disposable 127.0.0.1:5432/smartpos_ci only**, not Neon. Verify exact ACK replay after duplicate/lost response, 8 concurrent same deliveries, 2 distinct overlapping sales, negative stock conflict, price divergence, cross-store/forged device, user revocation, >2^53 VND, final receipt trigger failure and full transaction rollback.
 - Existing PostgreSQL v1 schema migrations/constraint guards and POS-014/015 regressions unaffected; API test scripts `test:sync`, `test:sync:pg`, `test:sync:parity`, CI Linux/Windows parity and PG integration added.
 - [POS-021 Windows acceptance](../docs/POS-021_SYNC_PUSH_ACCEPTANCE.md), README, API README and traceability updated.
-- **CI:** [Foundation #42434326435](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42434326435) **SUCCESS** on complete PostgreSQL transactional code revision `76a5628`, before standalone POS-016 parity test. First parity script .mjs couldn't be processed by TSX on Node24, migrated to standalone `.ts` outside API build root and fixed its fixture nesting. Recheck new latest-HEAD CI before claiming parity verified.
+- **CI:** [Foundation #42434326435](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42434326435) **SUCCESS** on complete PostgreSQL transactional code revision `76a5628`, before standalone POS-016 parity test. First standalone POS-016 parity script had a TSX runner/fixture error; both corrected. Verified [Foundation #42434713950](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42434713950) SUCCESS on all Linux/Windows/PostgreSQL jobs at code checkpoint `ca5ec609`. API sync unit default deny, v1 parity 3/3 on Linux AND Windows, disposable PostgreSQL 16 transaction/concurrency/rollback 11/11 (including fresh-pool ACK replay), POS-019/020 SQLite/Electron and API baseline regressions green. Docs [#42434713907](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42434713907) SUCCESS. Check final docs-only HEAD.
 
 ## Next
 
-1. Verify latest PR #40 HEAD Foundation Linux/Windows + real disposable PostgreSQL; Docs validation. Fix parity or any strict validations until all pass. Keep draft.
+1. POS-021 code checkpoint CI now fully PASS incl Linux/Windows parity and disposable PG 11/11. Verify final docs-only HEAD Foundation/Docs; keep PR #40 draft until owner Windows PASS.
 2. Windows owner: `pnpm install --frozen-lockfile`, `pnpm --filter @smartpos/api typecheck`, `build`, `test`, `test:sync`, `test:sync:parity`, `pnpm run check`. Optional `pnpm --filter @smartpos/api dev`, check `/v1/health` returns 200, `POST /v1/sync/push` returns **404**, even with forged headers.
 3. PG integration **ONLY** on GitHub disposable CI. Do not run `test:sync:pg` or migrations against Neon or real shop DB; test guard hardcodes local `smartpos_ci`.
 4. Owner Windows PASS and security/code review then manually merge PR #40 and close Issue #39. POS-022 retry worker, POS-023 pull, POS-024 conflict review and D-013 real grant verification remain pending. No public sync activation until real cryptographic auth.
