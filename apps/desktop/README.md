@@ -1,6 +1,6 @@
 # SmartPOS Desktop — Secure Electron shell + SQLite v1 (POS-013)
 
-**Status:** Development-only Electron demo with SQLite v1 and merged POS-017 cache/POS-018 cart/POS-019 MAIN-only atomic cash sale core. POS-020 merged a **sample watermarked internal receipt preview** and **MAIN-only persisted receipt read model**. POS-022 Draft PR #42 adds a separately unmounted **MAIN-only outbox retry worker** with injectable fake/test transport. No authenticated catalog sync, real paid checkout, staff authorization, genuine receipt issuance or production sale.
+**Status:** Development-only Electron demo with SQLite v1 and merged POS-017 cache/POS-018 cart/POS-019 MAIN-only atomic cash sale core. POS-020 merged a **sample watermarked internal receipt preview** and **MAIN-only persisted receipt read model**. POS-022 merged PR #42 a separately unmounted **MAIN-only outbox retry worker** with injectable fake/test transport. No authenticated catalog sync, real paid checkout, staff authorization, genuine receipt issuance or production sale.
 
 ## Run on Windows / macOS
 
@@ -105,6 +105,15 @@ pnpm --filter @smartpos/desktop test:outbox-boundary
 ```
 
 Read the [POS-022 Windows acceptance and D-013 boundary](../../docs/POS-022_OUTBOX_ACCEPTANCE.md).
+
+## POS-023 atomic catalog delta PULL (internal; NOT network active)
+
+`src/main/local-db/catalog-pull.ts`: uses POS-016 cursor/page contract validation and `BEGIN IMMEDIATE` to update server SKU/name/price/activation, inventory `server_qty/server_revision` and `sync_cursors` in a single transaction; failed pages roll back fully. Unsynced cash pending deltas remain protected; a stock delta linked to a locally ACKed sale can release only that already-applied sale's quantity on the same durable cursor transition. Financial sale/items/payment/outbox are never rewritten. The worker takes an injected test callback; no HTTP, renderer, preload/IPC, Neon or D-013 auth exists in the normal runtime. Schema stays SQLite v1 with nine tables. See [POS-023 Windows/CI acceptance](../../docs/POS-023_CATALOG_PULL_ACCEPTANCE.md), especially the conservative stock understatement when an ACK arrives **after** its delta page.
+
+```powershell
+pnpm --filter @smartpos/desktop test:catalog-pull
+pnpm --filter @smartpos/desktop test:catalog-pull:boundary
+```
 
 ## Scope / security boundaries
 
