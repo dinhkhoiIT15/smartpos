@@ -90,6 +90,20 @@ test('POS-021 PostgreSQL: transaction, idempotency, concurrency, conflict, rollb
   assert.equal(await qty(f,f.ids.phoneId),'4');
  });
 
+ await t.test('lost ACK after a new PostgreSQL pool/session replays the original durable receipt',async()=>{
+  const f=await seed(),e=sampleEvent(f.ids);
+  const original=(await push(f,e)).results[0];
+  const newPool=new pg.Pool({connectionString:dbUrl,max:2});
+  try{
+    const restarted=new SyncPushService(newPool);
+    const again=(await restarted.push(f.ctx,sampleBatch(f.ids,[e]))).results[0];
+    assert.deepEqual(again,original);
+    assert.equal(await count('sales',e.saleId,'id'),1);
+    assert.equal(await count('inventory_movements',e.saleId,'sale_id'),2);
+    assert.equal(await qty(f,f.ids.phoneId),'4');
+  }finally{await newPool.end();}
+ });
+
  await t.test('sale/event ID collision and changed hash return NEEDS_REVIEW, no double stock',async()=>{
   const f=await seed(),e=sampleEvent(f.ids);
   const ack=(await push(f,e)).results[0];
