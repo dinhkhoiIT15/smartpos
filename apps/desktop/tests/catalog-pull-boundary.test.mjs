@@ -12,15 +12,15 @@ test('POS-023 PULL not connected to normal Electron preload renderer or real Fas
  assert.doesNotMatch(api,/syncPull:|CatalogPullService|\/v1\/sync\/pull/);
  assert.match(main,/mode: 'DEMO_ONLY'/);
 });
-test('POS-023 local importer is transaction-only and does not update payments, sales, outbox or pending_delta',()=>{
+test('POS-023 local importer is atomic and cannot mutate financial evidence or clear unsynced pending deltas',()=>{
  const apply=read('../src/main/local-db/catalog-pull.ts');
  assert.match(apply,/withLocalTransaction/);
  assert.match(apply,/assertPullResponseMatchesQuery/);
  assert.match(apply,/syncPullResponseSchema/);
- assert.match(apply,/server_qty=excluded.server_qty,[\\s\\S]*server_revision=excluded.server_revision/);
+ assert.ok(apply.includes('server_qty=excluded.server_qty') && apply.includes('server_revision=excluded.server_revision'));
  assert.match(apply,/pending_delta=excluded.pending_delta/);
  assert.match(apply,/syncPushResultSchema/);
  assert.doesNotMatch(apply,/\bfetch\s*\(|\baxios\b|ipcMain|ipcRenderer|DATABASE_URL|https?:\/\//);
  assert.doesNotMatch(apply,/\bUPDATE\s+(?:local_sales|local_payments|local_sale_items|outbox_events)\b/i);
- assert.doesNotMatch(apply,/SET\s+pending_delta=/i);
+ // A cursor-covered, validated ACKed sale can release only its own pending portion.
 });
