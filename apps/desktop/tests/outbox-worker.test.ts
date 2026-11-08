@@ -13,7 +13,8 @@ import {
   retryOutboxNow, type OutboxTransport,
 } from '../src/main/local-db/outbox-worker.ts';
 import {
-  syncPushRequestSchema, syncPushResponseSchema, type SyncPushRequest,
+  syncPushRequestSchema, syncPushResponseSchema, computeSyncPayloadHash,
+  syncSaleCompletedEventSchema, type SyncPushRequest,
 } from '../../../packages/contracts/src/sync-v1.ts';
 
 const uuid=()=>randomUUID();
@@ -274,6 +275,45 @@ test('POS-022: mismatched/missing/forged ACK never marks SYNCED even if HTTP tra
      assert.equal(x.pending(x.ids.phoneId),-1n);
    });
  }
+});
+
+test('POS-022: rehashed malicious outbox event cannot reprice immutable cash evidence',async t=>{
+ const x=fixture(t),sale=x.commit(),row=x.outbox(sale.eventId);
+ const original=JSON.parse(row.payload_json) as Record<string,unknown> & {
+   sale:{status:'POSTED';totalVnd:string;
+     items:Array<{itemId:string;variantId:string;unitPriceVnd:string;lineTotalVnd:string}>;
+     payment:{method:'CASH';dueVnd:string;tenderedVnd:string;changeVnd:string}};
+ };
+ const forged={
+   ...original,
+   sale:{
+     ...original.sale,
+     totalVnd:'9350000',
+     items:original.sale.items.map((item,i)=>i===0?{
+       ...item,unitPriceVnd:'9000000',lineTotalVnd:'9000000',
+     }:item),
+     payment:{
+       ...original.sale.payment,dueVnd:'9350000',changeVnd:'150000',
+     },
+   },
+ };
+ const {payloadHash:_,...body}=forged;
+ const hash=computeSyncPayloadHash(body as Parameters<typeof computeSyncPayloadHash>[0]);
+ const event={...body,payloadHash:hash};
+ assert.doesNotThrow(()=>syncSaleCompletedEventSchema.parse(event));
+ // File corruption simulation ONLY on disposable SQLite fixture: no
+ // financial sale/item/payment record is changed, just a rehashed outbox.
+ x.db.exec('DROP TRIGGER outbox_payload_immutable');
+ x.db.prepare('UPDATE outbox_events SET payload_json=?,payload_hash=? WHERE event_id=?')
+   .run(JSON.stringify(event),hash,sale.eventId);
+ let sent=false;
+ const outcome=await x.worker(async req=>{sent=true;return x.ack(req);}).runOnce();
+ assert.equal(outcome.kind,'NEEDS_REVIEW');
+ assert.equal(outcome.resultCode,'INVALID_EVENT');
+ assert.equal(sent,false);
+ assert.equal(x.outbox(sale.eventId).state,'NEEDS_REVIEW');
+ assert.equal(x.saleState(sale.saleId),'NEEDS_REVIEW');
+ assert.equal(x.pending(x.ids.phoneId),-1n);
 });
 
 test('POS-022: mutated stored event hash quarantined before any transport; no fake ACK',async t=>{
