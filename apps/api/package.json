@@ -12,12 +12,14 @@
     "build": "tsc --project tsconfig.build.json",
     "start": "node dist/main.js",
     "typecheck": "tsc --project tsconfig.json --noEmit",
-    "test": "pnpm run build && node --test dist/server.test.js dist/db.test.js dist/db-diagnostics.test.js dist/catalog/schemas.test.js dist/catalog/routes.test.js dist/inventory/schemas.test.js dist/inventory/routes.test.js",
+    "test": "pnpm run build && node --test dist/server.test.js dist/db.test.js dist/db-diagnostics.test.js dist/catalog/schemas.test.js dist/catalog/routes.test.js dist/inventory/schemas.test.js dist/inventory/routes.test.js dist/sync/routes.test.js",
     "db:check": "tsx src/db-check.ts",
     "test:catalog": "pnpm run build && node --test dist/catalog/schemas.test.js dist/catalog/routes.test.js",
     "test:catalog:pg": "tsx --test src/catalog/catalog.pg.test.ts",
     "test:inventory": "pnpm run build && node --test dist/inventory/schemas.test.js dist/inventory/routes.test.js",
-    "test:inventory:pg": "tsx --test src/inventory/inventory.pg.test.ts"
+    "test:inventory:pg": "tsx --test src/inventory/inventory.pg.test.ts",
+    "test:sync": "pnpm run build && node --test dist/sync/routes.test.js",
+    "test:sync:pg": "tsx --test src/sync/sync.pg.test.ts"
   },
   "dependencies": {
     "fastify": "5.12.8",
