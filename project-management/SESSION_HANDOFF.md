@@ -16,8 +16,8 @@
 
 ## CI
 
-- Final transactional code checkpoint `76a5628` [Foundation #42434326435](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42434326435) **SUCCESS** with Linux/API, Windows Node24 desktop tests, disposable PostgreSQL 16 including POS-021 sync tests.
-- Later POS-016 exact parity test added: initial `.mjs` TSX runner failed on Node24, converted to `apps/api/tests/sync-parity.test.ts` outside NodeNext build root; fixed missing event closing brace in a negative-case fixture. Latest code/Docs CI MUST be verified at final PR HEAD before owner acceptance; no false green claim.
+- POS-021 full code checkpoint `ca5ec6096428882681649d007283e7af7335ac57` **verified SUCCESS**: [Foundation CI #42434713950](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42434713950) Linux/API, Windows Node24, disposable PostgreSQL 16; [Docs CI #42434713907](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42434713907) SUCCESS. Actual POS-016 Zod/hash parity **3/3 on Linux and Windows**; PostgreSQL POS-021 **11/11** including 8 concurrent duplicates, late ACK insert fault rollback, two distinct negative-stock sales and **fresh PostgreSQL pool restart/lost ACK exact replay**. API 39/39 unit suite, SQLite and existing PostgreSQL migrations/catalog/inventory checks also PASS.
+- Earlier parity test `.mjs` TSX file and a missing fixture brace failed before correction; both fixed in the green code checkpoint. Recheck GitHub CI at latest docs-only PR HEAD. Owner Windows POS-021 acceptance remains pending.
 
 ## Owner Windows safe commands
 
