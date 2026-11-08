@@ -1,50 +1,49 @@
-# Session Handoff — SmartPOS POS-022
+# Session Handoff — POS-023 SmartPOS
 
-## Verified baseline / current PR
+## Verified main and current branch
 
-- GitHub `main` verified at `b2f1835280ca536b18d1fae7bf4b1318e6d3a1ab`, owner Windows-accepted and merged [POS-021 PR #40](https://github.com/dinhkhoiIT15/smartpos/pull/40); Issue #39 closed. Earlier POS-020 #38 and previous foundation merged.
-- [POS-022 Issue #41](https://github.com/dinhkhoiIT15/smartpos/issues/41) / [Draft PR #42](https://github.com/dinhkhoiIT15/smartpos/pull/42) from `feature/POS-022-desktop-outbox-retry` against above main. **NOT merged; owner POS-022 Windows PASS pending.** Always distinguish `verified_commit` for merged main vs PR feature HEAD.
+- User confirmed POS-022 Windows PASS and merged. GitHub verified [PR #42](https://github.com/dinhkhoiIT15/smartpos/pull/42) merged into `main` at `a01fcf5fec9595d97f155f62c7d82ee7916caeb5`; Issue #41 closed, D-013 unsigned-grant blocker remains.
+- Current [Issue #43](https://github.com/dinhkhoiIT15/smartpos/issues/43) and [Draft PR #44](https://github.com/dinhkhoiIT15/smartpos/pull/44), branch `feature/POS-023-catalog-delta-pull`, based on verified main. **POS-023 NOT merged / owner Windows PASS pending**.
 
-## Implementation / trust boundary
+## Implemented / security
 
-- New `apps/desktop/src/main/local-db/outbox-worker.ts`: Electron MAIN-only, **no live HTTP or automatic worker start**, synthetic `OutboxTransport` injected in tests. Claims one oldest eligible PENDING/RETRY in SQLite with `BEGIN IMMEDIATE`, sets SYNCING/increments attempts before any async call; `runOnce` single-flight, explicit opt-in timer `start/stop`, startup `recoverOrphanedOutbox` resets SYNCING -> RETRY and manual `retryOutboxNow` only affects RETRY.
-- Reuses exact production-shared POS-016 `syncSaleCompletedEventSchema`, `syncPushRequestSchema` and `assertPushResponseMatchesRequest`. Before sending, MAIN-only POS-020 `loadCommittedLocalReceipt` verifies stored IMMUTABLE sale/items/CASH/outbox evidence (including canonical hash), not just event self-validation; added a forged-but-rehashed payload test to ensure a valid signatureless hash cannot rewrite paid local history.
-- Only exact authenticated-IN-THE-FUTURE matching v1 `ACKED` outcome can make `outbox.state=SYNCED`. One SQLite transaction saves event-specific exact result in `ack_json` and `local_sales.sync_status`; unexpected response -> NEEDS_REVIEW and not SYNCED. Cloud ACK with shortage/stale-price conflict -> outbox SYNCED, local sale NEEDS_REVIEW, manager review still needed. Transient failure/RETRY -> retry via capped exponential backoff+jitter, obey server retry-after; never delete original event, payment or stock pending_delta. SQLite v1 nine-table schema unchanged.
-- `apps/desktop/tests/outbox-worker.test.ts` disposable SQLite file-backed Node24 tests and `apps/desktop/tests/outbox-boundary.test.mjs` verify no normal Electron startup/IPC/preload/renderer/HTTP network route. Uses shared `@smartpos/contracts` workspace dependency/lock link (no new remote lib). CI Linux/Windows tests include all POS-019/020 baseline; PostgreSQL test stays disposable and unchanged.
-- Normal Electron remains `DEMO_ONLY`, real `commitLocalCashSale` and worker are **not accessible to UI/IPC**, normal Fastify `POST /v1/sync/push` still HTTP 404; no actual internet/Neon. D-013 must establish signed grant, OS device key, cashier shift/login, clock and revocation before any real network transport/auth injection.
+- `apps/api/src/sync/pull-service.ts`: store-scoped catalog_change_log high-water pagination, 64-bit decimal seq cursor, max100, same transaction-level advisory lock all new catalog/inventory/PUSH stream writers use to avoid global identity/commit reorder. Reads active device/cashier DB membership but **not real D-013 signed grant**. Product rename/deactivation fans out SKU updates; variant events materialize name; manual and offline-sale inventory server balance snapshots appended in original PG transaction with event/sale linkage. Legacy variant log name fallback for old rows; missing legacy stock deltas require separately verified initial bootstrap.
+- `apps/api/src/sync/pull-routes.ts` and `src/server.ts` opt-in GET `/v1/sync/pull` with injected synthetic principal in Fastify.inject only. `src/main.ts` leaves it HTTP404, also PUSH404. No real signed grant, login, Neon write, or public live transport.
+- `apps/desktop/src/main/local-db/catalog-pull.ts`: opt-in MAIN-only fake transport, POS-016 Zod page validation, transactional SQLite v1 apply variant/stock/cursor with rollback, cross-store/overflow/revision validation. Protects real sales/items/payment/outbox, preserves all unsynced pending_delta. Release only ACKed local sale portion when sale-linked server stock seq is covered and cursor advances. Late ACK after stock page causes **conservative stock understatement** pending a durable rebase marker or trusted resnapshot in later approved scope; do NOT falsely claim production-ready precise stock.
+- Tests: `apps/desktop/tests/catalog-pull.test.ts` file-backed Linux/Windows; `catalog-pull-boundary.test.mjs` no runtime/IPC/HTTP; `apps/api/src/sync/pull-routes.test.ts` default 404/test principal; `pull.pg.test.ts` real disposable PostgreSQL 16 cursor, gap isolation, reader/writer locking, product rename, manual stock and POS-021 source delta replay.
+- No new migration in PG/SQLite. SQLite remains v1 with 9 tables. No new external npm packages, no Neon/test-prodn data.
 
-## CI evidence / status
+## Verified CI checkpoints
 
-- Early branch caught TypeScript narrowing error accessing `retryAfterSeconds`; fixed using discriminated `result.status==='RETRY'` before reading. POS-022 code checkpoint `1ebda76565bf0d303e8fc11a68ecaf6ce1f1c3e2` [Foundation #42437612525](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42437612525) **SUCCESS all Linux/Windows Node24/PostgreSQL 16**: POS-022 file-backed **17/17**, static boundary **2/2** both Linux and Windows, original SQLite 7/6/16/1/8/2, API 39/39 and POS-021 real PG 11/11. [Docs #42437612520](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42437612520) SUCCESS.
-- After checkpoint, added independent POS-020 persisted financial read-model verification in dispatch path and a forged-but-**correctly rehashed** malicious payment test (ensures outbox JSON cannot contradict immutable sale). **Verified source checkpoint `047dd17a4c538035034ee6b0eb1916f7e59322b3`**: [Foundation #42437798730](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42437798730) **SUCCESS** all Linux, Windows Node24, disposable PostgreSQL jobs; POS-022 **18/18** file-backed tests + **2/2** no-runtime-transport security boundary **on both Linux and Windows**; existing PG sync 11/11 and Electron/API/SQLite baseline green. [Docs #42437798816](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42437798816) **SUCCESS**. Recheck final docs-only HEAD CI before owner review.
+- Early foundation CI failed strict TS, old POS-014 catalog audit-count expectations, test null-prototype SQLite object comparison and an overescaped static regex. All addressed, code checkpoint `fe63a34d40a924b91669fcda2667fecfeadf1e83` [Foundation #42439380658](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42439380658) **SUCCESS** all Linux/API, Windows Node24, disposable PostgreSQL 16; [Docs #42439380695](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42439380695) **SUCCESS**.
+- Later README, traceability, status and handoff updates are docs-only; MUST recheck final PR SHA GitHub Foundation and Docs before owner review. PR stays Draft until owner Windows PASS.
 
-## Owner Windows safe commands
+## Owner Windows (safe, NO Neon)
 
 ```powershell
 git status --short
 git fetch origin
-git switch feature/POS-022-desktop-outbox-retry
-git pull --ff-only origin feature/POS-022-desktop-outbox-retry
+git switch feature/POS-023-catalog-delta-pull
+git pull --ff-only origin feature/POS-023-catalog-delta-pull
 node --version
 pnpm --version
 pnpm install --frozen-lockfile
-
 pnpm --filter @smartpos/desktop typecheck
-pnpm --filter @smartpos/desktop test:local-db
+pnpm --filter @smartpos/desktop test:catalog-pull
+pnpm --filter @smartpos/desktop test:catalog-pull:boundary
 pnpm --filter @smartpos/desktop test:catalog-cache
 pnpm --filter @smartpos/desktop test:offline-sale
-pnpm --filter @smartpos/desktop test:offline-sale:wire
-pnpm --filter @smartpos/desktop test:receipt-db
-pnpm --filter @smartpos/desktop test:receipt-boundary
 pnpm --filter @smartpos/desktop test:outbox-worker
-pnpm --filter @smartpos/desktop test:outbox-boundary
+pnpm --filter @smartpos/desktop test:receipt-db
 pnpm --filter @smartpos/desktop security:check
 pnpm --filter @smartpos/desktop build
+pnpm --filter @smartpos/api typecheck
+pnpm --filter @smartpos/api test:pull
 pnpm run check
 ```
 
-All new tests run **only disposable local SQLite files and fake injected ACK callbacks**, no Neon/HTTP/service needed. Expected zero fails Linux/Windows. `pnpm --filter @smartpos/desktop dev` optional Electron demo IPC/SQLite v1 smoke, not worker activation. [Full guide](../docs/POS-022_OUTBOX_ACCEPTANCE.md).
+Expected Node24/pnpm10.20.0, zero test failures. Actual PG `test:pull:pg` only disposable CI `127.0.0.1:5432/smartpos_ci` (guard rejects Neon). Optional `pnpm --filter @smartpos/desktop dev` still DEMO_ONLY/SQLite v1. [Detailed scenarios](../docs/POS-023_CATALOG_PULL_ACCEPTANCE.md).
 
-## Next / blockers
+## Next
 
-Do NOT merge PR #42 until user Windows PASS. Once merged, close #41. Next POS-023 server catalog delta pull + POS-024 conflict workflow, D-013 real authorization gates all live sync/checkout. No new public API, token/secret in renderer, Neon sale writes, or true cashier sale in this branch.
+Verify final PR #44 CI and status, note verified HEAD + Windows acceptance. Do NOT merge; owner must confirm PASS and manually merge. Afterwards close #43, continue POS-024 conflict review, then address D-013 signed auth and late-ACK stock rebase marker before commercial rollout.
