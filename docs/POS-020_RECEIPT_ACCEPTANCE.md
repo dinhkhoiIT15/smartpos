@@ -9,7 +9,7 @@
 - `apps/desktop/src/renderer/src/internal-receipt.tsx`, `app.tsx`, `styles.css`: nút **Xem / in phiếu MẪU** cho giỏ hàng demo POS-018. Nút chỉ bật khi có hàng và tiền mẫu nhập hợp lệ, đủ tiền. Modal có danh sách SKU, SL, attributes, giá, chiết khấu, tổng phải thu, tiền khách đưa, tiền thừa dự kiến; thông tin thu ngân MẪU, `KHÔNG CÓ MÃ ĐƠN`, thời gian VN và nhãn **CHƯA LƯU • CHƯA THU TIỀN**.
 - Chữ **MẪU — KHÔNG CÓ GIAO DỊCH** lặp lại phía trên/dưới và trong bản in ngay cả khi tắt in nền; `PHIẾU NỘI BỘ — KHÔNG PHẢI HÓA ĐƠN THUẾ`. Nút **In phiếu MẪU** chỉ gọi `window.print()` mở giao diện in hệ điều hành; không tích hợp máy in chuyên dụng (ngoài MVP). Đóng bằng nút hoặc Escape. CSS in mặc định gọn khoảng 90mm, hỗ trợ trang A4, không cam kết tương thích giấy cuộn/máy in nhiệt chưa được kiểm thử.
 - Unit `packages/domain/src/receipt.test.ts`: 7 ca, kiểm tra nước rút BR-002, giờ VN qua ngày, tiền cực lớn, chiết khấu, thiếu tiền/sai tổng/VND lỗi, cấm nhãn hóa đơn thuế và watermark demo.
-- `apps/desktop/tests/receipt-db.test.ts`: 8 ca với database SQLite file thật, temp OS, reopen/immutability, thay đổi catalog không đổi chứng cứ, sai store/UUID, thiếu payment/outbox, hash hoặc dòng bị chỉnh, sai thanh toán, >2^53 VND và các trạng thái local. Không dùng database `userData`, không động đến Neon.
+- `apps/desktop/tests/receipt-db.test.ts`: 8 ca với database SQLite file thật, temp OS, reopen/immutability, thay đổi catalog không đổi chứng cứ, sai store/UUID, thiếu payment/outbox, hash hoặc dòng bị chỉnh, sai thanh toán, >2^53 VND và các trạng thái local và trường hợp không có ACK khi đánh dấu SYNCED. `receipt-boundary.test.mjs` bổ sung 2 test tĩnh bảo đảm không có IPC cho phiếu thật và watermark còn nguyên trong CSS in. Không dùng database `userData`, không động đến Neon.
 - Không thay migration SQLite v1 (9 bảng), Fastify/PostgreSQL, chính sách D-010/BR-011/BR-012; không có dependency ngoài mới.
 
 ## Phân biệt phiếu mẫu và phiếu từ sale đã commit
@@ -39,6 +39,7 @@ pnpm --filter @smartpos/desktop test:catalog-cache
 pnpm --filter @smartpos/desktop test:offline-sale
 pnpm --filter @smartpos/desktop test:offline-sale:wire
 pnpm --filter @smartpos/desktop test:receipt-db
+pnpm --filter @smartpos/desktop test:receipt-boundary
 pnpm --filter @smartpos/desktop security:check
 pnpm --filter @smartpos/desktop build
 pnpm run check
@@ -46,7 +47,7 @@ pnpm run check
 pnpm --filter @smartpos/desktop dev
 ```
 
-**Mong đợi:** Node 24.x, pnpm 10.20.0; `test:local-db` **7/7**, `test:catalog-cache` **6/6**, `test:offline-sale` **16/16**, `test:offline-sale:wire` **1/1**, `test:receipt-db` **8/8**; domain tests gồm 7 test phiếu mới (cộng các test cũ), toàn bộ typecheck, build, security và `pnpm run check` PASS. GitHub CI Linux/Windows + disposable PostgreSQL 16 + docs cần green tại commit PR cuối. Nếu khác phải ghi lại kết quả thật.
+**Mong đợi:** Node 24.x, pnpm 10.20.0; `test:local-db` **7/7**, `test:catalog-cache` **6/6**, `test:offline-sale` **16/16**, `test:offline-sale:wire` **1/1**, `test:receipt-db` **8/8**, `test:receipt-boundary` **2/2**; domain tests gồm 7 test phiếu mới (cộng các test cũ), toàn bộ typecheck, build, security và `pnpm run check` PASS. GitHub CI Linux/Windows + disposable PostgreSQL 16 + docs cần green tại commit PR cuối. Nếu khác phải ghi lại kết quả thật.
 
 ### Kiểm thử giao diện & in
 
