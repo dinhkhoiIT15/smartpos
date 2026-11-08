@@ -192,6 +192,7 @@ test('POS-014 catalog CRUD, scopes, SKU uniqueness, audit and revision use dispo
       expectedRevision: '0', priceVnd: '999',
     }), validError('STALE_REVISION'));
     const before = await logCount(manager.storeId);
+    const auditBefore = await auditCount(manager.storeId);
     const competing = await Promise.allSettled([
       catalog.updateVariant(manager, variantId, { expectedRevision: '1', priceVnd: '9000000' }),
       catalog.updateVariant(manager, variantId, { expectedRevision: '1', priceVnd: '8000000' }),
@@ -202,7 +203,7 @@ test('POS-014 catalog CRUD, scopes, SKU uniqueness, audit and revision use dispo
     assert.ok(rejection && rejection.status === 'rejected' && validError('STALE_REVISION')(rejection.reason));
     assert.equal((await catalog.getVariant(manager, variantId)).revision, '2');
     assert.equal(await logCount(manager.storeId), before + 1);
-    assert.equal(await auditCount(manager.storeId), before + 1);
+    assert.equal(await auditCount(manager.storeId), auditBefore + 1);
     const inactive = await catalog.updateVariant(manager, variantId, {
       expectedRevision: '2', active: false,
     });
@@ -217,6 +218,7 @@ test('POS-014 catalog CRUD, scopes, SKU uniqueness, audit and revision use dispo
 
   await t.test('failure AFTER insert rolls back catalog row and delta log together', async () => {
     const before = await logCount(manager.storeId);
+    const auditBefore = await auditCount(manager.storeId);
     const countBefore = await pool.query<{ count: string }>(
       'SELECT count(*)::text AS count FROM categories WHERE store_id=$1',
       [manager.storeId],
@@ -229,7 +231,7 @@ test('POS-014 catalog CRUD, scopes, SKU uniqueness, audit and revision use dispo
       validError('NOT_FOUND'),
     );
     assert.equal(await logCount(manager.storeId), before);
-    assert.equal(await auditCount(manager.storeId), before);
+    assert.equal(await auditCount(manager.storeId), auditBefore);
     const rows = await pool.query<{ count: string }>(
       "SELECT count(*)::text AS count FROM categories WHERE store_id=$1",
       [manager.storeId],
