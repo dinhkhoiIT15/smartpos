@@ -28,7 +28,7 @@ test('POS-023 opt-in pull GET uses only injected trusted context; invalid query 
  }});
  t.after(async()=>{await app.close();});
  const get=(url:string,headers?:Record<string,string>)=>app.inject({
-  method:'GET',url,headers,
+  method:'GET',url,...(headers?{headers}:{}),
  });
  assert.equal((await get('/v1/sync/pull?cursor=0&limit=10',
    {'x-role':'ADMIN','x-device-id':actor.deviceId})).statusCode,401);
