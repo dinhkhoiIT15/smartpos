@@ -30,7 +30,7 @@ test('POS-021 and shared contract reject bad hash, totals, duplicate batch, unkn
   {...request,events:[{...event,payloadHash:'a'.repeat(64)}]},
   {...request,events:[{...event,sale:{...event.sale,totalVnd:'1'}}]},
   {...request,events:[{...event,sale:{...event.sale,
-    payment:{...event.sale.payment,tenderedVnd:'9000000'}}]},
+    payment:{...event.sale.payment,tenderedVnd:'9000000'}}}]},
   {...request,events:[{...event,sale:{...event.sale,items:[]}}]},
   {...request,events:[{...event,sale:{...event.sale,
     items:[event.sale.items[0],event.sale.items[0]]}}]},
