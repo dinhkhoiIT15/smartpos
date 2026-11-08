@@ -1,6 +1,6 @@
-# SmartPOS API — Fastify, catalog and POS-015 inventory foundations
+# SmartPOS API — Fastify, catalog/inventory and POS-021 internal sync PUSH
 
-**Status:** POS-008 health, POS-009 Neon development read-only probe, POS-014 catalog and POS-015 inventory services **merged and owner accepted**; POS-012 PostgreSQL 17-table schema was applied only to **Neon development** by owner. [POS-016 versioned sync wire PR #30](https://github.com/dinhkhoiIT15/smartpos/pull/30) defines **contracts only**. Catalog/inventory mutation routes and all sync endpoints remain **disabled** in normal Fastify startup pending real authenticated staff/device sessions. No deployed stock/catalog writes, live cash checkout or cloud sync.
+**Status:** POS-008 health, POS-009 Neon development read-only probe, POS-014 catalog and POS-015 inventory services **merged and owner accepted**; POS-012 PostgreSQL 17-table schema was applied only to **Neon development** by owner. [POS-016 versioned sync wire PR #30](https://github.com/dinhkhoiIT15/smartpos/pull/30) defines **contracts only**. Catalog/inventory mutation routes and all sync endpoints remain **disabled** in normal Fastify startup pending real authenticated staff/device sessions. POS-021 adds an internal PostgreSQL transaction service and optional synthetic test-only Fastify PUSH adapter; **normal network startup still has no sync routes**, no real signed grant, no deployed stock/catalog/sale writes, live cash checkout or cloud sync.
 
 ## Requirements / run health API
 
@@ -80,6 +80,20 @@ pnpm --filter @smartpos/contracts test
 ```
 
 No Postgres/Neon environment variable, migration or live transaction data is required for POS-016 contract acceptance.
+
+## POS-021 server-only idempotent offline cash sale PUSH — not a live endpoint
+
+`src/sync/schema.ts` strictly validates v1 `SALE_COMPLETED` request limits, signed-int64 VND cash totals and canonical hash; `tests/sync-parity.test.ts` compares it with actual POS-016 contract/hash. `src/sync/service.ts` writes immutable sale/items/CASH payment, stock movement/balance, reconciliation conflicts and persisted exact ACK `sync_receipts` atomically with per-store advisory serialization. When an already-paid offline sale produces server shortage, negative stock is flagged for manager review, never an automatic cancellation. Exact retries return the prior ACK without double-debit.
+
+`src/sync/routes.ts` is an **opt-in Fastify inject adapter**, not registered in `src/main.ts` until **D-013 verified signed offline grant and device/cashier/shift authorization** is implemented. No `x-role` or JSON `offlineGrantId` is accepted as evidence. Normal `POST /v1/sync/push` is HTTP 404, not a transaction. Real sync is not deployed.
+
+```powershell
+pnpm --filter @smartpos/api typecheck
+pnpm --filter @smartpos/api test:sync
+pnpm --filter @smartpos/api test:sync:parity
+```
+
+GitHub CI additionally runs `pnpm --filter @smartpos/api test:sync:pg` **only on disposable PostgreSQL 16** after migration v1, for concurrent duplicate/lost ACK, signed negative-stock conflict, stale pricing and late-receipt injected rollback. The test strictly refuses any database except `127.0.0.1:5432/smartpos_ci`; **never point it at Neon**. See [POS-021 full Windows/CI acceptance](../../docs/POS-021_SYNC_PUSH_ACCEPTANCE.md).
 
 ## Build and optional Neon diagnostic
 
