@@ -233,9 +233,8 @@ export class OutboxRetryWorker {
       commitOutcome(this.db,claim,'NEEDS_REVIEW','NEEDS_REVIEW',null,null);
       return {kind:'NEEDS_REVIEW',eventId:claim.eventId,resultCode:'INVALID_ACK'};
     }
+    if(result.status==='RETRY')return this.retry(claim,result.retryAfterSeconds);
     const classified=classifyAck(result);
-    if(classified.state==='RETRY')
-      return this.retry(claim,result.retryAfterSeconds);
     commitOutcome(this.db,claim,classified.state,classified.saleState,
       JSON.stringify(result),null);
     return {kind:classified.state==='SYNCED'?'ACKED':'NEEDS_REVIEW',
