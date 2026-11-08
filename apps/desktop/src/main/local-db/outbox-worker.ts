@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import {
   assertPushResponseMatchesRequest, syncSaleCompletedEventSchema,
-  syncPushRequestSchema, type SyncPushRequest, type SyncPushResult,
+  syncPushRequestSchema, type SyncPushRequest, type SyncPushResponse,
 } from '@smartpos/contracts';
 import { withLocalTransaction } from './index.ts';
 
@@ -174,7 +174,7 @@ function commitOutcome(
 }
 
 /** Outcome is sourced ONLY from strict POS-016 matching request/response. */
-function classifyAck(result:SyncPushResult):{
+function classifyAck(result:SyncPushResponse['results'][number]):{
   state:'SYNCED'|'RETRY'|'NEEDS_REVIEW';
   saleState:'SYNCED'|'PENDING_SYNC'|'NEEDS_REVIEW';
 } {
@@ -206,7 +206,8 @@ export class OutboxRetryWorker {
     if(this.inflight)return this.inflight;
     const running=this.dispatch();
     this.inflight=running;
-    void running.finally(()=>{if(this.inflight===running)this.inflight=null;});
+    void running.then(()=>{if(this.inflight===running)this.inflight=null;},
+      ()=>{if(this.inflight===running)this.inflight=null;});
     return running;
   }
 
@@ -222,7 +223,7 @@ export class OutboxRetryWorker {
     let reply:unknown;
     try{reply=await this.options.transport(request);}
     catch{return this.retry(claim);}
-    let result:SyncPushResult;
+    let result:SyncPushResponse['results'][number];
     try{
       const verified=assertPushResponseMatchesRequest(request,reply);
       result=verified.results[0]!;
