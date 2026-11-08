@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { Pool, PoolClient, QueryResultRow } from 'pg';
 import { z } from 'zod';
 import type { CatalogPrincipal } from '../catalog/service.js';
+import { lockCatalogStream } from '../sync/pull-service.js';
 import {
   adjustInventorySchema, inventoryHistoryQuerySchema, MAX_QTY,
 } from './schemas.js';
@@ -108,11 +109,12 @@ async function getBalanceRow(
 export class InventoryService {
   constructor(private readonly pool: Pool) {}
 
-  private async transaction<T>(work: (db: PoolClient) => Promise<T>): Promise<T> {
+  private async transaction<T>(actor:InventoryPrincipal,work: (db: PoolClient) => Promise<T>): Promise<T> {
     let db: PoolClient;
     try { db = await this.pool.connect(); } catch (error) { throw safePg(error); }
     try {
       await db.query('BEGIN');
+      await lockCatalogStream(db,actor.storeId);
       const result = await work(db);
       await db.query('COMMIT');
       return result;
@@ -168,7 +170,7 @@ export class InventoryService {
   async adjust(actor: InventoryPrincipal, input: unknown): Promise<InventoryAdjustment> {
     assertInventoryPrincipal(actor, true);
     const data = adjustInventorySchema.parse(input);
-    return this.transaction(async (db) => {
+    return this.transaction(actor,async (db) => {
       await checkActiveMembership(db, actor, true);
 
       // First check for an already committed event: a retry after deactivation
@@ -254,6 +256,15 @@ export class InventoryService {
             variantId: data.variantId, qtyAfter: updated.rows[0].qty,
             revisionAfter: updated.rows[0].revision })],
       );
+      // Incremental stock snapshot is an append-only event in the SAME
+      // transaction as balance+movement+audit. Replays don't add a delta.
+      await db.query(`
+        INSERT INTO catalog_change_log(store_id,entity_type,entity_id,op,payload)
+        VALUES($1,'inventory_balance',$2,'UPSERT',$3::jsonb)`,
+        [actor.storeId,data.variantId,JSON.stringify({
+          storeId:actor.storeId,variantId:data.variantId,
+          qty:updated.rows[0].qty,revision:updated.rows[0].revision,
+        })]);
       return { status: 'APPLIED', movementId: data.movementId,
         balance: asBalance(actor, data.variantId, updated.rows[0]) };
     });

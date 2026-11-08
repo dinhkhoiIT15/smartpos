@@ -45,6 +45,10 @@ jobs:
         run: |
           pnpm --filter @smartpos/desktop test:outbox-worker
           pnpm --filter @smartpos/desktop test:outbox-boundary
+      - name: POS-023 MAIN-only atomic SQLite catalog pull and security tests
+        run: |
+          pnpm --filter @smartpos/desktop test:catalog-pull
+          pnpm --filter @smartpos/desktop test:catalog-pull:boundary
       - name: Build and test Fastify API + POS-016 to POS-021 exact schema/hash parity
         run: |
           pnpm --filter @smartpos/api build
@@ -99,6 +103,8 @@ jobs:
         run: pnpm --filter @smartpos/api test:inventory:pg
       - name: POS-021 PostgreSQL cash sale PUSH idempotency, lost ACK and negative-stock reconciliation
         run: pnpm --filter @smartpos/api test:sync:pg
+      - name: POS-023 PostgreSQL catalog delta cursor + stock and concurrent writer integration
+        run: pnpm --filter @smartpos/api test:pull:pg
 
 # Database tests run ONLY against disposable CI PostgreSQL; Neon is never contacted.
 
@@ -131,5 +137,7 @@ jobs:
           pnpm --filter @smartpos/desktop test:receipt-boundary
           pnpm --filter @smartpos/desktop test:outbox-worker
           pnpm --filter @smartpos/desktop test:outbox-boundary
+          pnpm --filter @smartpos/desktop test:catalog-pull
+          pnpm --filter @smartpos/desktop test:catalog-pull:boundary
       - name: POS-021 strict POS-016 contract and hash parity on Windows Node24
         run: pnpm --filter @smartpos/api test:sync:parity

@@ -1,6 +1,6 @@
 # SmartPOS Retail — Desktop + API Foundation
 
-**Status:** M4 POS-022 INTERNAL Desktop SQLite recoverable outbox retry worker development. POS-021 [PR #40](https://github.com/dinhkhoiIT15/smartpos/pull/40) was owner Windows PASS + merged into `main` `b2f1835`. POS-022 [Issue #41](https://github.com/dinhkhoiIT15/smartpos/issues/41) / [Draft PR #42](https://github.com/dinhkhoiIT15/smartpos/pull/42) add a MAIN-only injected-transport retry dispatcher. **No real login, public paid-sale checkout, live HTTP sync, active worker in Electron startup or production rollout**; D-013 signed staff/device authorization remains missing. Neon has only owner-verified development schema.
+**Status:** M4 POS-023 internal catalog/inventory PULL development. POS-022 [PR #42](https://github.com/dinhkhoiIT15/smartpos/pull/42) was owner Windows PASS and merged into `main` at `a01fcf5`; POS-023 [Issue #43](https://github.com/dinhkhoiIT15/smartpos/issues/43) / [Draft PR #44](https://github.com/dinhkhoiIT15/smartpos/pull/44) add PostgreSQL cursor-based catalog deltas and an atomic MAIN-only SQLite apply path. **No live PUSH/PULL HTTP, real cashier/device signed grants, actual paid checkout or enabled desktop worker**; D-013 remains mandatory. No Neon writes or production deployment.
 
 SmartPOS is a planned offline-first, cash-only POS for a single electronics store. The accepted baseline (one authorized offline cashier, immutable sales, integer VND, SKU inventory) is recorded in [AGENTS.md](AGENTS.md), [PRD](docs/PRODUCT_REQUIREMENTS.md), [Business Rules](docs/BUSINESS_RULES.md) and [Architecture](docs/SYSTEM_ARCHITECTURE.md).
 
@@ -183,7 +183,7 @@ pnpm --filter @smartpos/api test:sync:parity
 
 The live PostgreSQL tests run **only** on CI disposable `127.0.0.1:5432/smartpos_ci`, never Neon. See [POS-021 Windows/CI acceptance and signed-grant security gate](docs/POS-021_SYNC_PUSH_ACCEPTANCE.md).
 
-## POS-022 recoverable SQLite outbox retry worker (draft PR #42)
+## POS-022 recoverable SQLite outbox retry worker (merged PR #42)
 
 `apps/desktop/src/main/local-db/outbox-worker.ts` contains a **MAIN-only** opt-in worker for dispatching immutable SQLite v1 `SALE_COMPLETED` events over an **injected fake/test transport**. It claims PENDING/RETRY by `created_at,event_id` under an IMMEDIATE transaction, verifies the real POS-016 Zod event/hash and exact matching response, and commits `SYNCED`/RETRY/NEEDS_REVIEW updates atomically to `outbox_events` + `local_sales`. Retry uses bounded exponential backoff + jitter, manual reconnect and SYNCING crash recovery. It never re-debits local stock or deletes sale evidence. An ACK with stock/price conflict stores outbox SYNCED but leaves local sale NEEDS_REVIEW.
 
@@ -193,6 +193,20 @@ pnpm --filter @smartpos/desktop test:outbox-boundary
 ```
 
 **Not a deployed sync worker:** normal Electron MAIN startup never instantiates it; no HTTP client or real signed-grant credentials. D-013 remains a hard security prerequisite for live API transport. See [POS-022 Windows and crash/reconnect acceptance](docs/POS-022_OUTBOX_ACCEPTANCE.md).
+
+## POS-023 server catalog delta PULL and SQLite stock rebase (Draft PR #44)
+
+`apps/api/src/sync/pull-service.ts` reads bounded signed-64-bit cursor pages from store-scoped PostgreSQL `catalog_change_log` with a stable high watermark and per-store writer/read lock. POS-014 product-name/variant updates, POS-015 manual inventory changes and POS-021 offline sale stock changes produce transactionally committed delta rows. `GET /v1/sync/pull` remains **404 in normal Fastify startup**; the opt-in route is only used by tests until D-013.
+
+`apps/desktop/src/main/local-db/catalog-pull.ts` applies authenticated-in-the-future change pages as **one SQLite transaction** to local SKU cache, server inventory snapshot and durable cursor. It preserves unsynced `pending_delta` and immutable paid sale/items/CASH/outbox. If a local sale is already ACKed, a cursor-covered server stock change can rebase **only that sale's** pending quantity. If a stock page precedes a lost local ACK, the remaining negative pending may conservatively understate availability until a trusted follow-up reconciliation; this must be resolved before any production rollout. SQLite v1 nine-table schema unchanged.
+
+```powershell
+pnpm --filter @smartpos/desktop test:catalog-pull
+pnpm --filter @smartpos/desktop test:catalog-pull:boundary
+pnpm --filter @smartpos/api test:pull
+```
+
+Tests use file-backed temporary SQLite and synthetic principals, not Neon or real HTTP. PostgreSQL delta integration runs on GitHub's disposable PostgreSQL 16 only. See [POS-023 Windows acceptance and caveat](docs/POS-023_CATALOG_PULL_ACCEPTANCE.md).
 
 ## Monorepo layout
 
