@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { type CatalogPullService, SyncPullError } from './pull-service.js';
+import { type CatalogPullService, SyncPullError, parsePullQuery } from './pull-service.js';
 import type { VerifiedSyncContext } from './service.js';
 
 /**
@@ -23,7 +23,8 @@ export function registerSyncPullRoutes(app:FastifyInstance,opts:SyncPullRouteOpt
    const params=query as Record<string,unknown>;
    if(Object.keys(params).some(k=>!['cursor','limit'].includes(k)))
       return reply.code(400).send({error:'VALIDATION_ERROR'});
-   const page=await opts.service.pull(actor,params);
+   const checked=parsePullQuery(params);
+   const page=await opts.service.pull(actor,checked);
    return reply.code(200).send(page);
   }catch(error){
    if(error instanceof z.ZodError)return reply.code(400).send({error:'VALIDATION_ERROR'});
