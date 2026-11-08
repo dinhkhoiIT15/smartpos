@@ -81,13 +81,33 @@ export class CatalogPullService{
     const more=rows.rows.length>params.limit;
     const visible=rows.rows.slice(0,params.limit);
     const next=more?visible[visible.length-1]!.seq:high;
+    const changes:CatalogChange[]=[];
+    for(const r of visible){
+      let payload:unknown=r.payload;
+      // Pre-POS-023 log rows contain VariantView without product name.
+      // Backfill the missing field for a one-time upgrade path. New writes
+      // materialize name in the log and remain immutable across pages.
+      if(r.entity_type==='product_variant' && payload &&
+          typeof payload==='object' && !Array.isArray(payload) &&
+          !('name' in payload)){
+        const name=await c.query<{name:string;active:boolean}>(`
+          SELECT p.name,p.active FROM product_variants v JOIN products p
+          ON p.store_id=v.store_id AND p.id=v.product_id
+          WHERE v.store_id=$1 AND v.id=$2`,
+          [principal.storeId,r.entity_id]);
+        if(!name.rows[0])throw new SyncPullError('TEMPORARY_UNAVAILABLE',503);
+        const v=payload as Record<string,unknown>;
+        payload={...v,name:name.rows[0].name,
+          active:v.active===true && name.rows[0].active};
+      }
+      changes.push({
+        seq:r.seq,entityType:r.entity_type,entityId:r.entity_id,op:r.op,
+        payload,createdAt:r.created_at.toISOString(),
+      });
+    }
     const page:CatalogPage={
       protocolVersion:1,storeId:principal.storeId,fromCursor:params.cursor,
-      nextCursor:next,highWatermark:high,hasMore:more,
-      changes:visible.map(r=>({
-        seq:r.seq,entityType:r.entity_type,entityId:r.entity_id,op:r.op,
-        payload:r.payload,createdAt:r.created_at.toISOString(),
-      })),
+      nextCursor:next,highWatermark:high,hasMore:more,changes,
     };
     await c.query('COMMIT');
     return page;
