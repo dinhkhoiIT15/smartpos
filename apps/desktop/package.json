@@ -18,7 +18,9 @@
     "test:receipt-db": "pnpm --filter @smartpos/domain exec tsx --test ../../apps/desktop/tests/receipt-db.test.ts",
     "test:receipt-boundary": "node --test tests/receipt-boundary.test.mjs",
     "test:outbox-worker": "pnpm --filter @smartpos/contracts exec tsx --test ../../apps/desktop/tests/outbox-worker.test.ts",
-    "test:outbox-boundary": "node --test tests/outbox-boundary.test.mjs"
+    "test:outbox-boundary": "node --test tests/outbox-boundary.test.mjs",
+    "test:catalog-pull": "pnpm --filter @smartpos/contracts exec tsx --test ../../apps/desktop/tests/catalog-pull.test.ts",
+    "test:catalog-pull:boundary": "node --test tests/catalog-pull-boundary.test.mjs"
   },
   "dependencies": {
     "@smartpos/domain": "workspace:*",
