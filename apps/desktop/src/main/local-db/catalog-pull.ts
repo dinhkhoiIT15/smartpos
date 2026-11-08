@@ -22,7 +22,7 @@ const DECIMAL=/^(0|[1-9][0-9]*)$/;
 const SIGNED=/^(0|-[1-9][0-9]*|[1-9][0-9]*)$/;
 const MAX=9223372036854775807n;
 const MIN=-9223372036854775808n;
-const reject=(code:string):never=>{throw new Error('CATALOG_PULL_'+code);};
+function reject(code:string):never{throw new Error('CATALOG_PULL_'+code);}
 function uuid(x:unknown):string{
  if(typeof x!=='string'||!UUID.test(x))reject('BAD_UUID');
  return x;
@@ -163,7 +163,7 @@ export class CatalogPullWorker{
   if(!Number.isSafeInteger(limit)||limit<1||limit>100)reject('BAD_LIMIT');
   const current=getLocalCatalogCursor(this.db,this.storeId);
   if(current===null)reject('INITIAL_SNAPSHOT_REQUIRED');
-  const query={cursor:current,limit};
+  const query={cursor:current as string,limit};
   const raw=await this.transport(query);
   const page=assertPullResponseMatchesQuery(query,raw);
   if(page.storeId!==this.storeId)reject('WRONG_STORE');
