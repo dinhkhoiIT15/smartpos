@@ -172,11 +172,23 @@ test('persisted >2^53 VND totals are returned as canonical decimal strings, not 
 test('local sync state is honest: pending/review/synced are read as local state only',t=>{
   const x=fixture(t),req=x.request();
   commitLocalCashSale(x.db,req);
-  for(const status of ['PENDING_SYNC','NEEDS_REVIEW','SYNCED'] as const) {
+  for(const status of ['PENDING_SYNC','NEEDS_REVIEW'] as const) {
     x.db.prepare('UPDATE local_sales SET sync_status=? WHERE sale_id=?').run(status,req.saleId);
     const data=loadCommittedLocalReceipt(x.db,x.storeId,req.saleId);
     assert.equal(data?.syncStatus,status);
     assert.equal(buildPersistedInternalReceipt(data!).kind,'PERSISTED');
   }
+  x.db.prepare("UPDATE local_sales SET sync_status='SYNCED' WHERE sale_id=?").run(req.saleId);
+  assert.throws(()=>loadCommittedLocalReceipt(x.db,x.storeId,req.saleId),
+    /RECEIPT_DB_SYNC_ACK_REQUIRED/);
+  const ack=JSON.stringify({
+    eventId:req.eventId,saleId:req.saleId,status:'ACKED',resultCode:'APPLIED',
+    serverReceivedAt:'2026-11-08T02:11:00.000Z',conflictIds:[],
+  });
+  x.db.prepare("UPDATE outbox_events SET state='SYNCED',ack_json=? WHERE event_id=?")
+    .run(ack,req.eventId);
+  const synced=loadCommittedLocalReceipt(x.db,x.storeId,req.saleId);
+  assert.equal(synced?.syncStatus,'SYNCED');
+  assert.match(buildPersistedInternalReceipt(synced!).syncLabel,/THEO TRẠNG THÁI LOCAL/);
   assert.deepEqual(counts(x.db),[1,2,1,1]);
 });
