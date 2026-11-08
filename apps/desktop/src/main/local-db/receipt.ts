@@ -32,6 +32,7 @@ type PaymentRow = {
 type OutboxRow = {
   event_id:string;sale_id:string;store_id:string;device_id:string;
   schema_version:bigint;payload_json:string;payload_hash:string;
+  state:string;ack_json:string|null;
 };
 
 function reject(code:string):never{ throw new Error('RECEIPT_DB_'+code); }
@@ -132,7 +133,7 @@ export function loadCommittedLocalReceipt(
     BigInt(tendered)-BigInt(due)!==BigInt(change))reject('PAYMENT_CASH');
 
   const eventStmt=db.prepare(`SELECT event_id,sale_id,store_id,device_id,
-    schema_version,payload_json,payload_hash FROM outbox_events WHERE sale_id=?`);
+    schema_version,payload_json,payload_hash,state,ack_json FROM outbox_events WHERE sale_id=?`);
   eventStmt.setReadBigInts(true);
   const outbox=eventStmt.get(saleId) as OutboxRow|undefined;
   if(!outbox||outbox.schema_version!==1n ||
@@ -177,6 +178,22 @@ export function loadCommittedLocalReceipt(
       canonicalJson(line.attributesSnapshot)!==
         canonicalJson(JSON.parse(dbItem.attributes_snapshot_json)))reject('EVENT_ITEMS');
   }
+  // POS-020 must not display SYNCED solely because a mutable local status
+  // changed. Require a matching stored ACK envelope as well; this still is
+  // local evidence, NOT independent proof of server authorization/signature.
+  if (sale.sync_status === 'SYNCED') {
+    if (outbox.state !== 'SYNCED' || !outbox.ack_json) reject('SYNC_ACK_REQUIRED');
+    let storedAck: unknown;
+    try { storedAck = JSON.parse(outbox.ack_json); } catch { reject('SYNC_ACK_REQUIRED'); }
+    const ack = object(storedAck);
+    if (ack.eventId !== outbox.event_id || ack.saleId !== saleId ||
+        ack.status !== 'ACKED' ||
+        !['APPLIED','STOCK_SHORTAGE_RECONCILIATION','STALE_PRICE_REVIEW'].includes(
+          ack.resultCode as string) ||
+        typeof ack.serverReceivedAt !== 'string') reject('SYNC_ACK_REQUIRED');
+    strictUtc(ack.serverReceivedAt as string);
+  }
+
   return {
     saleId,cashierId:sale.cashier_id,clientCreatedAt:sale.client_created_at,
     syncStatus:sale.sync_status as PersistedReceiptState,
