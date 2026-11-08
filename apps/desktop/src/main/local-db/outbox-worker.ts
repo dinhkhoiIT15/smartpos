@@ -4,6 +4,7 @@ import {
   syncPushRequestSchema, type SyncPushRequest, type SyncPushResponse,
 } from '@smartpos/contracts';
 import { withLocalTransaction } from './index.ts';
+import { loadCommittedLocalReceipt } from './receipt.ts';
 
 /**
  * POS-022 — Electron MAIN-only internal outbox dispatcher.
@@ -133,7 +134,14 @@ function claimOldest(
   });
 }
 
-function eventRequest(claim:Claimed):SyncPushRequest{
+function eventRequest(db:DatabaseSync,claim:Claimed):SyncPushRequest{
+  // POS-020 MAIN-only projection independently proves stored sale/items/CASH
+  // payment/outbox equality, even if a damaged SQLite file holds a correctly
+  // re-hashed but *forged* event. Never send an event rewriting paid history.
+  const receipt=loadCommittedLocalReceipt(db,claim.storeId,claim.saleId);
+  if(!receipt || receipt.cashierId!==claim.localSaleCashierId ||
+      receipt.clientCreatedAt!==claim.localSaleCreatedAt)
+    invalid('MISSING_LOCAL_EVIDENCE');
   let decoded:unknown;
   try{decoded=JSON.parse(claim.payloadJson);}
   catch{invalid('INVALID_STORED_EVENT');}
@@ -215,7 +223,7 @@ export class OutboxRetryWorker {
     const claim=claimOldest(this.db,this.options.identity,at(this.clock()));
     if(!claim)return {kind:'IDLE'};
     let request:SyncPushRequest;
-    try{request=eventRequest(claim);}
+    try{request=eventRequest(this.db,claim);}
     catch{
       commitOutcome(this.db,claim,'NEEDS_REVIEW','NEEDS_REVIEW',null,null);
       return {kind:'NEEDS_REVIEW',eventId:claim.eventId,resultCode:'INVALID_EVENT'};
