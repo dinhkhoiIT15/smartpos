@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import {
   syncPullResponseSchema, assertPullResponseMatchesQuery,
-  type SyncPullResponse, type SyncPullQuery,
+  type SyncPullResponse, type SyncPullQuery, syncPushResultSchema,
 } from '@smartpos/contracts';
 import {
   parseInitialCatalogSnapshot, getLocalCatalogCursor,
@@ -14,7 +14,9 @@ import { withLocalTransaction } from './index.ts';
  * signed device/cashier grant still blocks real activation.
  *
  * SQLite v1 nine-table schema is unchanged. Financial sale/outbox records,
- * pending_delta and local device metadata are NEVER updated by this module.
+ * pending_delta of UNSYNCED sales and local device metadata are never
+ * discarded. Only a cursor-covered, exact ACKed sale stock delta can release
+ * its own pending portion, once, without modifying financial evidence.
  * Must bootstrap an authenticated POS-017 initial snapshot before deltas.
  */
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -77,24 +79,68 @@ function applyVariant(db:DatabaseSync,storeId:string,raw:unknown,entityId:string
    BigInt(validated.revision),Number(validated.active));
 }
 function applyBalance(db:DatabaseSync,storeId:string,raw:unknown,entityId:string):void{
- const b=object(raw,['storeId','variantId','qty','revision']);
+ const hasSale=raw!==null&&typeof raw==='object'&&!Array.isArray(raw)&&
+   ('saleId' in raw || 'eventId' in raw);
+ const b=object(raw,hasSale
+   ?['storeId','variantId','qty','revision','saleId','eventId']
+   :['storeId','variantId','qty','revision']);
  if(uuid(b.storeId)!==storeId||uuid(b.variantId)!==entityId)
    reject('WRONG_BALANCE');
  const qty=bigint(b.qty,true),revision=bigint(b.revision);
- const local=db.prepare(`SELECT server_revision FROM local_inventory_balances
-   WHERE store_id=? AND variant_id=?`);
+ const local=db.prepare(`SELECT server_revision,pending_delta
+   FROM local_inventory_balances WHERE store_id=? AND variant_id=?`);
  local.setReadBigInts(true);
- const before=local.get(storeId,entityId) as {server_revision:bigint}|undefined;
+ const before=local.get(storeId,entityId) as {
+   server_revision:bigint;pending_delta:bigint;
+ }|undefined;
  if(before&&before.server_revision>revision)reject('BALANCE_REVISION_REGRESSION');
- // Never update pending_delta (unsynced cash sale pending stock evidence).
- // local_inventory_balances foreign key ensures the variant exists first.
+ let release=0n;
+ if(hasSale){
+   const saleId=uuid(b.saleId),eventId=uuid(b.eventId);
+   const outbox=db.prepare(`
+     SELECT state,ack_json FROM outbox_events
+     WHERE store_id=? AND device_id IN
+       (SELECT device_id FROM local_device_metadata WHERE store_id=?)
+       AND sale_id=? AND event_id=?`).get(storeId,storeId,saleId,eventId) as {
+         state:string;ack_json:string|null;
+       }|undefined;
+   if(outbox?.state==='SYNCED'){
+     let parsed:unknown;
+     try{parsed=JSON.parse(outbox.ack_json??'');}catch{
+       reject('INVALID_STORED_ACK');
+     }
+     const ack=syncPushResultSchema.parse(parsed);
+     if(ack.status!=='ACKED'||ack.eventId!==eventId||ack.saleId!==saleId)
+       reject('ACK_IDENTITY');
+     // Only the exact server stock snapshot FOR THIS acknowledged sale
+     // can release its original pending quantity. Every other unsynced
+     // sale remains in pending_delta. The advancing cursor is the durable
+     // once-only guard; replay never re-applies this adjustment.
+     const stmt=db.prepare(`
+       SELECT quantity FROM local_sale_items
+       WHERE store_id=? AND sale_id=? AND variant_id=?`);
+     stmt.setReadBigInts(true);
+     const item=stmt.get(storeId,saleId,entityId) as {
+       quantity:bigint;
+     }|undefined;
+     if(!item||item.quantity<=0n||!before)reject('ACK_SALE_ITEM');
+     release=item.quantity;
+   }
+ }
+ const pending=(before?.pending_delta??0n)+release;
+ if(pending>0n||pending<MIN)reject('PENDING_REBASE_OVERFLOW');
+ // New server snapshot is authoritative; adjust *only* the ACKed sale
+ // portion once when this page moves forward. Other offline sale deltas
+ // remain intact; NEVER reset the aggregate pending_delta on an UPSERT.
  db.prepare(`
    INSERT INTO local_inventory_balances
      (store_id,variant_id,server_qty,pending_delta,server_revision)
-   VALUES(?,?,?,0,?)
+   VALUES(?,?,?,?,?)
    ON CONFLICT(store_id,variant_id) DO UPDATE SET
-     server_qty=excluded.server_qty,server_revision=excluded.server_revision`)
- .run(storeId,entityId,qty,revision);
+     server_qty=excluded.server_qty,
+     server_revision=excluded.server_revision,
+     pending_delta=excluded.pending_delta`)
+ .run(storeId,entityId,qty,pending,revision);
 }
 
 /**
