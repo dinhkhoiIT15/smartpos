@@ -9,7 +9,7 @@ repo_connection: CONFIRMED — GitHub connected; Issues/branches/PRs available; 
 last_github_synced_at: MANUAL GITHUB REVIEW 2026-11-08
 current_milestone: M3 — internal cash receipt preview + immutable SQLite read model
 current_phase: POS-020, [draft PR #38](https://github.com/dinhkhoiIT15/smartpos/pull/38), [Issue #37](https://github.com/dinhkhoiIT15/smartpos/issues/37) — owner Windows acceptance pending
-ci_status: POS-020 early code [Foundation CI 42432529844](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42432529844) SUCCESS; latest strict SYNCED ACK gate and IPC/print boundary tests have pending final-HEAD CI; verify run before acceptance
+ci_status: POS-020 code checkpoint 68838347 [Foundation CI 42432879225](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42432879225) SUCCESS (Linux/Windows Node24, SQLite read 8/8 and receipt boundary 2/2, domain receipts, Electron/API/PG); [Docs CI 42432879518](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42432879518) SUCCESS. If docs-only HEAD changes, rerun final CI before owner merge
 production_status: NOT DEPLOYED — no real staff login, signed offline grant, live paid-sale/receipt IPC, sync worker/HTTP, Neon sale writes or fiscal invoices
 
 ## Owner-accepted foundation on verified main
@@ -26,7 +26,7 @@ production_status: NOT DEPLOYED — no real staff login, signed offline grant, l
 - `apps/desktop/src/renderer/src/internal-receipt.tsx`, `app.tsx`, `styles.css`: POS-018 synthetic in-memory cart can open/print **only watermarked DEMO** receipt if valid sufficient tender. Shows item snapshot, subtotal/discount/due, cash/change, VN time, sample cashier, no sale ID, `CHƯA LƯU • CHƯA THU TIỀN`, internal **non-tax** notice. Print CSS keeps watermark visible even when background colors suppressed. No access to MAIN persisted read-model, no new runtime/preload/IPC handler.
 - `apps/desktop/tests/receipt-db.test.ts`: 8 temp-file SQLite tests (close/reopen, immutable historic prices, wrong store, missing/tampered payment/outbox, cash/discount arithmetic and >JS-safe VND, local PENDING/NEEDS_REVIEW/SYNCED ACK gate). `apps/desktop/tests/receipt-boundary.test.mjs`: static regression for no persisted sale/receipt IPC and watermark printed. CI Linux + Windows now runs read-model + boundary tests along with preexisting POS-019/SQLite regressions and pure domain test.
 - `docs/POS-020_RECEIPT_ACCEPTANCE.md` owner Windows CLI and visual print acceptance guide. No DB migration, new external package, actual sale/Neon mutation, real receipt/tax invoicing, or bypass of D-013. Existing 9-table SQLite v1 unchanged.
-- Initial GitHub CI at code `9ff9964` PASS (Linux, Windows, PostgreSQL), before adding the stronger SYNCED ACK gate and boundary. **Verify final HEAD** rather than claiming these new tests passed prematurely.
+- Verified **POS-020 code checkpoint `68838347`**: [Foundation CI #42432879225](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42432879225) **SUCCESS** all three jobs (Linux TypeScript/Electron/API, Windows Node24 SQLite, disposable PostgreSQL 16), [Documentation #42432879518](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42432879518) **SUCCESS**. Both Linux & Windows verify SQLite receipt **8/8**, static security/print **2/2**, domain receipt tests, and POS-019/baseline regressions. The strengthened `SYNCED` ACK gate is included in this checkpoint. Recheck final HEAD if the documentation changes.
 
 ## Next actions
 
