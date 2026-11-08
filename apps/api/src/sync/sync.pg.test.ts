@@ -36,7 +36,7 @@ test('POS-021 PostgreSQL: transaction, idempotency, concurrency, conflict, rollb
     [deviceId,storeId]);
   await pool.query('INSERT INTO categories(id,store_id,name) VALUES($1,$2,$3)',
     [categoryId,storeId,'CI']);
-  await pool.query('INSERT INTO brands(id,store_id,name) VALUES($1,$2)',
+  await pool.query('INSERT INTO brands(id,store_id,name) VALUES($1,$2,$3)',
     [brandId,storeId,'CI']);
   await pool.query('INSERT INTO products(id,store_id,category_id,brand_id,name) VALUES($1,$2,$3,$4,$5)',
     [productId,storeId,categoryId,brandId,'CI-SKU']);
