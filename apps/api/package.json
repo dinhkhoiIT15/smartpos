@@ -19,7 +19,8 @@
     "test:inventory": "pnpm run build && node --test dist/inventory/schemas.test.js dist/inventory/routes.test.js",
     "test:inventory:pg": "tsx --test src/inventory/inventory.pg.test.ts",
     "test:sync": "pnpm run build && node --test dist/sync/routes.test.js",
-    "test:sync:pg": "tsx --test src/sync/sync.pg.test.ts"
+    "test:sync:pg": "tsx --test src/sync/sync.pg.test.ts",
+    "test:sync:parity": "tsx --test src/sync/schema-parity.test.mjs"
   },
   "dependencies": {
     "fastify": "5.12.8",
