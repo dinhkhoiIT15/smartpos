@@ -1,6 +1,6 @@
 # POS-021 — Internal PostgreSQL idempotent offline sale PUSH v1 (M4/P0)
 
-**GitHub:** [Issue #39](https://github.com/dinhkhoiIT15/smartpos/issues/39), [Draft PR #40](https://github.com/dinhkhoiIT15/smartpos/pull/40), branch `feature/POS-021-idempotent-sync-push`. Owner-accepted POS-020 [PR #38](https://github.com/dinhkhoiIT15/smartpos/pull/38) merged on `main` at `cab478722068560a1f104bd2d36a9af300866967`. **POS-021 owner Windows acceptance PENDING.**
+**GitHub:** [Issue #39](https://github.com/dinhkhoiIT15/smartpos/issues/39), [Draft PR #40](https://github.com/dinhkhoiIT15/smartpos/pull/40), branch `feature/POS-021-idempotent-sync-push`. Owner-accepted POS-020 [PR #38](https://github.com/dinhkhoiIT15/smartpos/pull/38) merged on `main` at `cab478722068560a1f104bd2d36a9af300866967`. **POS-021 owner Windows acceptance PENDING.** Full code checkpoint `ca5ec609` [Foundation CI #42434713950](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42434713950) **PASS** Linux+Windows Node24+disposable PostgreSQL 16; [Docs CI #42434713907](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42434713907) **PASS**. Strict actual POS-016 schema/hash parity **3/3 on Linux/Windows** and disposable PostgreSQL POS-021 **11/11** incl fresh-pool replay. If docs-only HEAD changes, recheck final PR CI.
 
 ## Đã thực hiện
 
@@ -22,7 +22,7 @@
 
 - `apps/api/src/sync/routes.test.ts`: default 404, explicit synthetic server-injected principal, 401/400/409 envelopes, strict money/duplicate/hash/size, no untrusted header bypass.
 - `apps/api/src/sync/schema-parity.test.mjs`: compare local validation and canonical hash with actual shared POS-016 `syncPushRequestSchema`, `computeSyncPayloadHash`, including unicode and money > JS safe integer.
-- `apps/api/src/sync/sync.pg.test.ts`: **disposable PostgreSQL 16** integration: BR-002 9.340.000 due/9.500.000 cash/160.000 change, exact persisted original ACK replay, eight concurrent duplicate sends, two distinct concurrent sales and explicit negative balance review, immutable sale price with stale server price, wrong-store SKU, revoked device/membership, price >2^53, failure at final receipt write proves rollback of all sale/items/payment/movement/stock then retry.
+- `apps/api/src/sync/sync.pg.test.ts`: **disposable PostgreSQL 16** integration: BR-002 9.340.000 due/9.500.000 cash/160.000 change, exact persisted original ACK replay, eight concurrent duplicate sends, an exact original ACK replay after creating a fresh PostgreSQL pool/session (API restart simulation), two distinct concurrent sales and explicit negative balance review, immutable sale price with stale server price, wrong-store SKU, revoked device/membership, price >2^53, failure at final receipt write proves rollback of all sale/items/payment/movement/stock then retry.
 - Prior POS-014 catalog, POS-015 inventory and PostgreSQL v1 migration/immutability tests remain in CI. Windows Node24 tests API unit/schema parity and original SQLite/POS-020 regressions; PostgreSQL integration runs only under GitHub disposable Postgres 16.
 
 ## Nghiệm thu Windows PowerShell (safe, NO Neon)
