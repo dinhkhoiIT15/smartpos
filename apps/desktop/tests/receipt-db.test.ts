@@ -140,6 +140,9 @@ test('payment cash discrepancy or corrupted line total rejects even if SQLite ch
   const x=fixture(t),req=x.request();
   commitLocalCashSale(x.db,req);
   x.db.exec('DROP TRIGGER local_payments_no_update');
+  // Deliberately bypass SQLite CHECK constraints in the disposable test only;
+  // the read-model must reject inconsistent cash even with a damaged file.
+  x.db.exec('PRAGMA ignore_check_constraints = ON');
   x.db.prepare('UPDATE local_payments SET tendered_vnd=tendered_vnd+1 WHERE sale_id=?')
     .run(req.saleId);
   assert.throws(()=>loadCommittedLocalReceipt(x.db,x.storeId,req.saleId),/RECEIPT_DB_PAYMENT_CASH/);
