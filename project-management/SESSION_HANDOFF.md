@@ -16,8 +16,7 @@
 
 ## CI evidence, outstanding
 
-- [Foundation CI #42432529844](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42432529844) was SUCCESS for early code checkpoint `9ff9964`: Linux domain tests and saved receipt 8/8, existing Electron/API/PG; subsequent Windows coverage for receipt-db was added to CI. Final ACK gate and IPC/print boundary test were added **after** this checkpoint.
-- Need check latest PR #38 HEAD CI and record final [Foundation/Docs] run URLs with all Linux+Windows tests green. Do not say owner local tests PASS without owner confirmation.
+- **Verified code checkpoint `68838347067b4b5cac55c36a770a2438cdfe009b`**: [Foundation CI #42432879225](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42432879225) **SUCCESS** Linux, Windows Node24 and disposable PostgreSQL 16. New persisted receipt **8/8** and IPC/print security boundary **2/2** on *both* Linux/Windows; shared domain receipt tests and existing POS-019/SQLite/Electron/API checks green. [Docs CI #42432879518](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42432879518) **SUCCESS**. Includes strict `SYNCED` matching local outbox ACK gate. If docs-only commits follow, verify final SHA CI again. Owner local Windows/print-preview manual testing NOT YET accepted.
 
 ## Owner Windows commands
 
