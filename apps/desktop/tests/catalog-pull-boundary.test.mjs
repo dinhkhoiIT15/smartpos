@@ -17,7 +17,9 @@ test('POS-023 local importer is transaction-only and does not update payments, s
  assert.match(apply,/withLocalTransaction/);
  assert.match(apply,/assertPullResponseMatchesQuery/);
  assert.match(apply,/syncPullResponseSchema/);
- assert.match(apply,/server_qty=excluded.server_qty,server_revision=excluded.server_revision/);
+ assert.match(apply,/server_qty=excluded.server_qty,[\\s\\S]*server_revision=excluded.server_revision/);
+ assert.match(apply,/pending_delta=excluded.pending_delta/);
+ assert.match(apply,/syncPushResultSchema/);
  assert.doesNotMatch(apply,/\bfetch\s*\(|\baxios\b|ipcMain|ipcRenderer|DATABASE_URL|https?:\/\//);
  assert.doesNotMatch(apply,/\bUPDATE\s+(?:local_sales|local_payments|local_sale_items|outbox_events)\b/i);
  assert.doesNotMatch(apply,/SET\s+pending_delta=/i);
