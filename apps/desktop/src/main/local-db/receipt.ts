@@ -86,7 +86,7 @@ export function loadCommittedLocalReceipt(
   const getItems=db.prepare(`SELECT item_id,store_id,variant_id,sku_snapshot,
     name_snapshot,attributes_snapshot_json,quantity,unit_price_vnd,
     discount_vnd,line_total_vnd FROM local_sale_items
-    WHERE store_id=? AND sale_id=? ORDER BY item_id`);
+    WHERE store_id=? AND sale_id=? ORDER BY sku_snapshot, item_id`);
   getItems.setReadBigInts(true);
   const rawItems=getItems.all(storeId,saleId) as ItemRow[];
   if(rawItems.length<1||rawItems.length>100)reject('ITEM_COUNT');
