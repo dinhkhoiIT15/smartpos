@@ -1,6 +1,6 @@
 # SmartPOS Retail — Desktop + API Foundation
 
-**Status:** M3 POS-019 offline SQLite sale/outbox storage-core development. POS-018 [PR #34](https://github.com/dinhkhoiIT15/smartpos/pull/34) was owner Windows-accepted and merged into main `fef16b3`; POS-019 [Issue #35](https://github.com/dinhkhoiIT15/smartpos/issues/35) has [draft PR #36](https://github.com/dinhkhoiIT15/smartpos/pull/36). **No real login, public paid-sale checkout, HTTP sync, worker or production rollout**; D-013 cryptographic staff/device authorization remains unimplemented. Neon has only owner-verified development schema.
+**Status:** M3 POS-020 internal receipt PREVIEW development. POS-019 [PR #36](https://github.com/dinhkhoiIT15/smartpos/pull/36) is owner Windows-accepted and merged into main `ec71c07`; POS-020 [Issue #37](https://github.com/dinhkhoiIT15/smartpos/issues/37) / [draft PR #38](https://github.com/dinhkhoiIT15/smartpos/pull/38) adds a watermark-only demo print preview and a MAIN-only verified SQLite receipt read model. **No real login, public paid-sale checkout, HTTP sync, worker or production rollout**; D-013 cryptographic staff/device authorization remains unimplemented. Neon has only owner-verified development schema.
 
 SmartPOS is a planned offline-first, cash-only POS for a single electronics store. The accepted baseline (one authorized offline cashier, immutable sales, integer VND, SKU inventory) is recorded in [AGENTS.md](AGENTS.md), [PRD](docs/PRODUCT_REQUIREMENTS.md), [Business Rules](docs/BUSINESS_RULES.md) and [Architecture](docs/SYSTEM_ARCHITECTURE.md).
 
@@ -158,6 +158,20 @@ pnpm --filter @smartpos/desktop test:offline-sale:wire
 
 **Not live sales:** `commitLocalCashSale` is intentionally **unreachable from renderer/preload and normal Electron app flow** because D-013 signed grant, cashier/device authorization and OS key/clock protections are not implemented. `offlineGrantId` in an input payload is not proof of a valid grant. The demo UI still never saves or acknowledges actual payments. Do not use fixtures with real customer information. Read the [full POS-019 Windows acceptance/security guide](docs/POS-019_OFFLINE_SALE_ACCEPTANCE.md).
 
+## POS-020 internal cash receipt preview and SQLite read-only projection (draft PR #38)
+
+The demo cart can now **preview and print a distinctly watermarked sample internal receipt** after entering a sufficient synthetic cash amount. The paper includes SKU, attributes, quantity, subtotal, discount, due, tendered cash, change and Vietnam date/time; it always says **MẪU — KHÔNG CÓ GIAO DỊCH** and **KHÔNG PHẢI HÓA ĐƠN THUẾ**, even in print. No real payment or receipt is created.
+
+Separately, `apps/desktop/src/main/local-db/receipt.ts` is a **read-only MAIN-only** projection of already committed SQLite sale/items/CASH/outbox evidence, validating item snapshots and the canonical event hash. It is intentionally **NOT exposed over IPC**, because D-013 real signed cashier and offline-device grants are still missing. No new DB schema, Neon/API write, or dependency.
+
+```powershell
+pnpm --filter @smartpos/domain test
+pnpm --filter @smartpos/desktop test:receipt-db
+pnpm --filter @smartpos/desktop dev
+```
+
+See [POS-020 Windows acceptance + print safety guide](docs/POS-020_RECEIPT_ACCEPTANCE.md).
+
 ## Monorepo layout
 
 | Workspace | What exists |
@@ -173,7 +187,7 @@ See [Desktop README](apps/desktop/README.md), [API README](apps/api/README.md), 
 
 ## Boundaries
 
-- Neon development SELECT 1 and 17-table PostgreSQL v1 migration were verified separately by owner; SQLite v1 local schema runs in Electron main. There is still **no login implementation, real sale or sync API**.
+- Neon development SELECT 1 and 17-table PostgreSQL v1 migration were verified separately by owner; SQLite v1 local schema runs in Electron main. There is still **no login implementation, real paid-sale checkout or sync API**.
 - All business values in VND are integer/bigint when those modules are implemented; no float money calculations.
 - Do not commit `.env`, local SQLite files, tokens, private data or real customer sales.
 - Keep secrets server-side in future issues; Electron renderer must never access Neon directly.

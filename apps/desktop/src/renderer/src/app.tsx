@@ -4,6 +4,8 @@ import {
   type CartCatalogVariant, type CartPreviewLine,
 } from '@smartpos/domain/cart';
 import type { SmartPosAppInfo } from './desktop-bridge';
+import { createDemoInternalReceipt, type InternalReceipt } from '@smartpos/domain/receipt';
+import { DemoReceiptPreview } from './internal-receipt';
 
 const demoCatalog: readonly CartCatalogVariant[] = [
   { variantId: 'f82563fe-8545-495e-98d1-ebcbf747b166', sku: 'PHONE-128',
@@ -22,7 +24,7 @@ const demoCatalog: readonly CartCatalogVariant[] = [
 
 const modules = [
   { name: 'Danh mục sản phẩm', detail: 'SKU, màu sắc, dung lượng', code: 'POS-014' },
-  { name: 'Bán hàng tại quầy', detail: 'Giỏ hàng và tính tiền mặt (demo)', code: 'POS-018' },
+  { name: 'Bán hàng tại quầy', detail: 'Giỏ hàng và phiếu mẫu (demo)', code: 'POS-018' },
   { name: 'Kho hàng', detail: 'Theo dõi biến động tồn kho', code: 'POS-015' },
   { name: 'Đồng bộ offline', detail: 'SQLite → Neon qua API', code: 'POS-021' },
 ];
@@ -32,6 +34,7 @@ function CashCartDemo() {
   const [skuQuery, setSkuQuery] = useState('');
   const [tendered, setTendered] = useState('');
   const [error, setError] = useState('');
+  const [receipt, setReceipt] = useState<InternalReceipt | null>(null);
 
   const filtered = useMemo(() => {
     const q = skuQuery.trim().toLocaleLowerCase('vi');
@@ -46,6 +49,7 @@ function CashCartDemo() {
 
   function changeCart(action: () => CartPreviewLine[]): void {
     setError('');
+    setReceipt(null);
     try {
       setLines(action());
       setTendered(''); // any cart edit invalidates the previous cash preview
@@ -54,9 +58,22 @@ function CashCartDemo() {
     }
   }
 
+  function showDemoReceipt(): void {
+    setError('');
+    if (!quote || !quote.hasTender || !quote.sufficient || lines.length === 0) {
+      setError('Chỉ xem phiếu mẫu khi giỏ hàng có sản phẩm và số tiền mẫu đủ.');
+      return;
+    }
+    try {
+      setReceipt(createDemoInternalReceipt(lines, tendered, new Date().toISOString()));
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Không tạo được phiếu mẫu');
+    }
+  }
+
   return (
     <div className="page">
-      <div className="eyebrow">MILESTONE M3 / POS-018</div>
+      <div className="eyebrow">MILESTONE M3 / POS-018 + POS-020</div>
       <h1>Giỏ hàng &amp; tiền mặt <span className="hello">✳</span></h1>
       <p className="subhead">Thử thao tác giỏ hàng và tính tiền bằng VND nguyên, ngay cả khi không có mạng.</p>
       <section className="warning" role="status">
@@ -65,7 +82,7 @@ function CashCartDemo() {
           <strong>DEMO — CHƯA THỂ BÁN HÀNG</strong>
           <p>Tất cả SKU, giá và tồn dưới đây là dữ liệu mẫu cố định trong giao diện.
             Không đọc catalog thật, không ghi SQLite, không trừ tồn và không nhận thanh toán.
-            POS-019 cùng xác thực thiết bị/nhân viên sẽ triển khai chốt đơn sau.</p>
+            POS-019 chỉ có lõi SQLite chưa nối giao diện; xác thực D-013 chưa triển khai. POS-020 cho xem và in phiếu MẪU, không chốt đơn thật.</p>
         </div>
       </section>
 
@@ -146,7 +163,7 @@ function CashCartDemo() {
           <div className="tender-row">
             <input id="cash-received" className="cart-input" type="text" inputMode="numeric"
               autoComplete="off" maxLength={19} placeholder="Nhập số nguyên, ví dụ 9500000"
-              value={tendered} onChange={(e) => setTendered(e.target.value)} />
+              value={tendered} onChange={(e) => { setTendered(e.target.value); setReceipt(null); }} />
             <button type="button" disabled={lines.length === 0}
               onClick={() => setTendered(baseQuote.dueVnd)}>Nhận vừa đủ</button>
           </div>
@@ -164,12 +181,16 @@ function CashCartDemo() {
           )}
           <div className="cart-footer-actions">
             <button type="button" disabled={lines.length === 0}
-              onClick={() => { setLines([]); setTendered(''); setError(''); }}>Xóa giỏ hàng mẫu</button>
-            <span>Không có chức năng hoàn tất thanh toán trong POS-018.</span>
+              onClick={() => { setLines([]); setTendered(''); setError(''); setReceipt(null); }}>Xóa giỏ hàng mẫu</button>
+            <button type="button" className="receipt-demo-action"
+              disabled={!quote?.hasTender || !quote.sufficient || lines.length === 0}
+              onClick={showDemoReceipt}>Xem / in phiếu MẪU</button>
+            <span>Phiếu mẫu không xác nhận đã thu tiền.</span>
           </div>
         </section>
       </div>
-      <footer>SmartPOS Retail • POS-018 demo tính tiền • Không tạo phiếu, không ghi doanh thu thật</footer>
+      <footer>SmartPOS Retail • POS-018/020 demo • Phiếu MẪU, không ghi doanh thu thật</footer>
+      {receipt && <DemoReceiptPreview receipt={receipt} onClose={() => setReceipt(null)} />}
     </div>
   );
 }
@@ -202,8 +223,8 @@ function FoundationOverview() {
         <span className="warning-icon">!</span>
         <div>
           <strong>DEMO — CHƯA THỂ BÁN HÀNG</strong>
-          <p>POS-018 chỉ tính giỏ hàng và tiền thừa trên dữ liệu mẫu. Chưa có đăng nhập,
-            đơn bán, thu tiền thật, ghi tồn hoặc đồng bộ tự động.</p>
+          <p>POS-018 tính giỏ hàng và tiền thừa trên dữ liệu mẫu; POS-020 chỉ xem và in phiếu MẪU.
+            Chưa có đăng nhập, chốt đơn, thu tiền thật hay đồng bộ tự động.</p>
         </div>
       </section>
       <div className="section-header"><h2>Trạng thái nền tảng</h2><span>Demo phát triển</span></div>
@@ -268,7 +289,7 @@ export function App() {
       <main className="content">
         <header className="topbar">
           <div className="breadcrumb">SmartPOS <span>/</span> {tab === 'cart' ? 'Giỏ hàng demo' : 'Tổng quan'}</div>
-          <span className="top-label">POS-018 • XEM TRƯỚC TIỀN MẶT</span>
+          <span className="top-label">POS-020 • PHIẾU MẪU NỘI BỘ</span>
         </header>
         {tab === 'cart' ? <CashCartDemo /> : <FoundationOverview />}
       </main>

@@ -22,3 +22,9 @@ This is an isolated calculation primitive, **not** offline checkout implementati
 `@smartpos/domain/cart` exports `addCartVariant`, `setCartQuantity`, `removeCartVariant`, `previewCashCart` and `formatVnd`. All amounts are canonical decimal VND strings for UI input/output, internally using `bigint`; no float money arithmetic. Duplicate SKU adds quantity; price/attributes are snapshot-locked, with bounded stock and quantity. `calculateCartAmounts` previews subtotal/discount/amount due without inventing a payment; `calculateCashTotals` continues to reject insufficient tender.
 
 This is an in-memory **estimate**, not trusted sale authentication, card processing, persistent checkout or stock mutation. The Electron demo does not call POST APIs, import a real catalog or write sales. Execute `pnpm --filter @smartpos/domain test` to run the unit cases. Review [POS-018 acceptance](../../docs/POS-018_CASH_CART_ACCEPTANCE.md).
+
+## POS-020 internal cash receipt model (not a tax invoice)
+
+`@smartpos/domain/receipt` provides `buildPersistedInternalReceipt` for validated **MAIN-only** immutable SQLite evidence and `createDemoInternalReceipt` for a **permanently watermarked, never-posted sample**. Receipt view models include SKU/name/attributes, integer quantity, VND decimal-string unit price/line discount/total, subtotal/due, cash tendered/change, and deterministic `Asia/Ho_Chi_Minh` display time. All money checks use `bigint` and fail on signed-64-bit overflow or mismatches. A local sync label is NOT a cloud/server ACK.
+
+This pure module is not an authorization library. No persisted receipt is available to the renderer without future D-013 signed cashier/device grants. A synthetic sample must never be used as evidence of a completed sale or tax invoice. Run `pnpm --filter @smartpos/domain test` and see [POS-020 acceptance](../../docs/POS-020_RECEIPT_ACCEPTANCE.md).

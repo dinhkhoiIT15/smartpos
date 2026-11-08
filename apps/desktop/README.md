@@ -1,6 +1,6 @@
 # SmartPOS Desktop — Secure Electron shell + SQLite v1 (POS-013)
 
-**Status:** Development-only Electron demo with SQLite v1 and merged POS-017 cache/POS-018 cart. POS-019 implements **only an internal MAIN-only atomic SQLite cash sale/stock/outbox storage core** with no caller from Electron UI or IPC. **No authenticated catalog sync, real paid checkout, staff authorization, receipt or production sale**.
+**Status:** Development-only Electron demo with SQLite v1 and merged POS-017 cache/POS-018 cart/POS-019 MAIN-only atomic cash sale core. POS-020 adds a **sample watermarked internal receipt print preview** and a separately verified **MAIN-only persisted receipt read model**. No authenticated catalog sync, real paid checkout, staff authorization, genuine receipt issuance or production sale.
 
 ## Run on Windows / macOS
 
@@ -13,6 +13,7 @@ pnpm --filter @smartpos/desktop test:local-db
 pnpm --filter @smartpos/desktop test:catalog-cache
 pnpm --filter @smartpos/desktop test:offline-sale
 pnpm --filter @smartpos/desktop test:offline-sale:wire
+pnpm --filter @smartpos/desktop test:receipt-db
 pnpm --filter @smartpos/desktop security:check
 pnpm --filter @smartpos/desktop build
 pnpm --filter @smartpos/desktop dev
@@ -76,6 +77,19 @@ pnpm --filter @smartpos/desktop test:offline-sale:wire
 ```
 
 A SQLite device ID row is not a signed grant; **D-013 real offline authorization remains unimplemented**. Do not expose the internal function as a new renderer IPC, add a chốt đơn button or claim payment success before identity+device+cashier grant verification and owner approval. See [POS-019 Windows acceptance and security boundary](../../docs/POS-019_OFFLINE_SALE_ACCEPTANCE.md).
+
+## POS-020 internal receipt, demo print and saved evidence isolation
+
+`src/main/local-db/receipt.ts` reads (no writes) an authorized-in-the-future sale's immutable local sale/items/CASH payment/outbox by store and sale ID, verifying all snapshots, exact bigint amounts and POS-016 canonical SHA-256 outbox integrity; then a pure `@smartpos/domain/receipt` formatter can render its model with Vietnam time and honest local sync status. **No current Electron runtime IPC or UI exposes this persisted read path**, since D-013 real offline grant and cashier/device authorization are unimplemented.
+
+The only UI receipt is made from the explicitly synthetic POS-018 in-memory demo cart, and has a mandatory **MẪU — KHÔNG CÓ GIAO DỊCH** watermark (including in print) plus **KHÔNG PHẢI HÓA ĐƠN THUẾ**. Press **Xem / in phiếu MẪU** only after entering sufficient demo cash. `window.print()` opens the Windows OS print dialog; cancel after checking the printed sample watermark. The app does not create a new sale, issue an official tax invoice, modify SQLite, or acknowledge Neon sync.
+
+```powershell
+pnpm --filter @smartpos/domain test
+pnpm --filter @smartpos/desktop test:receipt-db
+```
+
+See [POS-020 Windows acceptance](../../docs/POS-020_RECEIPT_ACCEPTANCE.md). Synthetic receipt examples and corruption fixtures run only against OS-generated temporary files (Windows-safe handle close); do not delete actual Electron `userData` or modify live SQLite.
 
 ## Scope / security boundaries
 

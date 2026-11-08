@@ -2,37 +2,35 @@
 
 status_schema: 1
 last_reviewed_at: 2026-11-08
-verified_commit: fef16b3083a7e6f1fc691bae122820bdd81c8597
+verified_commit: ec71c07e45e27b1158811a309da79402786fef5a
 verified_ref: main
 repository_url: https://github.com/dinhkhoiIT15/smartpos
-repo_connection: CONFIRMED — GitHub connected, can create Issues/branches/PRs; no admin
+repo_connection: CONFIRMED — GitHub connected; Issues/branches/PRs available; no admin
 last_github_synced_at: MANUAL GITHUB REVIEW 2026-11-08
-current_milestone: M3 — offline cash sale persistence foundation
-current_phase: POS-019 atomic MAIN-only SQLite sale/outbox core; draft PR #36, owner Windows pending
-ci_status: POS-019 final code checkpoint 85854a33 [Foundation CI 42398260631](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42398260631) SUCCESS Linux+Windows (offline sale 16/16, shared wire 1/1, SQLite 7+6, TS/desktop/API/PG); [Docs CI 42398260696](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42398260696) SUCCESS; recheck final docs-only PR HEAD before Windows acceptance
-production_status: NOT DEPLOYED — no real auth/offline grant, paid-sale UI/IPC, HTTP sync, worker, receipts or Neon sale writes
+current_milestone: M3 — internal cash receipt preview + immutable SQLite read model
+current_phase: POS-020, [draft PR #38](https://github.com/dinhkhoiIT15/smartpos/pull/38), [Issue #37](https://github.com/dinhkhoiIT15/smartpos/issues/37) — owner Windows acceptance pending
+ci_status: POS-020 code checkpoint 68838347 [Foundation CI 42432879225](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42432879225) SUCCESS (Linux/Windows Node24, SQLite read 8/8 and receipt boundary 2/2, domain receipts, Electron/API/PG); [Docs CI 42432879518](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42432879518) SUCCESS. If docs-only HEAD changes, rerun final CI before owner merge
+production_status: NOT DEPLOYED — no real staff login, signed offline grant, live paid-sale/receipt IPC, sync worker/HTTP, Neon sale writes or fiscal invoices
 
-## Verified merged main
+## Owner-accepted foundation on verified main
 
-- POS-001/002/004/007/008/009/010/011, POS-012 PostgreSQL 17-table v1, POS-013 SQLite 9-table v1, POS-014 catalog and POS-015 inventory services, POS-016 v1 Zod sync wire contracts and POS-017 atomic initial local catalog cache. POS-011's four-hour signed offline grant policy is **design-only**; real D-013 identity/device/keys/revocation remain OPEN.
-- POS-017 [PR #32](https://github.com/dinhkhoiIT15/smartpos/pull/32) merged at `28d38555d358`, owner PASS, Issue #31 closed.
-- POS-018 demo cart/cash preview [PR #34](https://github.com/dinhkhoiIT15/smartpos/pull/34) **merged**, owner Windows PASS; verified GitHub [main SHA `fef16b3083a7e6f1fc691bae122820bdd81c8597`](https://github.com/dinhkhoiIT15/smartpos/commit/fef16b3083a7e6f1fc691bae122820bdd81c8597). Issue #33 closed. POS-018 is still demo-only (synthetic SKU, in-memory calculations, no completed sale).
-- PostgreSQL migrations only verified by owner on Neon **development**; no production rollout.
+- POS-001–POS-018 foundation/catalog/stock/sync contracts/local cache and demo cart all previously accepted and merged. POS-017 [PR #32](https://github.com/dinhkhoiIT15/smartpos/pull/32) and POS-018 [PR #34](https://github.com/dinhkhoiIT15/smartpos/pull/34) were owner Windows PASS and merged.
+- POS-019 [PR #36](https://github.com/dinhkhoiIT15/smartpos/pull/36) **owner Windows PASS + MERGED** on `main` [SHA `ec71c07e45e27b1158811a309da79402786fef5a`](https://github.com/dinhkhoiIT15/smartpos/commit/ec71c07e45e27b1158811a309da79402786fef5a). Issue #35 closed. Internal MAIN-only SQLite atomic cash sale/items/payment/stock delta/v1 outbox hash, crash recovery and idempotent replay core. This still does not enable paid sales from UI or prove authorization.
+- POS-011/D-010 signed offline grant **policy accepted** up to 4h; D-013 cryptographic device/cashier grants, OS key proof, shift/revocation and clock protection remain OPEN. No Neon production/real auth.
 
-## POS-019 feature pending owner approval
+## POS-020 feature branch (NOT merged)
 
-- [Issue #35](https://github.com/dinhkhoiIT15/smartpos/issues/35), [draft PR #36](https://github.com/dinhkhoiIT15/smartpos/pull/36), branch `feature/POS-019-atomic-offline-sale` based on verified merged main.
-- `apps/desktop/src/main/local-db/offline-sale.ts`: STRICT UUID/decimal/qty/UTC input and immutable expected SKU/price/revision. Transaction `BEGIN IMMEDIATE`: check metadata (scope ONLY, NOT auth), initial catalog cursor, active SKU/price/revision, local balance and available stock; bigint cash total; apply `pending_delta` only; insert local sales, items, CASH payment and deterministic hashed `SALE_COMPLETED` v1 outbox `PENDING` in one commit. Exact sale ID request retry replays read-only, other conflicts fail. SQLite v1 schema unchanged, no migration.
-- `apps/desktop/tests/offline-sale.test.mjs`: **16** Node24 tests on disposable file-backed SQLite, including BR-002 total 9,340,000/tender 9,500,000/change 160,000, close/reopen, retry/collision, missing/insufficient stock, inactive/stale SKU, price/revision mismatches, malformed cash and overflow, SQLite immutable evidence, injected late outbox/payment triggers aborting all rows and pending stock, reused IDs on a new sale, and a **real Node child-process kill after outbox INSERT but before COMMIT**, followed by WAL reopen/rollback and safe retry.
-- `apps/desktop/tests/offline-sale-wire.test.ts`: **1** interoperability test with real POS-016 Zod event/push schemas and hash algorithm; runs via existing `@smartpos/contracts` TSX test tool; no new production dependency. CI on Linux and Windows runs both suites.
-- **CI evidence:** Final code checkpoint `85854a33` [Foundation #42398260631](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42398260631) **SUCCESS** on Linux and Windows, including **16/16** POS-019 tests (real Node child process kill before COMMIT, crash recovery) and **1/1** actual POS-016 hash/Zod wire test, SQLite local 7/7, catalog cache 6/6, domain 12/12, TypeScript/Electron/API, disposable PostgreSQL 16. [Docs #42398260696](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42398260696) **SUCCESS**. Review final docs-only PR HEAD run before merge.
-- [POS-019 Windows acceptance](../docs/POS-019_OFFLINE_SALE_ACCEPTANCE.md) covers commands, constraints and AUTH GATE.
-- **CRITICAL:** `commitLocalCashSale` is not invoked from `apps/desktop/src/main/index.ts`, IPC, preload, renderer, Fastify or a worker. No live payment authorization. SQLite `local_device_metadata` and arbitrary `offlineGrantId` string DO NOT prove D-010 signed grant. D-013 signed staff/shift/device grant + OS key binding + 4-hour expiry, revocation, clock tamper and privileged orchestrator are needed **before enabling UI**. POS-019 internal DB transaction must never be exposed directly over IPC.
-- No real API/Neon writes and no demo catalog data persisted into userData.
+- Branch `feature/POS-020-internal-receipt` created from verified `main`; [Issue #37](https://github.com/dinhkhoiIT15/smartpos/issues/37), [Draft PR #38](https://github.com/dinhkhoiIT15/smartpos/pull/38).
+- `packages/domain/src/receipt.ts`, `receipt.test.ts`, package export: strictly validated pure internal receipt view model in bigint VND canonical decimal strings; receipt line SKU/name/attributes, quantity/price/discount, due/tender/change, local sync labels and `Asia/Ho_Chi_Minh` date. A DEMO view always has `MẪU — KHÔNG CÓ GIAO DỊCH`, no sale ID or paid state. Existing domain tests automatically include 7 new receipt tests.
+- `apps/desktop/src/main/local-db/receipt.ts`: strictly **read-only** `loadCommittedLocalReceipt(db,storeId,saleId)` from immutable SQLite sale/items/CASH payment/outbox; verifies exact bigint money snapshots, payment cash, stable SKU order, POS-016 canonical SHA-256, event identity/payload and mismatched items; no mutable catalog repricing. Fails closed if missing/out-of-scope/tampered/partial. `SYNCED` requires matching local outbox state and stored `ACKED` response; no false cloud ACK claims.
+- `apps/desktop/src/renderer/src/internal-receipt.tsx`, `app.tsx`, `styles.css`: POS-018 synthetic in-memory cart can open/print **only watermarked DEMO** receipt if valid sufficient tender. Shows item snapshot, subtotal/discount/due, cash/change, VN time, sample cashier, no sale ID, `CHƯA LƯU • CHƯA THU TIỀN`, internal **non-tax** notice. Print CSS keeps watermark visible even when background colors suppressed. No access to MAIN persisted read-model, no new runtime/preload/IPC handler.
+- `apps/desktop/tests/receipt-db.test.ts`: 8 temp-file SQLite tests (close/reopen, immutable historic prices, wrong store, missing/tampered payment/outbox, cash/discount arithmetic and >JS-safe VND, local PENDING/NEEDS_REVIEW/SYNCED ACK gate). `apps/desktop/tests/receipt-boundary.test.mjs`: static regression for no persisted sale/receipt IPC and watermark printed. CI Linux + Windows now runs read-model + boundary tests along with preexisting POS-019/SQLite regressions and pure domain test.
+- `docs/POS-020_RECEIPT_ACCEPTANCE.md` owner Windows CLI and visual print acceptance guide. No DB migration, new external package, actual sale/Neon mutation, real receipt/tax invoicing, or bypass of D-013. Existing 9-table SQLite v1 unchanged.
+- Verified **POS-020 code checkpoint `68838347`**: [Foundation CI #42432879225](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42432879225) **SUCCESS** all three jobs (Linux TypeScript/Electron/API, Windows Node24 SQLite, disposable PostgreSQL 16), [Documentation #42432879518](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42432879518) **SUCCESS**. Both Linux & Windows verify SQLite receipt **8/8**, static security/print **2/2**, domain receipt tests, and POS-019/baseline regressions. The strengthened `SYNCED` ACK gate is included in this checkpoint. Recheck final HEAD if the documentation changes.
 
-## Next
+## Next actions
 
-1. Recheck Foundation + Documentation GitHub Actions for **latest PR #36 HEAD**. If failure, fix before owner testing; no false PASS.
-2. Windows: `pnpm install --frozen-lockfile`, `pnpm --filter @smartpos/desktop typecheck`, `test:offline-sale`, `test:offline-sale:wire`, legacy `test:local-db`, `test:catalog-cache`, `security:check`, `build`, `pnpm run check`; optional `pnpm --filter @smartpos/desktop dev` must STILL show DEMO_ONLY and no payment completion.
-3. Owner security/code review and Windows test PASS → merge manually, close Issue #35. Do not merge automatically.
-4. D-013 real offline authorization must gate any paid-sale UI; POS-020 internal receipt design, POS-021 API idempotent sale push, POS-022 retry, POS-023 authenticated catalog pull, POS-027/029 backup/security all remain open. No false claim of production readiness.
+1. Verify latest PR #38 SHA + **Foundation CI** Linux/Windows+API/Postgres and Docs CI fully green; fix any test issues. Document final run and only then hand owner Windows steps.
+2. Windows PowerShell: frozen pnpm, `pnpm --filter @smartpos/domain typecheck`, `pnpm --filter @smartpos/domain test`, `pnpm --filter @smartpos/desktop typecheck`, `test:receipt-db`, `test:receipt-boundary`, existing `test:local-db`, `test:catalog-cache`, `test:offline-sale`, `test:offline-sale:wire`, `security:check`, `build`, `pnpm run check`; Electron `dev` demo print/screen checks.
+3. Owner confirms sample watermark appears in OS print preview (with Background graphics off) and no paid result; approves PR manually. Only then merge and close Issue #37.
+4. Next backlog POS-021 server-side idempotent sync push API, POS-022 retry and POS-023 pull; D-013 signed staff/device auth is a production blocker. Receipt for actual customer paid sale must remain disabled pending D-013.
