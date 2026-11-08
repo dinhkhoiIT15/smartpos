@@ -170,7 +170,9 @@ test('POS-014 catalog CRUD, scopes, SKU uniqueness, audit and revision use dispo
     });
     assert.equal(updated.active, false);
     assert.equal((await catalog.getProduct(manager, productId)).name, 'Phone Demo Updated');
-    assert.equal(await logCount(manager.storeId), before + 3);
+    // POS-023 product rename/deactivation emits one extra variant refresh
+    // for each related SKU so SQLite v1 can update denormalized name/active.
+    assert.equal(await logCount(manager.storeId), before + 4);
     assert.equal(await auditCount(manager.storeId), before + 3);
     const deactivated = await pool.query<{ op: string }>(
       "SELECT op FROM catalog_change_log WHERE entity_id=$1 AND entity_type='product' ORDER BY seq DESC LIMIT 1",
