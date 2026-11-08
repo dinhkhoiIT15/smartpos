@@ -11,14 +11,14 @@ const MAX = 9_223_372_036_854_775_807n;
 export const PUSH_MAX_BYTES = 512 * 1024;
 const id = z.uuid();
 const money = z.string().regex(/^(0|[1-9][0-9]*)$/).max(19)
-  .refine(s => BigInt(s) <= MAX, 'signed int64 VND');
+  .refine(s => /^(0|[1-9][0-9]*)$/.test(s) && s.length<=19 && BigInt(s)<=MAX, 'signed int64 VND');
 const utc = z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
   .refine(s => Number.isFinite(Date.parse(s)) &&
     new Date(s).toISOString() === s, 'invalid UTC timestamp');
 const attributes = z.record(z.string().regex(/^[a-z][a-z0-9_]{0,31}$/),
   z.string().min(1).max(64)).refine(v => Object.keys(v).length <= 8);
 const cursor = z.string().regex(/^(0|[1-9][0-9]*)$/).max(19)
-  .refine(s => BigInt(s) <= MAX);
+  .refine(s => /^(0|[1-9][0-9]*)$/.test(s) && s.length<=19 && BigInt(s)<=MAX);
 const text = (limit: number) => z.string().min(1).max(limit)
   .refine(s => s.trim() === s);
 const itemSchema = z.strictObject({
