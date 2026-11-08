@@ -1,6 +1,6 @@
 # SmartPOS Retail — Desktop + API Foundation
 
-**Status:** M4 POS-021 INTERNAL PostgreSQL idempotent sale sync PUSH development. POS-020 [PR #38](https://github.com/dinhkhoiIT15/smartpos/pull/38) was owner Windows-accepted and merged into `main` `cab4787`; POS-021 [Issue #39](https://github.com/dinhkhoiIT15/smartpos/issues/39) / [draft PR #40](https://github.com/dinhkhoiIT15/smartpos/pull/40) implement transactionally persisted server sale/items/CASH/stock movements/reconciliation conflicts/ACK receipt but do NOT mount public sync routes. **No real login, public paid-sale checkout, live HTTP sync, worker or production rollout**; D-013 cryptographic staff/device authorization remains unimplemented. Neon has only owner-verified development schema.
+**Status:** M4 POS-022 INTERNAL Desktop SQLite recoverable outbox retry worker development. POS-021 [PR #40](https://github.com/dinhkhoiIT15/smartpos/pull/40) was owner Windows PASS + merged into `main` `b2f1835`. POS-022 [Issue #41](https://github.com/dinhkhoiIT15/smartpos/issues/41) / [Draft PR #42](https://github.com/dinhkhoiIT15/smartpos/pull/42) add a MAIN-only injected-transport retry dispatcher. **No real login, public paid-sale checkout, live HTTP sync, active worker in Electron startup or production rollout**; D-013 signed staff/device authorization remains missing. Neon has only owner-verified development schema.
 
 SmartPOS is a planned offline-first, cash-only POS for a single electronics store. The accepted baseline (one authorized offline cashier, immutable sales, integer VND, SKU inventory) is recorded in [AGENTS.md](AGENTS.md), [PRD](docs/PRODUCT_REQUIREMENTS.md), [Business Rules](docs/BUSINESS_RULES.md) and [Architecture](docs/SYSTEM_ARCHITECTURE.md).
 
@@ -172,7 +172,7 @@ pnpm --filter @smartpos/desktop dev
 
 See [POS-020 Windows acceptance + print safety guide](docs/POS-020_RECEIPT_ACCEPTANCE.md).
 
-## POS-021 internal PostgreSQL idempotent sync PUSH (draft PR #40)
+## POS-021 internal PostgreSQL idempotent sync PUSH (merged PR #40)
 
 `apps/api/src/sync/service.ts` applies POS-016-compatible `SALE_COMPLETED` cash-sale events into PostgreSQL v1 in **one transaction per event**: immutable `sales + sale_items + payments(CASH) + inventory_movements + balances + sync_conflicts + sync_receipts`. Exact duplicate delivery returns the previously stored ACK without a second stock debit. The server may retain signed negative stock with explicit reconciliation conflict when an already-paid offline sale arrives after online inventory changed. The `/v1/sync/push` route is **not registered by normal `main.ts`**: only isolated Fastify.inject/CI tests can provide a synthetic resolver. D-013 signed offline grant and real cashier/device auth are **required before opening network traffic**.
 
@@ -183,11 +183,22 @@ pnpm --filter @smartpos/api test:sync:parity
 
 The live PostgreSQL tests run **only** on CI disposable `127.0.0.1:5432/smartpos_ci`, never Neon. See [POS-021 Windows/CI acceptance and signed-grant security gate](docs/POS-021_SYNC_PUSH_ACCEPTANCE.md).
 
+## POS-022 recoverable SQLite outbox retry worker (draft PR #42)
+
+`apps/desktop/src/main/local-db/outbox-worker.ts` contains a **MAIN-only** opt-in worker for dispatching immutable SQLite v1 `SALE_COMPLETED` events over an **injected fake/test transport**. It claims PENDING/RETRY by `created_at,event_id` under an IMMEDIATE transaction, verifies the real POS-016 Zod event/hash and exact matching response, and commits `SYNCED`/RETRY/NEEDS_REVIEW updates atomically to `outbox_events` + `local_sales`. Retry uses bounded exponential backoff + jitter, manual reconnect and SYNCING crash recovery. It never re-debits local stock or deletes sale evidence. An ACK with stock/price conflict stores outbox SYNCED but leaves local sale NEEDS_REVIEW.
+
+```powershell
+pnpm --filter @smartpos/desktop test:outbox-worker
+pnpm --filter @smartpos/desktop test:outbox-boundary
+```
+
+**Not a deployed sync worker:** normal Electron MAIN startup never instantiates it; no HTTP client or real signed-grant credentials. D-013 remains a hard security prerequisite for live API transport. See [POS-022 Windows and crash/reconnect acceptance](docs/POS-022_OUTBOX_ACCEPTANCE.md).
+
 ## Monorepo layout
 
 | Workspace | What exists |
 |---|---|
-| `apps/desktop` | Electron + React/Vite demo, local SQLite v1 merged and Windows test accepted |
+| `apps/desktop` | Electron + React/Vite demo; SQLite v1, POS-019 sale and POS-022 unmounted retry worker |
 | `apps/api` | Fastify health, Neon development diagnostics, unmounted catalog/inventory and POS-021 server-only sync transaction service |
 | `packages/contracts` | Zod cart estimate DTOs, signed-bigint-safe VND strings, POS-010 merged |
 | `packages/domain` | Pure bigint cash calculation helpers, POS-010 merged |
