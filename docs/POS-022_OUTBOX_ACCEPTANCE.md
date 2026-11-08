@@ -4,7 +4,7 @@
 
 ## What POS-022 implements
 
-The opt-in `OutboxRetryWorker` in `apps/desktop/src/main/local-db/outbox-worker.ts` is a MAIN-only **internal service**. Real `commitLocalCashSale` (POS-019) writes an immutable sale + cash receipt + POS-016 `SALE_COMPLETED` event into SQLite in one transaction. The new worker selects one eligible PENDING or due RETRY event (ordered `created_at,event_id`), sets SYNCING in an IMMEDIATE transaction, sends the original event through an explicitly **injected** `OutboxTransport` (a fake function in CI tests) and validates a matching POS-016 v1 response with the real shared Zod `assertPushResponseMatchesRequest`.
+The opt-in `OutboxRetryWorker` in `apps/desktop/src/main/local-db/outbox-worker.ts` is a MAIN-only **internal service**. Real `commitLocalCashSale` (POS-019) writes an immutable sale + cash receipt + POS-016 `SALE_COMPLETED` event into SQLite in one transaction. The new worker selects one eligible PENDING or due RETRY event (ordered `created_at,event_id`), sets SYNCING in an IMMEDIATE transaction, sends the original event through an explicitly **injected** `OutboxTransport` (a fake function in CI tests) and validates a matching POS-016 v1 response with the real shared Zod `assertPushResponseMatchesRequest`. **Before dispatch**, the independent POS-020 persisted read-only receipt projection cross-checks all immutable sale/items/CASH payment snapshots against the outbox payload/hash; even a **correctly rehashed forged event** cannot rewrite an existing paid sale.
 
 The server response is **never accepted as a trusted ACK** merely because a promise resolves or HTTP status would be 200. The response must have correct `protocolVersion`, device, event and sale IDs, correct v1 `ACKED` enum/code, UTC receipt time and conflict IDs. Only then does one SQLite transaction update `outbox_events.state='SYNCED'`, store the immutable matching result in `ack_json`, and update `local_sales.sync_status`. An `ACKED` receipt with `STOCK_SHORTAGE_RECONCILIATION` or `STALE_PRICE_REVIEW` is durably synced server-side but leaves local sale in `NEEDS_REVIEW` to flag unresolved inventory/price conflict. `NEEDS_REVIEW` response stores review evidence, never deletes original sales.
 
@@ -55,7 +55,7 @@ Expected: Node.js **24.x**, pnpm **10.20.0**; TypeScript and Electron build PASS
 - Network error causes RETRY with next_retry_at. Immediate tick is IDLE; explicit manual reconnect sends the **same** original event with no stock debit twice.
 - App/crash mid SYNCING then close/reopen recovers RETRY with the same `event_id`, `payload_hash` and JSON.
 - Lost server ACK + new worker after reopen reuses exact original event, then accepts durable replay.
-- Wrong sale ID, wrong device ID, missing results, malformed/extra ACK fields or damaged payload/hash **never** mark SYNCED; event/sale goes to NEEDS_REVIEW (retains evidence).
+- Wrong sale ID, wrong device ID, missing results, malformed/extra ACK fields, damaged payload/hash **or correctly rehashed but inconsistent financial payload** **never** mark SYNCED; event/sale goes to NEEDS_REVIEW (retains evidence).
 - Injected local SQLite trigger failure when updating sale status forces **whole ACK transaction rollback**; after trigger removed, startup recovery and retry succeeds.
 - Multiple rapid `runOnce()` calls are single-flight. Two different sale events dispatch in stable deterministic order and keep both original CASH payments.
 - Static security boundary test verifies renderer/preload/current Electron entrypoint contains **no worker invocation or public sync route**; no HTTP or token in outbox module.
@@ -70,10 +70,10 @@ Expected: still **DEMO ONLY**, Electron IPC schema v1, demo cart/receipt prints 
 
 ## CI and acceptance gate
 
-- [ ] Linux Node24 strict TS/Electron build + POS-022 file SQLite worker/boundary + prior API/contracts/domain.
+- [ ] Final PR HEAD Linux Node24 strict TS/Electron build + POS-022 file SQLite worker/boundary + prior API/contracts/domain. Code checkpoint `047dd17a` **SUCCESS** [Foundation CI #42437798730](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42437798730): outbox **18/18** + boundary **2/2** both Linux and Windows; includes rehashed-forgery test.
 - [ ] Windows Node24 POS-022 worker/boundary + prior SQLite 7/6/16/1/8/2 regression suites.
 - [ ] Disposable PostgreSQL 16 migration + POS-014/015/021 tests PASS; no production database contacted.
-- [ ] Docs CI PASS at **final PR HEAD**.
+- [ ] Docs CI PASS at **final PR HEAD**. Code checkpoint [Docs #42437798816](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42437798816) SUCCESS; final docs HEAD must be checked.
 - [ ] Owner confirms Windows PASS and security boundary/limitations, then manually merges PR #42. Issue #41 may be closed after merge.
 
 Next: POS-023 server catalog delta pull and POS-024 manager review; D-013 auth is a hard gate before enabling actual network or paid checkout.
