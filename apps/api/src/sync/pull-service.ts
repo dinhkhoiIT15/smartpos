@@ -27,6 +27,7 @@ const schema=z.strictObject({
     z.string().regex(/^[1-9][0-9]{0,2}$/).transform(Number)
       .pipe(z.number().max(100))]).optional().default(100),
 });
+export function parsePullQuery(raw:unknown):z.infer<typeof schema>{return schema.parse(raw);}
 export class SyncPullError extends Error{
  constructor(readonly code:'UNAUTHORIZED'|'FORBIDDEN'|'TEMPORARY_UNAVAILABLE',
    readonly httpStatus:number){super(code);this.name='SyncPullError';}
