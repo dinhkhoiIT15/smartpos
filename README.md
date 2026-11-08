@@ -1,6 +1,6 @@
 # SmartPOS Retail — Desktop + API Foundation
 
-**Status:** M3 POS-020 internal receipt PREVIEW development. POS-019 [PR #36](https://github.com/dinhkhoiIT15/smartpos/pull/36) is owner Windows-accepted and merged into main `ec71c07`; POS-020 [Issue #37](https://github.com/dinhkhoiIT15/smartpos/issues/37) / [draft PR #38](https://github.com/dinhkhoiIT15/smartpos/pull/38) adds a watermark-only demo print preview and a MAIN-only verified SQLite receipt read model. **No real login, public paid-sale checkout, HTTP sync, worker or production rollout**; D-013 cryptographic staff/device authorization remains unimplemented. Neon has only owner-verified development schema.
+**Status:** M4 POS-021 INTERNAL PostgreSQL idempotent sale sync PUSH development. POS-020 [PR #38](https://github.com/dinhkhoiIT15/smartpos/pull/38) was owner Windows-accepted and merged into `main` `cab4787`; POS-021 [Issue #39](https://github.com/dinhkhoiIT15/smartpos/issues/39) / [draft PR #40](https://github.com/dinhkhoiIT15/smartpos/pull/40) implement transactionally persisted server sale/items/CASH/stock movements/reconciliation conflicts/ACK receipt but do NOT mount public sync routes. **No real login, public paid-sale checkout, live HTTP sync, worker or production rollout**; D-013 cryptographic staff/device authorization remains unimplemented. Neon has only owner-verified development schema.
 
 SmartPOS is a planned offline-first, cash-only POS for a single electronics store. The accepted baseline (one authorized offline cashier, immutable sales, integer VND, SKU inventory) is recorded in [AGENTS.md](AGENTS.md), [PRD](docs/PRODUCT_REQUIREMENTS.md), [Business Rules](docs/BUSINESS_RULES.md) and [Architecture](docs/SYSTEM_ARCHITECTURE.md).
 
@@ -158,7 +158,7 @@ pnpm --filter @smartpos/desktop test:offline-sale:wire
 
 **Not live sales:** `commitLocalCashSale` is intentionally **unreachable from renderer/preload and normal Electron app flow** because D-013 signed grant, cashier/device authorization and OS key/clock protections are not implemented. `offlineGrantId` in an input payload is not proof of a valid grant. The demo UI still never saves or acknowledges actual payments. Do not use fixtures with real customer information. Read the [full POS-019 Windows acceptance/security guide](docs/POS-019_OFFLINE_SALE_ACCEPTANCE.md).
 
-## POS-020 internal cash receipt preview and SQLite read-only projection (draft PR #38)
+## POS-020 internal cash receipt preview and SQLite read-only projection (merged PR #38)
 
 The demo cart can now **preview and print a distinctly watermarked sample internal receipt** after entering a sufficient synthetic cash amount. The paper includes SKU, attributes, quantity, subtotal, discount, due, tendered cash, change and Vietnam date/time; it always says **MẪU — KHÔNG CÓ GIAO DỊCH** and **KHÔNG PHẢI HÓA ĐƠN THUẾ**, even in print. No real payment or receipt is created.
 
@@ -172,12 +172,23 @@ pnpm --filter @smartpos/desktop dev
 
 See [POS-020 Windows acceptance + print safety guide](docs/POS-020_RECEIPT_ACCEPTANCE.md).
 
+## POS-021 internal PostgreSQL idempotent sync PUSH (draft PR #40)
+
+`apps/api/src/sync/service.ts` applies POS-016-compatible `SALE_COMPLETED` cash-sale events into PostgreSQL v1 in **one transaction per event**: immutable `sales + sale_items + payments(CASH) + inventory_movements + balances + sync_conflicts + sync_receipts`. Exact duplicate delivery returns the previously stored ACK without a second stock debit. The server may retain signed negative stock with explicit reconciliation conflict when an already-paid offline sale arrives after online inventory changed. The `/v1/sync/push` route is **not registered by normal `main.ts`**: only isolated Fastify.inject/CI tests can provide a synthetic resolver. D-013 signed offline grant and real cashier/device auth are **required before opening network traffic**.
+
+```powershell
+pnpm --filter @smartpos/api test:sync
+pnpm --filter @smartpos/api test:sync:parity
+```
+
+The live PostgreSQL tests run **only** on CI disposable `127.0.0.1:5432/smartpos_ci`, never Neon. See [POS-021 Windows/CI acceptance and signed-grant security gate](docs/POS-021_SYNC_PUSH_ACCEPTANCE.md).
+
 ## Monorepo layout
 
 | Workspace | What exists |
 |---|---|
 | `apps/desktop` | Electron + React/Vite demo, local SQLite v1 merged and Windows test accepted |
-| `apps/api` | Fastify health, Neon development diagnostics and auth-gated catalog service in PR #26 (not runtime enabled) |
+| `apps/api` | Fastify health, Neon development diagnostics, unmounted catalog/inventory and POS-021 server-only sync transaction service |
 | `packages/contracts` | Zod cart estimate DTOs, signed-bigint-safe VND strings, POS-010 merged |
 | `packages/domain` | Pure bigint cash calculation helpers, POS-010 merged |
 | `packages/db` | Drizzle PostgreSQL schema v1, merged, applied only to Neon development |
@@ -187,7 +198,7 @@ See [Desktop README](apps/desktop/README.md), [API README](apps/api/README.md), 
 
 ## Boundaries
 
-- Neon development SELECT 1 and 17-table PostgreSQL v1 migration were verified separately by owner; SQLite v1 local schema runs in Electron main. There is still **no login implementation, real paid-sale checkout or sync API**.
+- Neon development SELECT 1 and 17-table PostgreSQL v1 migration were verified separately by owner; SQLite v1 local schema runs in Electron main. There is still **no login implementation, real paid-sale checkout or publicly enabled sync API**.
 - All business values in VND are integer/bigint when those modules are implemented; no float money calculations.
 - Do not commit `.env`, local SQLite files, tokens, private data or real customer sales.
 - Keep secrets server-side in future issues; Electron renderer must never access Neon directly.

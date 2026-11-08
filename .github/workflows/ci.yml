@@ -41,10 +41,11 @@ jobs:
         run: |
           pnpm --filter @smartpos/desktop test:receipt-db
           pnpm --filter @smartpos/desktop test:receipt-boundary
-      - name: Build and test Fastify API
+      - name: Build and test Fastify API + POS-016 to POS-021 exact schema/hash parity
         run: |
           pnpm --filter @smartpos/api build
           pnpm --filter @smartpos/api test
+          pnpm --filter @smartpos/api test:sync:parity
       - name: Verify shared DTOs and bigint VND domain rules
         run: |
           pnpm --filter @smartpos/contracts test
@@ -92,6 +93,8 @@ jobs:
         run: pnpm --filter @smartpos/api test:catalog:pg
       - name: POS-015 inventory balances, idempotency, concurrency and rollback integration
         run: pnpm --filter @smartpos/api test:inventory:pg
+      - name: POS-021 PostgreSQL cash sale PUSH idempotency, lost ACK and negative-stock reconciliation
+        run: pnpm --filter @smartpos/api test:sync:pg
 
 # Database tests run ONLY against disposable CI PostgreSQL; Neon is never contacted.
 
@@ -122,3 +125,5 @@ jobs:
           pnpm --filter @smartpos/desktop test:offline-sale:wire
           pnpm --filter @smartpos/desktop test:receipt-db
           pnpm --filter @smartpos/desktop test:receipt-boundary
+      - name: POS-021 strict POS-016 contract and hash parity on Windows Node24
+        run: pnpm --filter @smartpos/api test:sync:parity
