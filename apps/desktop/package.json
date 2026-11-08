@@ -16,10 +16,13 @@
     "test:offline-sale": "node --experimental-strip-types --test tests/offline-sale.test.mjs",
     "test:offline-sale:wire": "pnpm --filter @smartpos/contracts exec tsx --test ../../apps/desktop/tests/offline-sale-wire.test.ts",
     "test:receipt-db": "pnpm --filter @smartpos/domain exec tsx --test ../../apps/desktop/tests/receipt-db.test.ts",
-    "test:receipt-boundary": "node --test tests/receipt-boundary.test.mjs"
+    "test:receipt-boundary": "node --test tests/receipt-boundary.test.mjs",
+    "test:outbox-worker": "pnpm --filter @smartpos/contracts exec tsx --test ../../apps/desktop/tests/outbox-worker.test.ts",
+    "test:outbox-boundary": "node --test tests/outbox-boundary.test.mjs"
   },
   "dependencies": {
     "@smartpos/domain": "workspace:*",
+    "@smartpos/contracts": "workspace:*",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },

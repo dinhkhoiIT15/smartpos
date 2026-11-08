@@ -1,6 +1,6 @@
 # SmartPOS Desktop — Secure Electron shell + SQLite v1 (POS-013)
 
-**Status:** Development-only Electron demo with SQLite v1 and merged POS-017 cache/POS-018 cart/POS-019 MAIN-only atomic cash sale core. POS-020 adds a **sample watermarked internal receipt print preview** and a separately verified **MAIN-only persisted receipt read model**. No authenticated catalog sync, real paid checkout, staff authorization, genuine receipt issuance or production sale.
+**Status:** Development-only Electron demo with SQLite v1 and merged POS-017 cache/POS-018 cart/POS-019 MAIN-only atomic cash sale core. POS-020 merged a **sample watermarked internal receipt preview** and **MAIN-only persisted receipt read model**. POS-022 Draft PR #42 adds a separately unmounted **MAIN-only outbox retry worker** with injectable fake/test transport. No authenticated catalog sync, real paid checkout, staff authorization, genuine receipt issuance or production sale.
 
 ## Run on Windows / macOS
 
@@ -14,6 +14,8 @@ pnpm --filter @smartpos/desktop test:catalog-cache
 pnpm --filter @smartpos/desktop test:offline-sale
 pnpm --filter @smartpos/desktop test:offline-sale:wire
 pnpm --filter @smartpos/desktop test:receipt-db
+pnpm --filter @smartpos/desktop test:outbox-worker
+pnpm --filter @smartpos/desktop test:outbox-boundary
 pnpm --filter @smartpos/desktop security:check
 pnpm --filter @smartpos/desktop build
 pnpm --filter @smartpos/desktop dev
@@ -91,8 +93,21 @@ pnpm --filter @smartpos/desktop test:receipt-db
 
 See [POS-020 Windows acceptance](../../docs/POS-020_RECEIPT_ACCEPTANCE.md). Synthetic receipt examples and corruption fixtures run only against OS-generated temporary files (Windows-safe handle close); do not delete actual Electron `userData` or modify live SQLite.
 
+## POS-022 internal outbox retry (NOT started by normal Electron)
+
+`src/main/local-db/outbox-worker.ts` implements `OutboxRetryWorker` and standalone `recoverOrphanedOutbox` / `retryOutboxNow`. It claims earliest due outbox event in SQLite v1 with one IMMEDIATE transaction and increments attempts; validates the exact persisted POS-016 v1 SHA256 event with shared Zod before an injected transport callback; requires the original complete matching v1 ACK to mark SYNCED. A bogus reply without matching event/sale/device/fields becomes NEEDS_REVIEW, not a false cloud success. Timeout/network failure or explicit RETRY schedules exponential backoff and jitter; restart resets orphan SYNCING to RETRY using identical original event IDs, avoiding lost cash evidence. Both event state and local sale status update transactionally, while immutable price/item/payment and local stock pending delta never change on delivery.
+
+`test:outbox-worker` exercises SQLite files and synthetic callbacks only; `test:outbox-boundary` proves no renderer, preload, IPC or normal main startup exposes or instantiates the worker. No SQLite migration; schema v1 still **9 tables**. `@smartpos/contracts` is a pre-existing shared package, now a desktop workspace dependency. A signed grant is NOT established by stored offlineGrantId/device metadata, and production API PUSH remains default 404. **Real HTTP transport MUST NOT be connected before D-013 authorization security review**.
+
+```powershell
+pnpm --filter @smartpos/desktop test:outbox-worker
+pnpm --filter @smartpos/desktop test:outbox-boundary
+```
+
+Read the [POS-022 Windows acceptance and D-013 boundary](../../docs/POS-022_OUTBOX_ACCEPTANCE.md).
+
 ## Scope / security boundaries
 
-The schema and transaction primitive lay groundwork for POS-017/POS-019. They do **not** validate a cashier session (POS-011), enable real checkout/stock deduction to a cashier (D-013/POS-019 integration), network sync (POS-021/022/023) or completed backup/recovery (POS-027/029). Business policy remains one authorized offline cashier, cash only, money in signed 64-bit integer VND, no IMEI, paid sale snapshots immutable.
+The schema and transaction primitive lay groundwork for POS-017/POS-019. They do **not** validate a cashier session (POS-011), enable real checkout/stock deduction to a cashier (D-013/POS-019 integration), live authenticated network sync (D-013/POS-023) or completed backup/recovery (POS-027/029). Business policy remains one authorized offline cashier, cash only, money in signed 64-bit integer VND, no IMEI, paid sale snapshots immutable.
 
 `node:sqlite` in Node 24 is stability **1.2 / release candidate**. Re-test on pinned Electron/Node, and require a Windows/macOS manual launch before merging. See [ADR-0003](../../docs/ADR-0003-local-sqlite-driver.md) for alternatives and risks.

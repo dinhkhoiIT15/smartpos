@@ -36,6 +36,9 @@ importers:
 
   apps/desktop:
     dependencies:
+      '@smartpos/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@smartpos/domain':
         specifier: workspace:*
         version: link:../../packages/domain
