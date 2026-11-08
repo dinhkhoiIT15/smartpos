@@ -95,6 +95,19 @@ pnpm --filter @smartpos/api test:sync:parity
 
 GitHub CI additionally runs `pnpm --filter @smartpos/api test:sync:pg` **only on disposable PostgreSQL 16** after migration v1, for concurrent duplicate/lost ACK, signed negative-stock conflict, stale pricing and late-receipt injected rollback. The test strictly refuses any database except `127.0.0.1:5432/smartpos_ci`; **never point it at Neon**. See [POS-021 full Windows/CI acceptance](../../docs/POS-021_SYNC_PUSH_ACCEPTANCE.md).
 
+## POS-023 internal server delta PULL (HTTP disabled until D-013)
+
+`src/sync/pull-service.ts` reads the existing PostgreSQL `catalog_change_log` store-scoped by v1 signed-int64 decimal cursor, strictly increasing `seq`, limit ≤100 and high-watermark pagination. POS-014 catalog writers, POS-015 manual inventory adjustments and POS-021 offline-sale PUSH now append normalized variant and stock change rows while holding the same per-store transaction advisory lock. Product rename/deactivation materializes SKU updates. New stock delta rows include `saleId,eventId` for explicit ACK-covered rebase. Existing older variant log rows without names have upgrade fallback; old stock history missing the log requires separately verified POS-017 initial snapshot.
+
+`src/sync/pull-routes.ts` is registered **only** with `buildServer({syncPull:{...}})` in controlled Fastify.inject tests. Normal `src/main.ts` never registers PULL, returns HTTP 404 regardless of self-declared device/role headers. No device grant or real network authorization until D-013; no Neon writer.
+
+```powershell
+pnpm --filter @smartpos/api typecheck
+pnpm --filter @smartpos/api test:pull
+```
+
+`test:pull:pg` runs only under disposable GitHub PostgreSQL 16 at `127.0.0.1:5432/smartpos_ci` after migration v1, never Neon. See [POS-023 acceptance](../../docs/POS-023_CATALOG_PULL_ACCEPTANCE.md).
+
 ## Build and optional Neon diagnostic
 
 ```powershell
