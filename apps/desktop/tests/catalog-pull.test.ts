@@ -73,9 +73,25 @@ function fixture(t:TestContext){
   };
  };
  const sale=()=>{commitLocalCashSale(db,saleRequest);};
+ const secondSale=()=>{
+  const next={...saleRequest,saleId:id(),eventId:id(),
+    paymentId:id(),items:saleRequest.items.map(v=>({...v,itemId:id()}))};
+  commitLocalCashSale(db,next);
+  return next;
+ };
+ const markSynced=(saleIdInput:string,eventIdInput:string)=>{
+   const ack={eventId:eventIdInput,saleId:saleIdInput,status:'ACKED',
+     resultCode:'APPLIED',serverReceivedAt:'2026-11-08T02:05:00.000Z',
+     conflictIds:[]};
+   db.prepare(`UPDATE outbox_events SET state='SYNCED',ack_json=?
+     WHERE event_id=? AND sale_id=?`)
+     .run(JSON.stringify(ack),eventIdInput,saleIdInput);
+   db.prepare(`UPDATE local_sales SET sync_status='SYNCED'
+     WHERE sale_id=?`).run(saleIdInput);
+ };
  return {get db(){return db;},open:()=>{db=open();return db;},
   close:()=>db.close(),storeId,deviceId,phoneId,caseId,saleId,eventId,
-  variant,balance,change,page,row,sale,
+  variant,balance,change,page,row,sale,secondSale,markSynced,
   getCursor:()=>getLocalCatalogCursor(db,storeId),
   getVariant:()=>lookupLocalCatalogBySku(db,storeId,'PHONE-128')[0],
  };
@@ -103,6 +119,33 @@ test('POS-023: variant/price and stock PULL preserves pending_delta and immutabl
  assert.deepEqual(f.db.prepare('SELECT payload_json,payload_hash FROM outbox_events').get(),oldOutbox);
  assert.deepEqual(f.db.prepare('SELECT due_vnd,tendered_vnd,change_vnd FROM local_payments').get(),oldPay);
  assert.deepEqual(f.db.prepare('SELECT unit_price_vnd FROM local_sale_items').get(),oldItem);
+});
+
+test('POS-023: ACK-covered sale rebase clears ONLY its own pending part, other offline sale remains',t=>{
+ const f=fixture(t);
+ f.sale();
+ const second=f.secondSale();
+ assert.equal(f.row().pending_delta,-2n);
+ f.markSynced(f.saleId,f.eventId);
+ const saleBalance={...f.balance('9','1'),saleId:f.saleId,eventId:f.eventId};
+ const page=f.page([f.change('1','inventory_balance',saleBalance,'UPSERT')],'0','1');
+ assert.equal(applyCatalogPullPage(f.db,f.storeId,page).cursor,'1');
+ assert.deepEqual(f.row(),{server_qty:9n,pending_delta:-1n,server_revision:1n});
+ assert.equal(f.db.prepare("SELECT state FROM outbox_events WHERE event_id=?")
+   .get(second.eventId)?.state,'PENDING');
+ assert.equal(applyCatalogPullPage(f.db,f.storeId,page).replay,true);
+ assert.equal(f.row().pending_delta,-1n);
+});
+
+test('POS-023: cloud delta with saleId but LOST local ACK must preserve pending quantities',t=>{
+ const f=fixture(t);
+ f.sale();
+ const stock={...f.balance('9','1'),saleId:f.saleId,eventId:f.eventId};
+ assert.equal(applyCatalogPullPage(f.db,f.storeId,
+   f.page([f.change('1','inventory_balance',stock,'UPSERT')],'0','1')).cursor,'1');
+ assert.equal(f.row().pending_delta,-1n);
+ assert.equal(f.db.prepare("SELECT state FROM outbox_events WHERE event_id=?")
+   .get(f.eventId)?.state,'PENDING');
 });
 
 test('POS-023: strict highWatermark paging with gaps, cursor persist/reopen, exact replay no stock changes',t=>{
