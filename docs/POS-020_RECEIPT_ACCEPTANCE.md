@@ -1,6 +1,6 @@
 # POS-020 — Phiếu bán hàng nội bộ (M3/P0)
 
-**Trạng thái:** [Issue #37](https://github.com/dinhkhoiIT15/smartpos/issues/37), [draft PR #38](https://github.com/dinhkhoiIT15/smartpos/pull/38), nhánh `feature/POS-020-internal-receipt`. POS-019 [PR #36](https://github.com/dinhkhoiIT15/smartpos/pull/36) đã PASS nghiệm thu Windows và merge trên main tại `ec71c07e45e27b1158811a309da79402786fef5a`. **Owner POS-020 chưa nghiệm thu/merge.**
+**Trạng thái:** [Issue #37](https://github.com/dinhkhoiIT15/smartpos/issues/37), [draft PR #38](https://github.com/dinhkhoiIT15/smartpos/pull/38), nhánh `feature/POS-020-internal-receipt`. POS-019 [PR #36](https://github.com/dinhkhoiIT15/smartpos/pull/36) đã PASS nghiệm thu Windows và merge trên main tại `ec71c07e45e27b1158811a309da79402786fef5a`. **Owner POS-020 chưa nghiệm thu/merge.** Code checkpoint `68838347` [Foundation CI #42432879225](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42432879225) và [Docs CI #42432879518](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42432879518) **PASS** (Linux+Windows Node24, receipt-db 8/8, boundary 2/2; TypeScript/Electron/API/disposable PostgreSQL). Sau chỉnh tài liệu, phải kiểm tra lại CI ở HEAD cuối PR.
 
 ## Đã triển khai
 
