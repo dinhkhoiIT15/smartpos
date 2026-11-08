@@ -37,8 +37,10 @@ jobs:
         run: |
           pnpm --filter @smartpos/desktop test:offline-sale
           pnpm --filter @smartpos/desktop test:offline-sale:wire
-      - name: POS-020 persisted read-only receipt verification (disposable SQLite)
-        run: pnpm --filter @smartpos/desktop test:receipt-db
+      - name: POS-020 persisted read-only receipt verification and renderer/IPC boundary
+        run: |
+          pnpm --filter @smartpos/desktop test:receipt-db
+          pnpm --filter @smartpos/desktop test:receipt-boundary
       - name: Build and test Fastify API
         run: |
           pnpm --filter @smartpos/api build
@@ -119,3 +121,4 @@ jobs:
           pnpm --filter @smartpos/desktop test:offline-sale
           pnpm --filter @smartpos/desktop test:offline-sale:wire
           pnpm --filter @smartpos/desktop test:receipt-db
+          pnpm --filter @smartpos/desktop test:receipt-boundary
