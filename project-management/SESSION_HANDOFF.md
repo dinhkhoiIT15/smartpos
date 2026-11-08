@@ -1,50 +1,45 @@
-# Session Handoff — SmartPOS
+# Session Handoff — SmartPOS POS-021
 
-## 2026-11-08 — POS-020 internal receipt preview
+## Verified GitHub baseline / PR
 
-**Verified GitHub `main`:** `ec71c07e45e27b1158811a309da79402786fef5a`, POS-019 [PR #36](https://github.com/dinhkhoiIT15/smartpos/pull/36) **owner Windows PASS, merged**. Issue #35 closed. Previous POS-018 #34 and POS-017 #32 owner accepted. Development status `verified_commit` means merged `main`, not the POS-020 branch.
+- Verified `main` = `cab478722068560a1f104bd2d36a9af300866967`: owner Windows-accepted and merged [POS-020 PR #38](https://github.com/dinhkhoiIT15/smartpos/pull/38). Owner reported PASS/merge, GitHub confirmed; Issue #37 closed. POS-019 #36 and earlier already merged. `DEVELOPMENT_STATUS.verified_commit` refers to main, not feature head.
+- Current [Issue #39](https://github.com/dinhkhoiIT15/smartpos/issues/39), [Draft PR #40](https://github.com/dinhkhoiIT15/smartpos/pull/40) branch `feature/POS-021-idempotent-sync-push` based on verified main. **Not merged/owner POS-021 pending.**
 
-**Current [Issue #37](https://github.com/dinhkhoiIT15/smartpos/issues/37), [Draft PR #38](https://github.com/dinhkhoiIT15/smartpos/pull/38)** from branch `feature/POS-020-internal-receipt` → `main`. **NOT MERGED**, owner Windows human acceptance pending.
+## Changed
 
-## POS-020 implemented
+- `apps/api/src/sync/schema.ts`: strict v1 SALE_COMPLETED schema mirror, signed 64-bit decimal money, canonical SHA256 hash, 25 events/100 items/512 KiB batch. `apps/api/tests/sync-parity.test.ts` validates actual POS-016 shared Zod v1 schema/hash parity (outside API TypeScript build root). No new runtime dependencies.
+- `apps/api/src/sync/service.ts`: internal `SyncPushService` with PG transaction and per-store advisory lock; verifies active store-scoped registered device and active staff membership in DB; stores POSTED sale, sale_items snapshots, CASH payment, stock decrement/movements and negative-stock/stale-price conflict records plus append-only original ACK receipt last. Retry same device/event/sale/hash returns stored exact ACK, mismatched identities become NEEDS_REVIEW. No automatic cancellation/overwrite of paid offline sale.
+- `apps/api/src/sync/routes.ts` and `apps/api/src/server.ts`: **opt-in** Fastify route solely with injected test-only trusted principal. Normal `main.ts` still has no sync route and HTTP 404. D-013 signed offline grant + device key/clock/cashier shift not implemented. Event's `offlineGrantId` is NOT a verified grant; do not publicly mount a resolver.
+- `apps/api/src/sync/routes.test.ts`: default 404, fake headers denied, payload errors and accepted synthetic injected ack. `apps/api/src/sync/sync.pg.test.ts`: disposable PostgreSQL 16 rollback/retry/lost ACK/concurrency, cloud negative stock conflict and stale price, revocation and other-store, exact >2^53 VND. `apps/api/tests/sync-parity.test.ts`: exact POS-016 contract cross-check.
+- API package scripts `test:sync`, `test:sync:pg`, `test:sync:parity`; GitHub CI Linux+Windows runs parity, disposable PostgreSQL CI additionally runs PG integration. No SQLite/Neon changes and 17-table PG schema migration v1 remains unchanged.
+- [Full POS-021 Windows and CI acceptance](../docs/POS-021_SYNC_PUSH_ACCEPTANCE.md), API/root READMEs, traceability, this handoff.
 
-- New shared pure `@smartpos/domain/receipt` export `packages/domain/src/receipt.ts`: strict signed-64-bit VND decimal string/BigInt, item snapshots, line discounts, cash due/tender/change, deterministic VN timezone, local sync labels. `createDemoInternalReceipt` cannot generate real ID/paid state and always includes DEMO watermark + non-tax notice. `buildPersistedInternalReceipt` is for future MAIN-verified evidence only; pure function itself grants no authorization. `receipt.test.ts` 7 cases including BR-002 and invalid money/time.
-- New MAIN-only `apps/desktop/src/main/local-db/receipt.ts`: read committed sale/items/CASH payment/outbox in read-only SQL; validates row totals, immutable SKU/name/attrs, canonical POS-016 event SHA256 and matching outbox IDs/snapshots. Does not use mutable latest catalog, does not update any financial state. `SYNCED` status now needs matching saved ACKED response, still labeled local.
-- New `apps/desktop/src/renderer/src/internal-receipt.tsx` with accessible modal/focus/Escape, print via `window.print()`, receipt item list/VND/change and big **MẪU — KHÔNG CÓ GIAO DỊCH**, no real tax invoice. `app.tsx` opens it only from *synthetic, sufficient cash preview*; no main DB/receipt IPC or real SALE_COMPLETED. `styles.css` @media print preserves visible DEMO watermark in plain black when backgrounds are off. No sale ID or cashier identity is invented for real people.
-- New `apps/desktop/tests/receipt-db.test.ts` 8 file-backed SQLite tests (including missing/tampered outbox/payment and ACK status gate); `receipt-boundary.test.mjs` 2 static security/print tests. Desktop package scripts `test:receipt-db`, `test:receipt-boundary` executed in GitHub CI on Linux and Windows; domain test auto-picks `receipt.test.ts`.
-- [POS-020 Windows acceptance](../docs/POS-020_RECEIPT_ACCEPTANCE.md), README and traceability updated; no SQLite migration or external dependency/Neon write.
+## CI
 
-## CI evidence, outstanding
+- Final transactional code checkpoint `76a5628` [Foundation #42434326435](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42434326435) **SUCCESS** with Linux/API, Windows Node24 desktop tests, disposable PostgreSQL 16 including POS-021 sync tests.
+- Later POS-016 exact parity test added: initial `.mjs` TSX runner failed on Node24, converted to `apps/api/tests/sync-parity.test.ts` outside NodeNext build root; fixed missing event closing brace in a negative-case fixture. Latest code/Docs CI MUST be verified at final PR HEAD before owner acceptance; no false green claim.
 
-- **Verified code checkpoint `68838347067b4b5cac55c36a770a2438cdfe009b`**: [Foundation CI #42432879225](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42432879225) **SUCCESS** Linux, Windows Node24 and disposable PostgreSQL 16. New persisted receipt **8/8** and IPC/print security boundary **2/2** on *both* Linux/Windows; shared domain receipt tests and existing POS-019/SQLite/Electron/API checks green. [Docs CI #42432879518](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42432879518) **SUCCESS**. Includes strict `SYNCED` matching local outbox ACK gate. If docs-only commits follow, verify final SHA CI again. Owner local Windows/print-preview manual testing NOT YET accepted.
-
-## Owner Windows commands
+## Owner Windows safe commands
 
 ```powershell
 git status --short
 git fetch origin
-git switch feature/POS-020-internal-receipt
-git pull --ff-only origin feature/POS-020-internal-receipt
+git switch feature/POS-021-idempotent-sync-push
+git pull --ff-only origin feature/POS-021-idempotent-sync-push
 node --version
 pnpm --version
 pnpm install --frozen-lockfile
-pnpm --filter @smartpos/domain typecheck
-pnpm --filter @smartpos/domain test
-pnpm --filter @smartpos/desktop typecheck
-pnpm --filter @smartpos/desktop test:local-db
-pnpm --filter @smartpos/desktop test:catalog-cache
-pnpm --filter @smartpos/desktop test:offline-sale
-pnpm --filter @smartpos/desktop test:offline-sale:wire
-pnpm --filter @smartpos/desktop test:receipt-db
-pnpm --filter @smartpos/desktop test:receipt-boundary
-pnpm --filter @smartpos/desktop security:check
-pnpm --filter @smartpos/desktop build
+pnpm --filter @smartpos/api typecheck
+pnpm --filter @smartpos/api build
+pnpm --filter @smartpos/api test
+pnpm --filter @smartpos/api test:sync
+pnpm --filter @smartpos/api test:sync:parity
+pnpm --filter @smartpos/contracts test
 pnpm run check
-pnpm --filter @smartpos/desktop dev
 ```
 
-Expected baseline SQLite 7/7, cache 6/6, offline sale 16/16, wire 1/1, receipt-db 8/8, receipt-boundary 2/2 and domain 7 new receipt tests + old domain tests. With demo PHONE-128 8.990.000 + CASE-01 350.000, tender `9500000`: receipt sample due 9.340.000 / change 160.000, NEVER no-watermark/no-tax label. With insufficient `9000000`, the preview button remains disabled. On **Windows print preview**, watermark must appear even with *Background graphics* disabled. Confirm `DEMO_ONLY • SQLite schema v1`, no actual checkout or real receipt IPC. Cancel print dialog; no data persisted.
+Expected Node24/pnpm10.20.0, all unit/parity/TypeScript checks PASS; **no PostgreSQL tests on Neon**. Real DB tests only run GitHub CI ephemeral PostgreSQL 16 at `127.0.0.1:5432/smartpos_ci`. Optionally `pnpm --filter @smartpos/api dev`, expect GET health HTTP200 and POST /v1/sync/push HTTP404 even with forged headers. No real sales/requests processed.
 
-## Critical boundary / next
+## Production blockers and next backlog
 
-D-013 real signed staff/device grant + cashier session/OS key/shift/clock/revocation still unimplemented, do not wire persisted `loadCommittedLocalReceipt` or `commitLocalCashSale` into untrusted renderer. D-010 4h is **policy**, not a validated grant. No real customer receipt or VAT invoice. After owner Windows PASS and manual PR merge, close Issue #37 and proceed POS-021 idempotent server sync API (still requires real auth to expose). No production/Neon writes.
+POS-011 D-010 4h offline grant policy is design-only. **D-013** real server signed grants/OS device proof/store/shift/clock/revocation must be reviewed before HTTP sync routes can be enabled. Do not add `sync` resolver in `main.ts` or claim actual staff authentication. POS-022 desktop outbox retry, POS-023 catalog pull, POS-024 manager conflict UI and POS-029 backup/recovery pending. After owner PASS and manual merge, close Issue #39 and continue POS-022; no public deployment/Neon writes.
