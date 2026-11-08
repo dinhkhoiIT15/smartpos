@@ -68,7 +68,7 @@ function fixture(t:TestContext){
   const q=db.prepare(`SELECT server_qty,pending_delta,server_revision
    FROM local_inventory_balances WHERE store_id=? AND variant_id=?`);
   q.setReadBigInts(true);
-  return q.get(storeId,phoneId) as {
+  return {...q.get(storeId,phoneId)} as {
     server_qty:bigint;pending_delta:bigint;server_revision:bigint;
   };
  };
@@ -259,7 +259,7 @@ test('POS-023: without trusted POS-017 bootstrap or other store scope, no page m
   /CATALOG_PULL_WRONG_STORE/);
  const orphan=id();
  assert.throws(()=>applyCatalogPullPage(f.db,f.storeId,
-   {...f.page([],'0','0'),fromCursor:'1'}),
+   f.page([],'1','1')),
    /CATALOG_PULL_CURSOR_MISMATCH/);
  const other=f.db.prepare('SELECT store_id FROM sync_cursors').get();
  assert.ok(other);
