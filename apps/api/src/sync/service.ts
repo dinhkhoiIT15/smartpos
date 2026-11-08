@@ -189,6 +189,16 @@ export class SyncPushService {
           (id,store_id,variant_id,sale_id,qty_delta,kind)
           VALUES($1,$2,$3,$4,$5::bigint,'SALE_OFFLINE')`,
           [randomUUID(),ctx.storeId,item.variantId,event.saleId,String(-BigInt(item.quantity))]);
+        // POS-023 PULL: record the exact committed server stock snapshot
+        // under the SAME per-store advisory lock and sale transaction.
+        // Duplicate PUSH replay returns the stored ACK before reaching here.
+        await db.query(`INSERT INTO catalog_change_log
+          (store_id,entity_type,entity_id,op,payload)
+          VALUES($1,'inventory_balance',$2,'UPSERT',$3::jsonb)`,
+          [ctx.storeId,item.variantId,JSON.stringify({
+            storeId:ctx.storeId,variantId:item.variantId,
+            qty:updated.rows[0]!.qty,revision:updated.rows[0]!.revision,
+          })]);
         if(after<0n){
           shortage=true;
           const conflictId=randomUUID();
