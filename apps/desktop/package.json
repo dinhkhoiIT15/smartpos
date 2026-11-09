@@ -20,7 +20,9 @@
     "test:outbox-worker": "pnpm --filter @smartpos/contracts exec tsx --test ../../apps/desktop/tests/outbox-worker.test.ts",
     "test:outbox-boundary": "node --test tests/outbox-boundary.test.mjs",
     "test:catalog-pull": "pnpm --filter @smartpos/contracts exec tsx --test ../../apps/desktop/tests/catalog-pull.test.ts",
-    "test:catalog-pull:boundary": "node --test tests/catalog-pull-boundary.test.mjs"
+    "test:catalog-pull:boundary": "node --test tests/catalog-pull-boundary.test.mjs",
+    "test:sales-report": "pnpm --filter @smartpos/domain exec tsx --test ../../apps/desktop/tests/sales-report.test.ts",
+    "test:sales-report:boundary": "node --test tests/sales-report-boundary.test.mjs"
   },
   "dependencies": {
     "@smartpos/domain": "workspace:*",
