@@ -23,7 +23,7 @@ test('POS-024 default Fastify refuses all conflict HTTP paths, even forged manag
   for (const [method, url] of [
     ['GET', '/v1/sync/conflicts'], ['GET', '/v1/sync/conflicts/' + conflictId],
     ['POST', '/v1/sync/conflicts/' + conflictId + '/resolve'],
-  ]) {
+  ] as const) {
     const res = await app.inject({
       method: method as 'GET' | 'POST', url,
       headers: {'x-role': 'ADMIN', 'x-store-id': storeId},
