@@ -1,0 +1,48 @@
+# POS-028 — UNTRUSTED/UNSIGNED demo installers only; never publish.
+# CLI always passes --publish never; projectDir is .demo-package (compiled stage).
+# v26 YAML schema: Node24, Electron 44.9.3, electron-builder 26.18.1.
+appId: vn.smartpos.retail.demo
+productName: SmartPOS Retail DEMO
+electronVersion: 44.9.3
+asar: true
+compression: maximum
+forceCodeSigning: false
+npmRebuild: false
+nodeGypRebuild: false
+buildDependenciesFromSource: false
+directories:
+  output: ../demo-artifacts
+files:
+  - out/**/*
+  - package.json
+  - '!**/*.map'
+  - '!**/*.ts'
+  - '!**/*.tsx'
+  - '!**/.env*'
+  - '!**/*.sqlite*'
+  - '!**/*.db*'
+  - '!**/*.pem'
+  - '!**/*.key'
+  - '!**/*.pfx'
+  - '!**/*.p12'
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  artifactName: SmartPOS-DEMO-${version}-win-${arch}-setup.${ext}
+mac:
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+    - target: zip
+      arch: [x64, arm64]
+  artifactName: SmartPOS-DEMO-${version}-mac-${arch}.${ext}
+  identity: null
+  notarize: false
+nsis:
+  oneClick: true
+  perMachine: false
+  allowElevation: false
+  createDesktopShortcut: false
+  createStartMenuShortcut: true
+  deleteAppDataOnUninstall: false

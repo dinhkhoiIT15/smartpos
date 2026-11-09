@@ -51,6 +51,8 @@ jobs:
           pnpm --filter @smartpos/desktop test:catalog-pull:boundary
           pnpm --filter @smartpos/desktop test:sales-report
           pnpm --filter @smartpos/desktop test:sales-report:boundary
+      - name: POS-028 installer stage, version and no-publish security contract
+        run: pnpm --filter @smartpos/desktop test:package-demo
       - name: POS-027 Electron memory-only session, IPC origins and SQLite filesystem protections
         run: |
           pnpm --filter @smartpos/desktop test:security-shell
@@ -163,6 +165,8 @@ jobs:
           pnpm --filter @smartpos/desktop test:catalog-pull:boundary
           pnpm --filter @smartpos/desktop test:security-shell
           pnpm --filter @smartpos/desktop test:storage-security
+      - name: POS-028 Windows installer source isolation and version safety
+        run: pnpm --filter @smartpos/desktop test:package-demo
       - name: POS-027 Windows local shell and SQLite file security regressions
         run: |
           pnpm --filter @smartpos/desktop security:check

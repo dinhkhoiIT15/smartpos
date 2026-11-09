@@ -2,33 +2,36 @@
 
 status_schema: 1
 last_reviewed_at: 2026-11-09
-verified_commit: 00cb41704be50a54588b730d4e347509e9b7f8be
+verified_commit: 5e4d2928d9b1e2df4ee2f695b8f652e96b71667e
 verified_ref: main
 repository_url: https://github.com/dinhkhoiIT15/smartpos
-repo_connection: CONFIRMED — GitHub repository read/write and PR/CI connector, no admin permissions
+repo_connection: CONFIRMED — GitHub commit/issue/PR/CI read-write connector, no admin
 last_github_synced_at: MANUAL GITHUB REVIEW 2026-11-09
-current_milestone: M5 — secrets, IPC and SQLite storage hardening
-current_phase: POS-027 [Issue #51](https://github.com/dinhkhoiIT15/smartpos/issues/51), [Draft PR #52](https://github.com/dinhkhoiIT15/smartpos/pull/52), feature/POS-027-security-hardening. Windows owner acceptance pending, NOT merged.
-ci_status: POS-027 Foundation CI Linux/Windows/ephemeral PostgreSQL16 + docs need SUCCESS on FINAL HEAD; early transient Node24 TypeScript CJS import-test error prompted explicit ESM .mts policy modules. Do not accept old run; reverify.
-production_status: NOT DEPLOYED. SQLite+backups are PLAINTEXT; Windows DACL policy, encryption, server password login and device-signed cashier/shift offline grant remain OPEN D-009/D-013. Default privileged Fastify routes 404. NO Neon writes.
+current_milestone: M6 — desktop unsigned installer packaging and provenance
+current_phase: POS-028 [Issue #53](https://github.com/dinhkhoiIT15/smartpos/issues/53), [Draft PR #54](https://github.com/dinhkhoiIT15/smartpos/pull/54), feature/POS-028-desktop-packaging. Owner Windows/macOS packaging acceptance PENDING; NOT merged
+ci_status: Existing POS-028 Foundation Linux/API + Windows Node24 + ephemeral PG16, Docs and native installer workflows MUST ALL be verified SUCCESS at FINAL feature HEAD; no owner acceptance before SHA-matched run evidence
+production_status: NOT DEPLOYED — only UNSIGNED DEMO artifact builds, no public GitHub Releases, no signed/notarized installers, no payment auth. D-011 signing/OS minima/hosting, D-009 backup encryption/restore, D-013 OS keys/Argon2id/offline grant OPEN; SQLite/plain backups and OS ACL risks remain. No Neon writes/migrations
 
 ## Owner-verified merged main
 
-- POS-001 through POS-025 owner-accepted and merged.
-- POS-026 [PR #50](https://github.com/dinhkhoiIT15/smartpos/pull/50) owner said Windows UI/IPC working and merged. GitHub verified [main `00cb417`](https://github.com/dinhkhoiIT15/smartpos/commit/00cb41704be50a54588b730d4e347509e9b7f8be) and post-merge [Foundation CI #42601151173](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42601151173) SUCCESS. Issue #49 should be closed after merge verification.
-- POS-023 conservative late-ACK stock rebase can understate true stock, still needs dedicated review before live pilot.
+- POS-001..POS-026 owner Windows accepted and merged.
+- POS-027 [PR #52](https://github.com/dinhkhoiIT15/smartpos/pull/52) owner continued with POS-028; GitHub verified merged into main [`5e4d292`](https://github.com/dinhkhoiIT15/smartpos/commit/5e4d2928d9b1e2df4ee2f695b8f652e96b71667e) at 2026-11-09, [post-merge Foundation CI #42604675859](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42604675859) SUCCESS.
+- POS-023 conservative late-ACK stock understatement remains open until dedicated review, and D-012 refunds policy requires owner decision before pilot.
 
-## POS-027 Draft PR #52
+## POS-028 Draft PR #54 (M6/P1)
 
-- `apps/desktop/src/main/shell-policy.mts`: pure exact dev-renderer-origin and packed-file-asset policy, only loopback HTTP dev root and same-origin Vite HMR; deny path/query/credentials, no arbitrary file, network, WS or adjacent-port API. Pure WebContents+mainFrame+current URL IPC oracle.
-- `apps/desktop/src/main/index.ts`: isolated in-memory Chromium partition `smartpos-demo-memory-only` with `cache:false` (previous Windows Chromium disk-cache errors); deny permissions, downloads, remote subresources, navigation, redirects, popups, webviews. One read-only `smartpos:app-info` stays tightly checked; Electron remains DEMO_ONLY.
-- `apps/desktop/src/main/local-db/storage-policy.mts`, `local-db/index.ts`: SQLite DB, WAL, SHM directly symlinked/junctioned/hardlinked target rejection and POSIX 0700/0600; lstat backup collision incl dangling symlink, no deletion/rewrites. Windows ACL review manual and disk encryption/keys OPEN; ancestor symlinks and TOCTOU remain residual risks.
-- `apps/desktop/tests/security-shell.test.mjs`, `storage-security.test.mjs`, expanded `security-check.mjs`, CI Linux and Windows Node24 tests, existing outbox/sale/report/receipt and disposable PostgreSQL suites retained.
-- [POS-027 Windows acceptance and threat review](../docs/POS-027_SECURITY_ACCEPTANCE.md). D-009 encryption, backup retention/RPO/RTO, D-013 Argon2id login, OS non-exportable keys, session/offline grant/shift/clock/key-loss still open; no claim production security.
+- `apps/desktop/scripts/stage-demo.mjs`: compiled-only Vite main/preload/renderer build stage and minimal production `package.json` (no runtime npm deps); signed grant or real secrets never enter renderer. Refuse secret files, .env, .sqlite/-wal/-shm, source/maps, symlinks/hardlinks. Version pinned from desktop `0.1.0`, Electron `44.9.3`; refuse unmarked stage deletion. Config copied but excluded from app.asar.
+- `apps/desktop/electron-builder.yml`: `asar:true`, native Windows x64 NSIS per-user and macOS Intel x64 + Apple Silicon arm64 DMG/ZIP. Application ID `vn.smartpos.retail.demo`, explicit unsigned (forceCodeSigning false, mac identity null, notarize false), `deleteAppDataOnUninstall:false`, no publish.
+- `apps/desktop/package.json`: `package:demo:win`, `package:demo:mac:x64`, `package:demo:mac:arm64` pinned CLI `electron-builder@26.18.1` with short-path flat npm prefix for Windows, pnpm dlx on macOS and `--publish never`, `test:package-demo`; no pnpm-lock or production dependency modification.
+- `apps/desktop/scripts/verify-demo-artifacts.mjs`: validates installer magic (PE/PK/DMG), versions, platform, min bytes, creates `SHA256SUMS.txt` and `BUILD_PROVENANCE.json` with 40-hex git HEAD, version/toolchain/UNSIGNED_DEMO_ONLY. SHA alone is not authenticated publisher signature.
+- `.github/workflows/demo-installers.yml`: PR/main/manual read-only upload-artifact with 5-day retention, matrix native Windows x64/macOS x64/arm64; no release creation/upload to Releases, signing keys or Neon.
+- `apps/desktop/src/main/index.ts`: packaged app always ignores environment-injected `ELECTRON_RENDERER_URL`.
+- `apps/desktop/tests/demo-package.test.mjs`, `demo-release-boundary.test.mjs`: stage/symlink/secret/version/manifest and unsigned workflow guards, Linux + Windows Foundation CI.
+- [POS-028 acceptance guide](../docs/POS-028_PACKAGING_ACCEPTANCE.md), [ADR-0005 proposed unsigned packaging design](../docs/ADR-0005-unsigned-demo-packaging.md), DECISIONS D-011 OPEN.
 
 ## Next
 
-1. Verify final feature branch SHA Foundation Linux/API, Windows Node24, PG16 and Docs CI all SUCCESS; fix failures.
-2. Owner Windows SAFE tests: `pnpm --filter @smartpos/desktop test:security`, `test:local-db`, `typecheck`, `build`, `pnpm run check`.
-3. Windows Electron GUI: normal IPC and Vite HMR, POS-018 cart, POS-020 sample receipt/print, POS-024 conflict demo, POS-026 report demo; no new cache/blank screen errors. Confirm unchanged SQLite v1.
-4. Review Windows filesystem ACL with `icacls` READ ONLY; no DACL edits, no file deletes/Neon. Owner Windows PASS manually merges Draft #52; close Issue #51 after verified merge. POS-028 packaging is next.
+1. Confirm FINAL PR SHA Foundation CI Linux/API, Windows Node24, ephemeral PG16; Documentation CI; dedicated installer workflow: stage and Windows x64 NSIS, macOS x64 DMG+ZIP, macOS arm64 DMG+ZIP all SUCCESS. Fix any failures and recheck after last commit.
+2. Owner Windows PowerShell safe tests `pnpm --filter @smartpos/desktop test:package-demo`, `test:security`, `typecheck`, `build`, `pnpm run check`. Optional `package:demo:win` unsigned output. Compare SHA-256, verify demo-only on isolated environment. Never bypass SmartScreen/Gatekeeper just for a PASS.
+3. Owner macOS artifact inspection, SHA-256 verification and native demo smoke **only on trusted/signed testing infrastructure** (unsigned Gatekeeper may block, document blocker rather than override). Never put in a live store; no new privileged HTTP, online auth or backup migration.
+4. Owner manually accepts/moves PR #54 from Draft to Ready/merges after agreed evidence. Close issue #53 after verified merge. Proceed to POS-029 crash restore and conflict rehearsal, then POS-030 pilot-readiness review with unresolved risks explicitly flagged.
