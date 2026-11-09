@@ -1,26 +1,38 @@
-# Session Handoff — POS-024 SmartPOS
+# Session Handoff — POS-025 SmartPOS
 
-## Verified main / branch
+## Verified main and current feature
 
-- User confirmed POS-023 Windows PASS. GitHub verified [PR #44](https://github.com/dinhkhoiIT15/smartpos/pull/44) merged into main at `f102091c6de9ba4d6616129d7df2129415173377` and [Foundation CI #42451595741](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42451595741) all jobs SUCCESS; Issue #43 closed after owner acceptance.
-- POS-024 [Issue #45](https://github.com/dinhkhoiIT15/smartpos/issues/45) and [Draft PR #46](https://github.com/dinhkhoiIT15/smartpos/pull/46) branch `feature/POS-024-conflict-review` created from exactly that main SHA. **NOT merged / owner Windows PASS pending**.
+- Owner confirmed POS-024 Windows PASS/merge; GitHub verified [PR #46](https://github.com/dinhkhoiIT15/smartpos/pull/46) merged into main at `026bfa1ce51274525cb99cb44c847a115ac00744`, [Foundation CI #42588442780](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42588442780) SUCCESS.
+- [POS-025 Issue #47](https://github.com/dinhkhoiIT15/smartpos/issues/47), [Draft PR #48](https://github.com/dinhkhoiIT15/smartpos/pull/48) on `feature/POS-025-staff-rbac-sessions`, created from exactly that main SHA. **NOT merged; owner Windows acceptance pending**.
 
-## Implementation
+## Implementation and invariants
 
-- `apps/api/src/sync/conflict-review.ts`: internal PostgreSQL `ConflictReviewService` with strict list + record get, enforce active manager/admin role on store_memberships/users at transaction time. Cross-store conflict join by `sales.store_id`, no disclosure; bounded lists.
-- Review requires stable UUID `resolutionId`, 12–1000 character note. `SELECT FOR UPDATE` row lock serializes concurrent resolutions. The status change OPEN -> RESOLVED plus append-only `audit_logs` actor/note/key commit together; repeat same actor/key/note returns REPLAYED and different resolution yields 409. A forced audit failure rolls everything back. No adjustments to financial sale/items/CASH, stock movements/balance, conflict details or immutable POS-021 receipt/ACK.
-- `apps/api/src/sync/conflict-review-routes.ts` registered in `buildServer` only when tests supply `conflictReview`; actual main.ts supplies no resolver. An `x-role: ADMIN` spoof must never unlock routes, which remain HTTP 404. No real D-013 signed grants/employee sessions.
-- `apps/desktop/src/renderer/src/conflict-demo.tsx`: clearly labeled fixed synthetic shortage and stale price, filter/list/details/in-memory review note. No PostgreSQL, SQLite, IPC, auth or real audit. Status resets after reload.
-- API route tests, disposable PG16 real POS-021 generated conflicts integration and Linux+Windows CI configured; SQLite and PG migrations unchanged.
-- Files are limited to API sync, server opt-in, desktop renderer demo, CI, docs. No new packages or Neon access.
+- PostgreSQL additive `0001_staff_sessions.sql` + Drizzle schema/journal/snapshot, 18th table. UUID session and store/user, SHA-256 hash of 256-bit random bearer, 15-minute max online TTL, revoke timestamp/actor, indexes/constraints. Migration tested only on disposable PG16; no Neon migration approved.
+- `StaffSessionService` is strictly server/internal. Issuance `issueForVerifiedIdentity` assumes **already verified online identity by a future reviewed login provider**, does not authenticate caller inputs itself, and MUST NEVER be mounted as a public endpoint. `resolve` checks current active membership, role, user status, expiry and revocation each time. No token plaintext in DB/audit; no role spoof by HTTP headers.
+- ADMIN can update member role/active with reason; store-scoped advisory lock, last-active-admin rule, revoke affected sessions, append audit atomically. Manager/Cashier have no staff-admin permissions; own logout is audited. Existing catalog/inventory/conflict services still do their own DB membership checks and can use an opt-in resolver based on `StaffSessionService`.
+- Opt-in `buildServer({staff:...})` Fastify routes only for test injection; real `main.ts` exposes no staff/login/privileged routes. Desktop remains DEMO ONLY with no new IPC/token handling. Existing offline sale/stock/receipt evidence untouched.
+- Unit/API default-deny tests, disposable PG16 issue/revoke/role/expiry/cross-store/last-admin/concurrent audit rollback tests, additive migration tests; CI Linux, Windows Node24 and disposable PostgreSQL.
+- D-013 still OPEN: Argon2id password verification + rate limiting, validated login, refresh, OS-backed credential/key storage, device-bound signed grants/shift/clock, secure public HTTP lifecycle before any live use.
 
-## Testing and safety
+## Windows SAFE acceptance (NO Neon)
 
-- Windows (safe): `pnpm install --frozen-lockfile`, `pnpm --filter @smartpos/api test:conflicts`, `pnpm --filter @smartpos/desktop typecheck`, `pnpm --filter @smartpos/desktop build`, `pnpm run check`, then `pnpm --filter @smartpos/desktop dev`.
-- Normal Fastify health 200, `GET /v1/sync/conflicts` 404, `POST /v1/sync/conflicts/:id/resolve` 404; demo preview should be clearly synthetic and non-persistent.
-- `test:conflicts:pg` ONLY GitHub disposable PostgreSQL 16 at 127.0.0.1:5432/smartpos_ci; NEVER Neon.
-- Review [full acceptance](../docs/POS-024_CONFLICT_REVIEW_ACCEPTANCE.md). **POS-024 code checkpoint `0e5f705` verified:** [Foundation CI #42587150764](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42587150764) ALL 3 jobs SUCCESS (Linux/API, Windows Node24, disposable PostgreSQL16). [Documentation CI #42587083108](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42587083108) SUCCESS on preceding docs commit. This handoff text update itself requires a fresh final HEAD CI check before owner review; human Windows PASS NOT YET reported.
+```powershell
+git fetch origin
+git switch feature/POS-025-staff-rbac-sessions
+git pull --ff-only origin feature/POS-025-staff-rbac-sessions
+pnpm install --frozen-lockfile
+pnpm --filter @smartpos/db typecheck
+pnpm --filter @smartpos/db schema:check
+pnpm --filter @smartpos/api typecheck
+pnpm --filter @smartpos/api test:staff
+pnpm --filter @smartpos/api test
+pnpm --filter @smartpos/desktop security:check
+pnpm --filter @smartpos/desktop build
+pnpm run check
+```
 
-## Remaining blockers
+Detailed [Windows acceptance guide](../docs/POS-025_STAFF_RBAC_ACCEPTANCE.md). Actual PG `test:staff:pg` only GitHub CI localhost smartpos_ci, never Neon. Normal Fastify health200, staff/login/sync paths 404 even with spoofed headers. Owner must manually review/merge Draft PR after Windows PASS.
 
-D-013 device-bound signature/shift/session verification, POS-025 real auth/RBAC, POS-023 late-ACK conservative stock understatement and operational stock-adjustment policy before pilot. Current internal review does not change inventory. Keep PR **Draft and unmerged** until owner Windows PASS and manual merge.
+## Handoff checkpoint
+
+CI final HEAD results MUST be checked after these documentation commits and any code fixes; report exact HEAD SHA/workflow URLs, never claim final PASS from an earlier commit. Keep issue open, PR Draft and no production rollout until explicit owner acceptance. Next backlog after owner merge: POS-026 synced vs pending sales reporting (M5/P1).
