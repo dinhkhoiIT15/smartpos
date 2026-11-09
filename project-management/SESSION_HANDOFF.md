@@ -7,7 +7,7 @@
 
 ## Implementation / file map
 
-- No new npm workspace dependency or production runtime requirements. `apps/desktop/package.json` remains `version=0.1.0`, Electron devDependency `44.9.3`; installer CLI pinned `pnpm dlx electron-builder@26.18.1`, NOT in workspace lockfile (transitives not reproducible/locked). Node24/pnpm10.20.0 frozen install.
+- No new npm workspace dependency or production runtime requirements. `apps/desktop/package.json` remains `version=0.1.0`, Electron devDependency `44.9.3`; installer CLI pinned `electron-builder@26.18.1` via flat short-path npm prefix for Windows and pnpm dlx for macOS, NOT in workspace lockfile (transitives not reproducible/locked). Node24/pnpm10.20.0 frozen install.
 - `apps/desktop/electron-builder.yml` unsigned DEMO-only appId `vn.smartpos.retail.demo`, ASAR; NSIS win-x64; DMG+ZIP mac-x64 and mac-arm64, `--publish never`, no certs/keychain secrets, `deleteAppDataOnUninstall:false`.
 - `apps/desktop/scripts/stage-demo.mjs` stages only `out/main/index.js`, `out/preload/index.js`, Vite `out/renderer`, safe build config and minimal no-deps `package.json` in ignored `.demo-package`. Reject symlink/hardlinks, secrets/raw source/maps/SQLite/WAL/SHM, invalid version/compiled CSP, refuse deletion of unknown folders. Does not touch Electron `userData`. Nonpersistent demo session and IPC guard from POS-027 unchanged.
 - `apps/desktop/src/main/index.ts` uses `app.isPackaged ? undefined : process.env.ELECTRON_RENDERER_URL` to prevent packaged app loading an injected dev Vite URL.
