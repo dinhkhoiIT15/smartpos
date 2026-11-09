@@ -78,6 +78,8 @@ jobs:
           pnpm --filter @smartpos/domain test
       - name: POS-011 offline authorization policy reference (design-only)
         run: node --test docs/security/offline-access-reference.test.mjs
+      - name: SEC-013A cryptographic signed-grant design prototype (NOT live authorization)
+        run: node --test docs/security/offline-grant-signature-prototype.test.mjs
       - name: Read-only context report
         run: node scripts/context-report.mjs
 
@@ -172,6 +174,8 @@ jobs:
           pnpm --filter @smartpos/desktop security:check
           pnpm --filter @smartpos/desktop test:security-shell
           pnpm --filter @smartpos/desktop test:storage-security
+      - name: SEC-013A Ed25519 signature proposal and no-live-auth boundary on Windows
+        run: node --test docs/security/offline-grant-signature-prototype.test.mjs
       - name: POS-021 strict POS-016 contract and hash parity on Windows Node24
         run: pnpm --filter @smartpos/api test:sync:parity
       - name: POS-024 opt-in manager route guards on Windows Node24

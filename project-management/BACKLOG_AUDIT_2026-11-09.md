@@ -1,6 +1,6 @@
 # SmartPOS backlog audit — 2026-11-09
 
-**Updated audit basis:** GitHub `main` SHA `95485d09c1210cd90fc3c3a82767b328fbbc34d6` (POS-028 PR #54 merged); [post-merge Foundation CI #42642484458](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42642484458) SUCCESS. Initial pre-POS-028 audit baseline was `5e4d2928d9b1e2df4ee2f695b8f652e96b71667e`. This is an evidence snapshot, not an assertion that the app is ready for production. We compared the 30 logical IDs from `project-management/BACKLOG.csv` with actual GitHub PRs/issues/CI and the source tree.
+**Latest audit basis:** GitHub `main` SHA `989a9badc971f84f51a26b7fe9618363d2eb2244` (BUG-023 PR #62 merged); [post-merge Foundation CI #42654918980](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42654918980) SUCCESS. Previous baseline `95485d09` followed POS-028 PR #54. Initial pre-POS-028 audit baseline was `5e4d2928d9b1e2df4ee2f695b8f652e96b71667e`. This is an evidence snapshot, not an assertion that the app is ready for production. We compared the 30 logical IDs from `project-management/BACKLOG.csv` with actual GitHub PRs/issues/CI and the source tree.
 
 **Counting rule:** `MERGED` means the PR's scoped code/docs reached main; it does NOT certify completed production functionality. `DESIGN`, `DEMO`, `INTERNAL CORE` remain subject to launch gates. A red X on an intermediate PR commit does not invalidate a later successful final-head run.
 
@@ -13,7 +13,7 @@
 | POS-003 | M0 | OPEN | [#55](https://github.com/dinhkhoiIT15/smartpos/issues/55) | — |
 | POS-004 | M0 | MERGED | [#2](https://github.com/dinhkhoiIT15/smartpos/issues/2) | [#3](https://github.com/dinhkhoiIT15/smartpos/pull/3) |
 | POS-005 | M0 | OPEN | [#56](https://github.com/dinhkhoiIT15/smartpos/issues/56) | — |
-| POS-006 | M0 | IN REVIEW | [#57](https://github.com/dinhkhoiIT15/smartpos/issues/57) | audit PR |
+| POS-006 | M0 | MERGED; Issue closed | [#57](https://github.com/dinhkhoiIT15/smartpos/issues/57) | [#59](https://github.com/dinhkhoiIT15/smartpos/pull/59) |
 | POS-007 | M1 | MERGED | [#7](https://github.com/dinhkhoiIT15/smartpos/issues/7) | [#8](https://github.com/dinhkhoiIT15/smartpos/pull/8) |
 | POS-008 | M1 | MERGED | [#9](https://github.com/dinhkhoiIT15/smartpos/issues/9) | [#10](https://github.com/dinhkhoiIT15/smartpos/pull/10) |
 | POS-009 | M1 | MERGED | [#11](https://github.com/dinhkhoiIT15/smartpos/issues/11) | [#12](https://github.com/dinhkhoiIT15/smartpos/pull/12), [#13](https://github.com/dinhkhoiIT15/smartpos/pull/13) |
@@ -43,7 +43,7 @@
 
 1. **M0 POS-003 [#55](https://github.com/dinhkhoiIT15/smartpos/issues/55):** Project board URL/coverage is not verified; prior M0 report says NOT VERIFIED. GitHub connector in this session cannot create/administer Projects. An owner must verify/create the Project, attach issue tracking, and record its link. Do not falsely claim no Project exists without checking owner settings.
 2. **M0 POS-005 [#56](https://github.com/dinhkhoiIT15/smartpos/issues/56):** GitHub `main.protected=false` on 2026-11-09. Connector permissions `admin=false`, so only repository admin can establish enforceable main protection/ruleset and required reviews/checks. Existing PR template/CI alone do not protect main.
-3. **M0 POS-006 [#57](https://github.com/dinhkhoiIT15/smartpos/issues/57):** pre-audit `DEVELOPMENT_STATUS.md` points to obsolete `00cb417` and marks POS-027 unmerged; handoff/TODO/traceability/bug tracker are stale. This audit PR updates the tracking snapshot. A clean fresh-session context read and final docs CI are required before closing.
+3. **M0 POS-006 [#57](https://github.com/dinhkhoiIT15/smartpos/issues/57), now CLOSED via PR #59:** pre-audit `DEVELOPMENT_STATUS.md` points to obsolete `00cb417` and marks POS-027 unmerged; handoff/TODO/traceability/bug tracker are stale. This audit PR updates the tracking snapshot. A clean fresh-session context read and final docs CI are required before closing.
 4. **Old issue bookkeeping fixed:** [POS-007 #7](https://github.com/dinhkhoiIT15/smartpos/issues/7) and [POS-016 #29](https://github.com/dinhkhoiIT15/smartpos/issues/29) were still OPEN despite merged PR #8 and PR #30 plus user-reported Windows PASS. Closed as completed on 2026-11-09. Other POS-001..027 issues are closed.
 5. **Known stock correctness gap** [BUG-023 #58](https://github.com/dinhkhoiIT15/smartpos/issues/58): if the server inventory PULL delta passes the cursor before a previously lost PUSH ACK arrives, SQLite v1 may retain already-committed sale's negative pending delta and understate available stock. Requires reviewed reconciliation, idempotency and restart tests before live sync.
 6. **POS-028 [#53](https://github.com/dinhkhoiIT15/smartpos/issues/53), [draft PR #54](https://github.com/dinhkhoiIT15/smartpos/pull/54):** previously failed native Windows packaging job showed `sep is not defined` in `run-win-builder.mjs` ([run #42609431116](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42609431116)); repaired on feature branch with explicit `node:path` import and regression assertion at feature HEAD `80bba378c3493bc7d166c87c9dffcb38d950b081`. PR #54 was MERGED into main `95485d09` on 2026-11-09; native packaging/GUI acceptance is a separate gate. Foundation and Docs CI on final feature HEAD were SUCCESS ([#42641036215](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42641036215), [#42641036212](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42641036212)). After merge, recheck [post-merge native installer CI #42642484398](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42642484398) and owner GUI acceptance; do not claim a signed production release.
@@ -66,3 +66,9 @@
 5. POS-028 PR #54 was already merged. Recheck native installer output and Windows/macOS owner smoke, D-011 signing/OS policy, then POS-029 and POS-030. An unsigned DEMO installer is NOT a production release.
 
 **Verification scope:** Remote GitHub metadata/files/workflow-job logs checked; no local working tree, Windows/macOS GUI, physical cash transaction, production database or Neon credential was accessed. All unknown owner/admin-only states remain explicitly unverified.
+
+## Post-audit correction 2026-11-09: BUG-023 and SEC-013A
+
+- BUG-023 [#58](https://github.com/dinhkhoiIT15/smartpos/issues/58) was CLOSED after [PR #62](https://github.com/dinhkhoiIT15/smartpos/pull/62) merged to `main` at `989a9bad`. SQLite v2 coverage fixes newly received PULL-before-ACK; **historical pre-v2 consumed cursor events are not auto-reconciled**, still block pilot without trusted repair.
+- SEC-013 [#60](https://github.com/dinhkhoiIT15/smartpos/issues/60) remains OPEN. [ADR-0006](../docs/ADR-0006-sec013-offline-grant-crypto-proposal.md) and signed-envelope tests on this feature branch are UNWIRED PROPOSAL ONLY, not verified OS key proof, employee authentication, revocation or checkout. D-013 requires owner approval and real Windows/macOS E2E.
+- POS-003 #55, POS-005 #56, SEC-009 #61, POS-028 native GUI #53 remain OPEN. Original audit rows retain historical scope; use current `main` and GitHub CI for truth.

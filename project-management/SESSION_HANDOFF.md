@@ -1,24 +1,22 @@
-# Session handoff — backlog audit / POS-006 (2026-11-09)
+# Session Handoff — SEC-013A proposal, 2026-11-09
 
-## Start here
+## GitHub verified baseline
+
 - Repository: https://github.com/dinhkhoiIT15/smartpos
-- Verified **main** HEAD: `95485d09c1210cd90fc3c3a82767b328fbbc34d6`, POS-028 [PR #54](https://github.com/dinhkhoiIT15/smartpos/pull/54) MERGED and [post-merge Foundation CI SUCCESS](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42642484458). POS-028 is UNSIGNED DEMO only, not a signed or production-ready release.
-- Use [BACKLOG_AUDIT_2026-11-09.md](BACKLOG_AUDIT_2026-11-09.md) as the task-by-task reconciliation, not the previous stale `TODO.md`.
-- This audit branch adds tracking/docs only; do not mistake an open PR for a merged fix. Review docs CI on final head before owner merge and closing POS-006 #57.
+- Verified `main` HEAD: `989a9badc971f84f51a26b7fe9618363d2eb2244` after [BUG-023 PR #62](https://github.com/dinhkhoiIT15/smartpos/pull/62) MERGED; [Foundation CI #42654918980](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42654918980) SUCCESS. Issue #58 CLOSED.
+- SEC-013 #60 remains OPEN. [ADR-0006](../docs/ADR-0006-sec013-offline-grant-crypto-proposal.md) is PROPOSED and D-013 remains OPEN. An internal docs-only Ed25519 grant signature prototype is NOT a live auth gate, not wired to Electron/API, and may need protocol changes on owner review.
+- [SEC-013A acceptance](../docs/SEC-013A_GRANT_PROTOTYPE_ACCEPTANCE.md) lists Windows/Linux checks; verify final PR commit and CI. Do not infer successful native Windows/macOS E2E from a Node cryptographic test.
+- Owner action [POS-003 #55](https://github.com/dinhkhoiIT15/smartpos/issues/55) board and [POS-005 #56](https://github.com/dinhkhoiIT15/smartpos/issues/56) main protection: not yet verified. [SEC-009 #61](https://github.com/dinhkhoiIT15/smartpos/issues/61) encrypted backup/restore and [POS-028 #53](https://github.com/dinhkhoiIT15/smartpos/issues/53) GUI acceptance still open.
 
-## Remediation issues
-- [#55 POS-003](https://github.com/dinhkhoiIT15/smartpos/issues/55): mapping + Project board URL not verified; owner action required.
-- [#56 POS-005](https://github.com/dinhkhoiIT15/smartpos/issues/56): GitHub main `protected:false`, only admin can apply ruleset.
-- [#57 POS-006](https://github.com/dinhkhoiIT15/smartpos/issues/57): this status/handoff remediation; pending owner PR review + fresh-session check.
-- [#58 BUG-023](https://github.com/dinhkhoiIT15/smartpos/issues/58): late ACK after PULL stock undercount; P0 before pilot.
-- [#60 SEC-013](https://github.com/dinhkhoiIT15/smartpos/issues/60): actual device-signed grant and cashier auth before live checkout/sync.
-- [#61 SEC-009](https://github.com/dinhkhoiIT15/smartpos/issues/61): encrypted offline backup, recovery and RPO/RTO before pilot.
-- GitHub issues #7 (POS-007) and #29 (POS-016) closed after confirming merged implementation evidence.
+## Security next gates
 
-## POS-028 merged (preserve integration and installer guidance)
+1. Review/approve key protocols: Windows CNG/TPM, macOS Keychain/Secure Enclave, fallback restrictions, grant issuer key rotation, monotonic clock state, 4-hour grant, one-device transfer, shift idle lock, revoke/logout, key-loss restore.
+2. SEC-013B: server Argon2id login/re-auth and verified staff session issuance (ephemeral PG and rate-limit tests).
+3. SEC-013C/D: OS proof and signed grant issuance + MAIN offline verifier only after approved key/clock design. No renderer secrets, checkout without signed grant, or hidden API exposure.
+4. SEC-013E: server verified sync transport + Windows/macOS real E2E, expired/revoked/rollback cases; keep paid sale/outbox immutable.
+5. D-011 signing and D-009 backup encryption remain release gates. POS-029/POS-030 not begun. Do not migrate Neon or auto-merge.
 
-- PR #54 merged into `main` at `95485d09c1210cd90fc3c3a82767b328fbbc34d6`; Issue #53 remained open at review pending bookkeeping/owner evidence. The original Windows `sep is not defined` failure in [#42609431116](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42609431116) was fixed by an explicit `node:path` import with regression coverage on feature SHA `80bba378` before merge.
-- [Post-merge native installer run #42642484398](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42642484398) was still IN PROGRESS at review. Verify full matrix, hashes and actual GUI acceptance separately; NEVER assume an unsigned installer is signed or approved for production.
+## Existing POS-028 unsigned DEMO packaging notes (retained)
 
 ### Packaging implementation preserved from previous main handoff
 
@@ -51,14 +49,19 @@ pnpm --filter @smartpos/desktop package:demo:win
 
 Check generated `apps/desktop/demo-artifacts/SmartPOS-DEMO-0.1.0-win-x64-setup.exe`, SHA256SUMS, BUILD_PROVENANCE; checksum and `UNSIGNED_DEMO_ONLY`. If Windows SmartScreen or macOS Gatekeeper blocks unsigned bundles, record as a blocker, **do not bypass OS security just for GUI acceptance**. No userData deletion, no Neon. Verify installed app uses local packaged file, no Vite server and `DEMO_ONLY` IPC if OS-approved isolated testing permitted.
 
-## Security/financial blockers
-- POS-011 design D-010 maximum 4h grant only; D-013 real device key + clock + online cashier shift/grant not implemented. No production checkout/sync.
-- D-009 plaintext SQLite/backup, encryption, retention and restore unknown. POS-029 restoration not executed.
-- POS-023 potential stock undercount when ACK arrives after PULL cursor: stop before live rollout; write regression tests and reconciliation design, preserve sales/outbox.
-- D-011 signing/notarization and D-012 refund policy unresolved; normal privileged Fastify routes intentionally return 404.
+## Safe smoke from clean local Windows checkout
 
-## Next handoff smoke (fresh session + local optional)
-1. Read `AGENTS.md`, verified `main` SHA, **PR #54 merged**, PR #59 review state, Issues #55–#58/#60/#61 and latest CI by SHA.
-2. Compare against this audit; do not confuse old failed intermediate commits with final HEAD.
-3. In a clean local checkout: `node scripts/validate-context.mjs`, `pnpm run check`, `git status --short`. These commands have NOT been claimed as run by remote GitHub auditing.
-4. Record actual owner/admin-only Board/protection evidence; merge documentation via PR only after review.
+```powershell
+git status --short
+git fetch origin
+git switch feature/SEC-013A-signed-grant-prototype
+git pull --ff-only origin feature/SEC-013A-signed-grant-prototype
+pnpm install --frozen-lockfile
+node --test docs/security/offline-grant-signature-prototype.test.mjs
+node --test docs/security/offline-access-reference.test.mjs
+pnpm run check
+pnpm --filter @smartpos/api test:staff
+pnpm --filter @smartpos/desktop test:security
+```
+
+Keep API staff/sync POST routes default HTTP 404, Electron DEMO_ONLY; no real credential or Neon data used.

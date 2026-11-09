@@ -1,6 +1,6 @@
 # Risk Register — SmartPOS M0
 
-**Cập nhật:** 2026-11-04 | **Trạng thái:** Kế hoạch, chưa có test thực tế. `OPEN` không có nghĩa đã xảy ra.
+**Cập nhật:** 2026-11-09 | **Trạng thái:** Risk gates require owner E2E evidence; existing tests cover design/demo only. `OPEN` không có nghĩa đã xảy ra.
 
 | ID | Rủi ro | Mức | Giảm thiểu / xác minh | Cổng |
 |---|---|---|---|---|
@@ -19,3 +19,7 @@
 - Mỗi PR tác động đến rủi ro phải liên kết ID và bằng chứng test.
 - Mức Cao không được tự đóng chỉ vì có tài liệu; cần kiểm chứng giải pháp.
 - Chủ dự án duyệt thay đổi chính sách kinh doanh hoặc chấp nhận residual risk.
+
+## SEC-013A security review checkpoint (2026-11-09)
+
+[ADR-0006](../docs/ADR-0006-sec013-offline-grant-crypto-proposal.md) proposes a docs-only Ed25519 signed-envelope test protocol with pinned public key and strictly bounded four-hour grant fields. It does **not** implement hardware key proof, PIN/login, protected clock, provisioning, online revocation or authorization. R-005 remains **HIGH OPEN**. Approve D-013 Windows/macOS non-exportable key APIs, shift lock/clock and recovery before any runtime integration; see [#60](https://github.com/dinhkhoiIT15/smartpos/issues/60).
