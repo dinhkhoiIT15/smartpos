@@ -17,6 +17,8 @@ function fixture(t){
   main:'./out/main/index.js',devDependencies:{electron:ELECTRON_PIN},
  };
  writeFileSync(join(root,'package.json'),JSON.stringify(pkg));
+ writeFileSync(join(root,'electron-builder.yml'),
+  'productName: SmartPOS Retail DEMO\nelectronVersion: 44.9.3\nasar: true\ndirectories:\n  output: ../demo-artifacts\n');
  const files={
   'out/main/index.js':'const electron=require("electron");const sqlite=require("node:sqlite");const MODE="DEMO_ONLY";',
   'out/preload/index.js':'const {contextBridge}=require("electron");',
@@ -48,7 +50,7 @@ test('POS-028 stage only bundles Vite output and minimal versioned demo manifest
  for(const [path,content] of Object.entries(files))
   assert.equal(readFileSync(join(stagedRoot,path),'utf8'),content);
  assert.deepEqual(readdirSync(stagedRoot).sort(),
-  [STAGE_MARKER,'out','package.json'].sort());
+  [STAGE_MARKER,'out','package.json','electron-builder.yml'].sort());
  // An idempotent rebuild leaves exactly the same staged bits.
  const first=readFileSync(join(stagedRoot,'package.json'));
  stageDemoPackage(root);
