@@ -19,7 +19,7 @@
 - Windows (safe): `pnpm install --frozen-lockfile`, `pnpm --filter @smartpos/api test:conflicts`, `pnpm --filter @smartpos/desktop typecheck`, `pnpm --filter @smartpos/desktop build`, `pnpm run check`, then `pnpm --filter @smartpos/desktop dev`.
 - Normal Fastify health 200, `GET /v1/sync/conflicts` 404, `POST /v1/sync/conflicts/:id/resolve` 404; demo preview should be clearly synthetic and non-persistent.
 - `test:conflicts:pg` ONLY GitHub disposable PostgreSQL 16 at 127.0.0.1:5432/smartpos_ci; NEVER Neon.
-- Review [full acceptance](../docs/POS-024_CONFLICT_REVIEW_ACCEPTANCE.md). **GitHub final SHA CI results are not yet verified in this snapshot.** Must check Foundation and Docs CI before claiming PASS.
+- Review [full acceptance](../docs/POS-024_CONFLICT_REVIEW_ACCEPTANCE.md). **POS-024 code checkpoint `0e5f705` verified:** [Foundation CI #42587150764](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42587150764) ALL 3 jobs SUCCESS (Linux/API, Windows Node24, disposable PostgreSQL16). [Documentation CI #42587083108](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42587083108) SUCCESS on preceding docs commit. This handoff text update itself requires a fresh final HEAD CI check before owner review; human Windows PASS NOT YET reported.
 
 ## Remaining blockers
 
