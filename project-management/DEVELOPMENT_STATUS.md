@@ -9,7 +9,7 @@ repo_connection: CONFIRMED — GitHub issue/PR/commit/CI connector, no admin
 last_github_synced_at: MANUAL GITHUB REVIEW 2026-11-09
 current_milestone: M5 — internal server staff RBAC/session foundation
 current_phase: POS-025 [Issue #47](https://github.com/dinhkhoiIT15/smartpos/issues/47), [Draft PR #48](https://github.com/dinhkhoiIT15/smartpos/pull/48); implementation on feature/POS-025-staff-rbac-sessions; owner Windows acceptance PENDING, NOT merged
-ci_status: POS-025 Foundation CI Linux/API, Windows Node24, disposable PG16 and Docs require final feature HEAD verification; CI failures on intermediate commits were corrected but must not be counted as PASS without final checks
+ci_status: POS-025 checkpoint e675fea0f4ad256c2361312f99c1bdc76c433c4c [Foundation CI #42590414219](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42590414219) SUCCESS 3/3 jobs (Linux/API, Windows Node24, disposable PG16 migration/RBAC); [Documentation CI #42590414113](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42590414113) SUCCESS same checkpoint. Final documentation updates require renewed HEAD CI verification before owner signoff
 production_status: NOT DEPLOYED — no real Argon2id/rate-limited login, OS-backed desktop credential storage, signed offline device/cashier grant or authorized checkout/sync (D-013); normal staff/catalog/inventory/conflict/sync privileged HTTP routes remain 404; Neon not migrated
 
 ## Owner-verified merged main
