@@ -154,7 +154,7 @@ export class SalesReportService {
               BETWEEN $2::date AND $3::date
           AND ($4::uuid IS NULL OR s.cashier_id=$4::uuid)
           AND ($5::text IS NULL OR i.sku_snapshot=$5)
-        GROUP BY i.sku_snapshot ORDER BY gross::numeric DESC,i.sku_snapshot
+        GROUP BY i.sku_snapshot ORDER BY sum(i.line_total_vnd::numeric) DESC,i.sku_snapshot
         LIMIT 51`,params);
       const history=await db.query<SaleRow>(`
         SELECT s.id,s.cashier_id,s.device_id,s.client_created_at,
