@@ -52,6 +52,13 @@ export function stageDemoPackage(projectRoot,stageRoot=join(projectRoot,STAGE_NA
   const root=resolve(projectRoot),dest=resolve(stageRoot);
   if(dest!==join(root,STAGE_NAME))reject('UNTRUSTED_STAGE_PATH');
   const projectPkg=join(root,'package.json');
+  const config=join(root,'electron-builder.yml');
+  safeRegularFile(config);
+  const buildConfig=readFileSync(config,'utf8');
+  if(!buildConfig.includes('electronVersion: '+ELECTRON_PIN)||
+    !buildConfig.includes('productName: SmartPOS Retail DEMO')||
+    !buildConfig.includes('asar: true')||
+    !buildConfig.includes('output: ../demo-artifacts'))reject('UNPINNED_BUILD_CONFIG');
   safeRegularFile(projectPkg);
   const pkg=JSON.parse(readFileSync(projectPkg,'utf8'));
   if(typeof pkg.version!=='string'||!VERSION.test(pkg.version)||
@@ -92,6 +99,8 @@ export function stageDemoPackage(projectRoot,stageRoot=join(projectRoot,STAGE_NA
   // Minimal package deliberately declares no runtime npm dependencies:
   // electron-vite bundles main/preload/renderer; Node built-ins + Electron
   // are supplied by the pinned Electron runtime.
+  // Builder config is read only by the build tool and excluded from app.asar.
+  copyFileSync(config,join(dest,'electron-builder.yml'));
   const manifest={
     name:DEMO_NAME,version:pkg.version,private:true,
     description:'SmartPOS Retail — unsigned development demo; NO LIVE SALES',
