@@ -32,7 +32,7 @@ async function failsWith(client: PoolClient, query: string, values: unknown[], c
   }
 }
 
-test('POS-012 migration v1 creates 17 tables and enforces retail invariants', async (t) => {
+test('POS-012 v1 plus POS-025 additive staff session migration enforce constraints', async (t) => {
   const pool = new Pool({ connectionString, max: 2 });
   t.after(async () => pool.end());
 
@@ -43,7 +43,7 @@ test('POS-012 migration v1 creates 17 tables and enforces retail invariants', as
       'stores','users','store_memberships','devices','categories','brands',
       'products','product_variants','inventory_balances','inventory_movements',
       'sales','sale_items','payments','sync_receipts','sync_conflicts',
-      'audit_logs','catalog_change_log',
+      'audit_logs','catalog_change_log','staff_sessions',
     ];
     const tables = await pool.query<{ table_name: string }>(
       'SELECT table_name FROM information_schema.tables WHERE table_schema=$1 AND table_name = ANY($2)',
@@ -51,7 +51,40 @@ test('POS-012 migration v1 creates 17 tables and enforces retail invariants', as
     );
     assert.deepEqual(tables.rows.map((x) => x.table_name).sort(), expected.sort());
     const history = await pool.query<{ count: string }>('SELECT count(*)::text AS count FROM drizzle.__drizzle_migrations');
-    assert.equal(history.rows[0]?.count, '1');
+    assert.equal(history.rows[0]?.count, '2');
+  });
+
+  await t.test('staff sessions reject missing membership, bad digest and invalid TTL',async()=>{
+    const db=await pool.connect();
+    try {
+      await db.query('BEGIN');
+      const store=randomUUID(),user=randomUUID();
+      await db.query('INSERT INTO stores(id,name) VALUES($1,$2)',[store,'POS025 TEST']);
+      await db.query('INSERT INTO users(id,email,password_hash) VALUES($1,$2,$3)',
+        [user,randomUUID()+'@example.test','SYNTHETIC_NOT_LOGIN']);
+      await failsWith(db,`INSERT INTO staff_sessions
+        (id,store_id,user_id,token_hash,issued_at,expires_at)
+        VALUES($1,$2,$3,$4,now(),now()+interval '15 minutes')`,
+        [randomUUID(),store,user,'a'.repeat(64)],'23503');
+      await db.query(`INSERT INTO store_memberships(store_id,user_id,role)
+        VALUES($1,$2,'CASHIER')`,[store,user]);
+      await failsWith(db,`INSERT INTO staff_sessions
+        (id,store_id,user_id,token_hash,issued_at,expires_at)
+        VALUES($1,$2,$3,$4,now(),now()+interval '15 minutes')`,
+        [randomUUID(),store,user,'PLAIN_SECRET'],'23514');
+      await failsWith(db,`INSERT INTO staff_sessions
+        (id,store_id,user_id,token_hash,issued_at,expires_at)
+        VALUES($1,$2,$3,$4,now(),now()+interval '16 minutes')`,
+        [randomUUID(),store,user,'b'.repeat(64)],'23514');
+      await db.query(`INSERT INTO staff_sessions
+        (id,store_id,user_id,token_hash,issued_at,expires_at)
+        VALUES($1,$2,$3,$4,now(),now()+interval '10 minutes')`,
+        [randomUUID(),store,user,'c'.repeat(64)]);
+      await failsWith(db,`INSERT INTO staff_sessions
+        (id,store_id,user_id,token_hash,issued_at,expires_at)
+        VALUES($1,$2,$3,$4,now(),now()+interval '10 minutes')`,
+        [randomUUID(),store,user,'c'.repeat(64)],'23505');
+    }finally{await db.query('ROLLBACK');db.release();}
   });
 
   await t.test('one offline device per store, FK, SKU and negative price checks', async () => {
