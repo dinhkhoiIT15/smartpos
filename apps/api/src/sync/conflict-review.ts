@@ -190,7 +190,7 @@ export class ConflictReviewService {
     validActor(actor);
     const id = uuid.parse(conflictId);
     const input = conflictReviewSchema.parse(raw);
-    return this.transact(actor, async db => {
+    return this.transact(actor, async (db): Promise<ConflictReviewResult> => {
       const row = await findRow(db, actor.storeId, id, true);
       if (row.status === 'RESOLVED') {
         const previous = await auditFor(db, actor.storeId, id);
