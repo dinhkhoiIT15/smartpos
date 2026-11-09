@@ -54,6 +54,8 @@ jobs:
           pnpm --filter @smartpos/api build
           pnpm --filter @smartpos/api test
           pnpm --filter @smartpos/api test:sync:parity
+      - name: POS-024 strict manager conflict review route guards
+        run: pnpm --filter @smartpos/api test:conflicts
       - name: Verify shared DTOs and bigint VND domain rules
         run: |
           pnpm --filter @smartpos/contracts test
@@ -105,6 +107,8 @@ jobs:
         run: pnpm --filter @smartpos/api test:sync:pg
       - name: POS-023 PostgreSQL catalog delta cursor + stock and concurrent writer integration
         run: pnpm --filter @smartpos/api test:pull:pg
+      - name: POS-024 manager conflict review, audit, store isolation and rollback
+        run: pnpm --filter @smartpos/api test:conflicts:pg
 
 # Database tests run ONLY against disposable CI PostgreSQL; Neon is never contacted.
 
@@ -141,3 +145,5 @@ jobs:
           pnpm --filter @smartpos/desktop test:catalog-pull:boundary
       - name: POS-021 strict POS-016 contract and hash parity on Windows Node24
         run: pnpm --filter @smartpos/api test:sync:parity
+      - name: POS-024 opt-in manager route guards on Windows Node24
+        run: pnpm --filter @smartpos/api test:conflicts

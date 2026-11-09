@@ -3,9 +3,10 @@ import { registerCatalogRoutes, type CatalogRouteOptions } from './catalog/route
 import { registerInventoryRoutes, type InventoryRouteOptions } from './inventory/routes.js';
 import { registerSyncRoutes, type SyncRouteOptions } from './sync/routes.js';
 import { registerSyncPullRoutes,type SyncPullRouteOptions } from './sync/pull-routes.js';
+import { registerConflictReviewRoutes, type ConflictRouteOptions } from './sync/conflict-review-routes.js';
 
 /** Pure Fastify factory; no network listen, credentials, or database required by tests. */
-export function buildServer(options: { logger?: boolean; catalog?: CatalogRouteOptions; inventory?: InventoryRouteOptions; sync?: SyncRouteOptions; syncPull?: SyncPullRouteOptions } = {}): FastifyInstance {
+export function buildServer(options: { logger?: boolean; catalog?: CatalogRouteOptions; inventory?: InventoryRouteOptions; sync?: SyncRouteOptions; syncPull?: SyncPullRouteOptions; conflictReview?: ConflictRouteOptions } = {}): FastifyInstance {
   const app = Fastify({
     logger: options.logger ?? false,
     bodyLimit: 1024 * 1024,
@@ -27,6 +28,8 @@ export function buildServer(options: { logger?: boolean; catalog?: CatalogRouteO
   if (options.sync) registerSyncRoutes(app, options.sync);
   // POS-023 PULL remains unmounted until real D-013 trusted principal exists.
   if (options.syncPull) registerSyncPullRoutes(app, options.syncPull);
+  // POS-024 manager review is opt-in injected tests ONLY until staff RBAC.
+  if (options.conflictReview) registerConflictReviewRoutes(app, options.conflictReview);
 
   return app;
 }
