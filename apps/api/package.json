@@ -12,7 +12,7 @@
     "build": "tsc --project tsconfig.build.json",
     "start": "node dist/main.js",
     "typecheck": "tsc --project tsconfig.json --noEmit",
-    "test": "pnpm run build && node --test dist/server.test.js dist/db.test.js dist/db-diagnostics.test.js dist/catalog/schemas.test.js dist/catalog/routes.test.js dist/inventory/schemas.test.js dist/inventory/routes.test.js dist/sync/routes.test.js dist/sync/conflict-review-routes.test.js dist/auth/staff-routes.test.js",
+    "test": "pnpm run build && node --test dist/server.test.js dist/db.test.js dist/db-diagnostics.test.js dist/catalog/schemas.test.js dist/catalog/routes.test.js dist/inventory/schemas.test.js dist/inventory/routes.test.js dist/sync/routes.test.js dist/sync/conflict-review-routes.test.js dist/auth/staff-routes.test.js dist/reporting/sales-routes.test.js",
     "db:check": "tsx src/db-check.ts",
     "test:catalog": "pnpm run build && node --test dist/catalog/schemas.test.js dist/catalog/routes.test.js",
     "test:catalog:pg": "tsx --test src/catalog/catalog.pg.test.ts",
@@ -26,7 +26,9 @@
     "test:conflicts": "pnpm run build && node --test dist/sync/conflict-review-routes.test.js",
     "test:conflicts:pg": "tsx --test src/sync/conflict-review.pg.test.ts",
     "test:staff": "pnpm run build && node --test dist/auth/staff-routes.test.js",
-    "test:staff:pg": "tsx --test src/auth/staff-sessions.pg.test.ts"
+    "test:staff:pg": "tsx --test src/auth/staff-sessions.pg.test.ts",
+    "test:report": "pnpm run build && node --test dist/reporting/sales-routes.test.js",
+    "test:report:pg": "tsx --test src/reporting/sales-report.pg.test.ts"
   },
   "dependencies": {
     "fastify": "5.12.8",

@@ -5,9 +5,10 @@ import { registerSyncRoutes, type SyncRouteOptions } from './sync/routes.js';
 import { registerSyncPullRoutes,type SyncPullRouteOptions } from './sync/pull-routes.js';
 import { registerConflictReviewRoutes, type ConflictRouteOptions } from './sync/conflict-review-routes.js';
 import { registerStaffRoutes, type StaffRoutesOptions } from './auth/staff-routes.js';
+import { registerSalesReportRoutes, type SalesReportRouteOptions } from './reporting/sales-routes.js';
 
 /** Pure Fastify factory; no network listen, credentials, or database required by tests. */
-export function buildServer(options: { logger?: boolean; catalog?: CatalogRouteOptions; inventory?: InventoryRouteOptions; sync?: SyncRouteOptions; syncPull?: SyncPullRouteOptions; conflictReview?: ConflictRouteOptions; staff?: StaffRoutesOptions } = {}): FastifyInstance {
+export function buildServer(options: { logger?: boolean; catalog?: CatalogRouteOptions; inventory?: InventoryRouteOptions; sync?: SyncRouteOptions; syncPull?: SyncPullRouteOptions; conflictReview?: ConflictRouteOptions; staff?: StaffRoutesOptions; salesReport?: SalesReportRouteOptions } = {}): FastifyInstance {
   const app = Fastify({
     logger: options.logger ?? false,
     bodyLimit: 1024 * 1024,
@@ -33,6 +34,8 @@ export function buildServer(options: { logger?: boolean; catalog?: CatalogRouteO
   if (options.conflictReview) registerConflictReviewRoutes(app, options.conflictReview);
   // POS-025 staff sessions remain unmounted; no verified password login exists.
   if (options.staff) registerStaffRoutes(app, options.staff);
+  // POS-026 opt-in reports; normal main.ts stays HTTP 404, no live login.
+  if (options.salesReport) registerSalesReportRoutes(app,options.salesReport);
 
   return app;
 }

@@ -49,6 +49,12 @@ jobs:
         run: |
           pnpm --filter @smartpos/desktop test:catalog-pull
           pnpm --filter @smartpos/desktop test:catalog-pull:boundary
+          pnpm --filter @smartpos/desktop test:sales-report
+          pnpm --filter @smartpos/desktop test:sales-report:boundary
+      - name: POS-026 SQLite financial report with ACK-mirror safeguards
+        run: |
+          pnpm --filter @smartpos/desktop test:sales-report
+          pnpm --filter @smartpos/desktop test:sales-report:boundary
       - name: Build and test Fastify API + POS-016 to POS-021 exact schema/hash parity
         run: |
           pnpm --filter @smartpos/api build
@@ -58,6 +64,8 @@ jobs:
         run: pnpm --filter @smartpos/api test:conflicts
       - name: POS-025 staff session/role default-deny unit tests
         run: pnpm --filter @smartpos/api test:staff
+      - name: POS-026 report route security and validation
+        run: pnpm --filter @smartpos/api test:report
       - name: Verify shared DTOs and bigint VND domain rules
         run: |
           pnpm --filter @smartpos/contracts test
@@ -113,6 +121,8 @@ jobs:
         run: pnpm --filter @smartpos/api test:conflicts:pg
       - name: POS-025 online staff sessions, revocation, RBAC, audit and rollback (ephemeral)
         run: pnpm --filter @smartpos/api test:staff:pg
+      - name: POS-026 report UTC/VN dates, cashier scope, SKU and exact VND (ephemeral)
+        run: pnpm --filter @smartpos/api test:report:pg
 
 # Database tests run ONLY against disposable CI PostgreSQL; Neon is never contacted.
 
@@ -153,3 +163,5 @@ jobs:
         run: pnpm --filter @smartpos/api test:conflicts
       - name: POS-025 online staff RBAC and default-deny routes on Windows Node24
         run: pnpm --filter @smartpos/api test:staff
+      - name: POS-026 report route guards on Windows Node24
+        run: pnpm --filter @smartpos/api test:report
