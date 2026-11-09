@@ -11,6 +11,8 @@
 - [#56 POS-005](https://github.com/dinhkhoiIT15/smartpos/issues/56): GitHub main `protected:false`, only admin can apply ruleset.
 - [#57 POS-006](https://github.com/dinhkhoiIT15/smartpos/issues/57): this status/handoff remediation; pending owner PR review + fresh-session check.
 - [#58 BUG-023](https://github.com/dinhkhoiIT15/smartpos/issues/58): late ACK after PULL stock undercount; P0 before pilot.
+- [#60 SEC-013](https://github.com/dinhkhoiIT15/smartpos/issues/60): actual device-signed grant and cashier auth before live checkout/sync.
+- [#61 SEC-009](https://github.com/dinhkhoiIT15/smartpos/issues/61): encrypted offline backup, recovery and RPO/RTO before pilot.
 - GitHub issues #7 (POS-007) and #29 (POS-016) closed after confirming merged implementation evidence.
 
 ## In-flight POS-028 is NOT merged
