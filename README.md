@@ -1,6 +1,6 @@
 # SmartPOS Retail — Desktop + API Foundation
 
-**Status:** M4 POS-023 internal catalog/inventory PULL development. POS-022 [PR #42](https://github.com/dinhkhoiIT15/smartpos/pull/42) was owner Windows PASS and merged into `main` at `a01fcf5`; POS-023 [Issue #43](https://github.com/dinhkhoiIT15/smartpos/issues/43) / [Draft PR #44](https://github.com/dinhkhoiIT15/smartpos/pull/44) add PostgreSQL cursor-based catalog deltas and an atomic MAIN-only SQLite apply path. **No live PUSH/PULL HTTP, real cashier/device signed grants, actual paid checkout or enabled desktop worker**; D-013 remains mandatory. No Neon writes or production deployment.
+**Status:** M4 POS-024 internal manager conflict review development. Owner accepted POS-023 and [PR #44](https://github.com/dinhkhoiIT15/smartpos/pull/44) merged into `main` at `f102091` (Foundation CI green). [Issue #45](https://github.com/dinhkhoiIT15/smartpos/issues/45) / [Draft PR #46](https://github.com/dinhkhoiIT15/smartpos/pull/46) add store-scoped manager conflict list/review audit and a React DEMO-only preview. **No real staff login, public conflict/sync routes, signed offline grants, live checkout or production rollout**; D-013 and POS-025 still block real use.
 
 SmartPOS is a planned offline-first, cash-only POS for a single electronics store. The accepted baseline (one authorized offline cashier, immutable sales, integer VND, SKU inventory) is recorded in [AGENTS.md](AGENTS.md), [PRD](docs/PRODUCT_REQUIREMENTS.md), [Business Rules](docs/BUSINESS_RULES.md) and [Architecture](docs/SYSTEM_ARCHITECTURE.md).
 
@@ -194,7 +194,7 @@ pnpm --filter @smartpos/desktop test:outbox-boundary
 
 **Not a deployed sync worker:** normal Electron MAIN startup never instantiates it; no HTTP client or real signed-grant credentials. D-013 remains a hard security prerequisite for live API transport. See [POS-022 Windows and crash/reconnect acceptance](docs/POS-022_OUTBOX_ACCEPTANCE.md).
 
-## POS-023 server catalog delta PULL and SQLite stock rebase (Draft PR #44)
+## POS-023 server catalog delta PULL and SQLite stock rebase (merged PR #44)
 
 `apps/api/src/sync/pull-service.ts` reads bounded signed-64-bit cursor pages from store-scoped PostgreSQL `catalog_change_log` with a stable high watermark and per-store writer/read lock. POS-014 product-name/variant updates, POS-015 manual inventory changes and POS-021 offline sale stock changes produce transactionally committed delta rows. `GET /v1/sync/pull` remains **404 in normal Fastify startup**; the opt-in route is only used by tests until D-013.
 
@@ -228,3 +228,18 @@ See [Desktop README](apps/desktop/README.md), [API README](apps/api/README.md), 
 - Do not commit `.env`, local SQLite files, tokens, private data or real customer sales.
 - Keep secrets server-side in future issues; Electron renderer must never access Neon directly.
 - GitHub commit, CI and issue/PR state are authoritative; documentation may lag merge events.
+
+## POS-024 manager conflict review (Draft PR #46 — INTERNAL/DEMO ONLY)
+
+`apps/api/src/sync/conflict-review.ts` offers a store-scoped manager/admin list/detail and one-time, idempotent conflict review for POS-021 `STOCK_SHORTAGE` and `STALE_PRICE`. Under a PostgreSQL row lock it writes `sync_conflicts.RESOLVED` plus one append-only `audit_logs` actor/note/idempotency record in the same transaction; conflicting retries return 409 and an audit failure rolls the status back. A review note does **not** adjust stock, refund cash, change prices or alter immutable sales/ACKs. The Fastify routes are opt-in **test-only**; normal HTTP `/v1/sync/conflicts` remains 404 even with forged role headers.
+
+The Electron **Đối soát xung đột (demo)** tab has two explicitly synthetic examples and in-memory note/status interaction only. It reads no PostgreSQL or SQLite and cannot create a real audit or manager action. D-013 signed authorization and POS-025 authentic staff RBAC are prerequisites before any live conflict workflow.
+
+```powershell
+pnpm --filter @smartpos/api test:conflicts
+pnpm --filter @smartpos/desktop typecheck
+pnpm --filter @smartpos/desktop build
+pnpm --filter @smartpos/desktop dev
+```
+
+Actual PostgreSQL scenario tests are limited to disposable CI (`pnpm --filter @smartpos/api test:conflicts:pg`), **never Neon**. See [POS-024 Windows acceptance guide](docs/POS-024_CONFLICT_REVIEW_ACCEPTANCE.md).
