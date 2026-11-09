@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { getLocalSchemaVersion, openLocalDatabase } from './local-db/index.ts';
 import {createShellPolicy,isAllowedDocumentUrl,isAllowedRendererResource,
+  isTrustedReadOnlyIpcSender,
   DEMO_SESSION_PARTITION,type ShellPolicy} from './shell-policy.ts';
 
 const APP_INFO_CHANNEL = 'smartpos:app-info';
@@ -51,7 +52,8 @@ function createWindow(): void {
       event.sender !== window.webContents ||
       frame !== window.webContents.mainFrame ||
       frame.url !== window.webContents.getURL() ||
-      !isAllowedDocumentUrl(frame.url,shellPolicy)
+      !isAllowedDocumentUrl(frame.url,shellPolicy) ||
+      !isTrustedReadOnlyIpcSender(event.sender,frame,window.webContents,shellPolicy)
     ) {
       throw new Error('Untrusted IPC sender');
     }
