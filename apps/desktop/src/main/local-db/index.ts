@@ -1,7 +1,8 @@
-import { existsSync, mkdirSync, chmodSync } from 'node:fs';
+import { mkdirSync, chmodSync } from 'node:fs';
 import { dirname, isAbsolute, resolve } from 'node:path';
 import { backup, DatabaseSync } from 'node:sqlite';
 import { LOCAL_MIGRATIONS, SQLITE_SCHEMA_VERSION as CURRENT_SCHEMA_VERSION } from './migrations.ts';
+import {secureSqliteStoragePath,refuseExistingBackupTarget} from './storage-policy.ts';
 
 // Direct export is also visible to Node 24's native TypeScript/CJS test loader.
 export const SQLITE_SCHEMA_VERSION = CURRENT_SCHEMA_VERSION;
@@ -20,7 +21,8 @@ export function openLocalDatabase(filePath: string): DatabaseSync {
   }
   if (filePath !== ':memory:') {
     // No app files are written under the source tree or packaged ASAR.
-    mkdirSync(dirname(filePath), { recursive: true, mode: 0o700 });
+    // Reject redirected hardlinked/symlinked SQLite, WAL and SHM before opening.
+    secureSqliteStoragePath(filePath);
   }
   const database = new DatabaseSync(filePath, {
     timeout: 5_000,
@@ -44,6 +46,8 @@ export function openLocalDatabase(filePath: string): DatabaseSync {
     if (check.quick_check !== 'ok') throw new Error('SQLite database integrity check failed');
 
     applyLocalMigrations(database);
+    // Journaling can create WAL/SHM after initial filesystem checks.
+    if (filePath !== ':memory:') secureSqliteStoragePath(filePath);
     return database;
   } catch {
     database.close();
@@ -128,13 +132,22 @@ function applyLocalMigrations(db: DatabaseSync): void {
  */
 export async function backupLocalDatabase(db: DatabaseSync, destination: string): Promise<void> {
   if (!isAbsolute(destination)) throw new Error('Backup destination must be absolute');
-  if (existsSync(destination)) throw new Error('Refusing to overwrite an existing SQLite backup');
+  // Reject existing files AND dangling symlinks (existsSync misses the latter).
+  try{refuseExistingBackupTarget(destination);}catch(error){
+    if(error instanceof Error && error.message === 'SQLITE_STORAGE_BACKUP_EXISTS')
+      throw new Error('Refusing to overwrite an existing SQLite backup');
+    throw error;
+  }
   const list = db.prepare('PRAGMA database_list').all() as DatabaseFileRow[];
   const current = list.find((row) => row.name === 'main');
   if (current?.file && resolve(current.file) === resolve(destination)) {
     throw new Error('Backup destination must differ from active database');
   }
   mkdirSync(dirname(destination), { recursive: true, mode: 0o700 });
+  secureSqliteStoragePath(destination);
+  // Second lstat guard closes simple races against an existing output file.
+  refuseExistingBackupTarget(destination);
   await backup(db, destination);
+  secureSqliteStoragePath(destination);
   chmodSync(destination, 0o600);
 }
