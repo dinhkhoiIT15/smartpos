@@ -27,7 +27,7 @@
     "test:storage-security": "node --experimental-strip-types --test tests/storage-security.test.mjs",
     "test:security": "pnpm run security:check && pnpm run test:security-shell && pnpm run test:storage-security && pnpm run test:receipt-boundary && pnpm run test:outbox-boundary && pnpm run test:catalog-pull:boundary && pnpm run test:sales-report:boundary",
     "test:package-demo": "node --test tests/demo-package.test.mjs tests/demo-release-boundary.test.mjs",
-    "package:demo:win": "pnpm run build && node scripts/stage-demo.mjs && pnpm dlx electron-builder@26.18.1 --projectDir .demo-package --win nsis --x64 --publish never && node scripts/verify-demo-artifacts.mjs win x64",
+    "package:demo:win": "pnpm run build && node scripts/stage-demo.mjs && node scripts/run-win-builder.mjs && node scripts/verify-demo-artifacts.mjs win x64",
     "package:demo:mac:x64": "pnpm run build && node scripts/stage-demo.mjs && pnpm dlx electron-builder@26.18.1 --projectDir .demo-package --mac dmg zip --x64 --publish never && node scripts/verify-demo-artifacts.mjs mac x64",
     "package:demo:mac:arm64": "pnpm run build && node scripts/stage-demo.mjs && pnpm dlx electron-builder@26.18.1 --projectDir .demo-package --mac dmg zip --arm64 --publish never && node scripts/verify-demo-artifacts.mjs mac arm64"
   },
