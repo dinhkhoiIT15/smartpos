@@ -1,0 +1,99 @@
+# POS-028 — unsigned DEMO ONLY artifacts; no GitHub Release and no signing keys.
+# Build outputs and SHA-256 manifests are disposable; 5-day retention.
+name: SmartPOS Unsigned DEMO Installers (Windows + macOS)
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: smartpos-demo-packaging-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  stage-validation:
+    name: Minimal no-secret staging and package manifest tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.20.0'
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: pnpm
+      - name: Frozen workspace dependency install
+        run: pnpm install --frozen-lockfile
+      - name: Validate packaging constraints and synthetic attack cases
+        run: pnpm --filter @smartpos/desktop test:package-demo
+      - name: Verify secure Electron compiled output stages with no source
+        run: |
+          pnpm --filter @smartpos/desktop build
+          pnpm --filter @smartpos/desktop exec node scripts/stage-demo.mjs
+      - name: Static production isolation, authorizations and source safety
+        run: |
+          pnpm --filter @smartpos/desktop security:check
+          pnpm --filter @smartpos/desktop typecheck
+
+  unsigned-installers:
+    name: Unsigned DEMO ${{ matrix.target }}
+    needs: stage-validation
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: win-x64
+            runner: windows-latest
+            command: package:demo:win
+            artifacts: |
+              apps/desktop/demo-artifacts/SmartPOS-DEMO-*.exe
+              apps/desktop/demo-artifacts/SHA256SUMS.txt
+              apps/desktop/demo-artifacts/BUILD_PROVENANCE.json
+          - target: mac-x64
+            runner: macos-14
+            command: package:demo:mac:x64
+            artifacts: |
+              apps/desktop/demo-artifacts/SmartPOS-DEMO-*.dmg
+              apps/desktop/demo-artifacts/SmartPOS-DEMO-*.zip
+              apps/desktop/demo-artifacts/SHA256SUMS.txt
+              apps/desktop/demo-artifacts/BUILD_PROVENANCE.json
+          - target: mac-arm64
+            runner: macos-14
+            command: package:demo:mac:arm64
+            artifacts: |
+              apps/desktop/demo-artifacts/SmartPOS-DEMO-*.dmg
+              apps/desktop/demo-artifacts/SmartPOS-DEMO-*.zip
+              apps/desktop/demo-artifacts/SHA256SUMS.txt
+              apps/desktop/demo-artifacts/BUILD_PROVENANCE.json
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.20.0'
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: pnpm
+      - name: Frozen install (Node 24, pnpm 10.20.0, Electron 44.9.3)
+        run: pnpm install --frozen-lockfile
+      - name: Stage unit and security tests on native packaging host
+        run: |
+          pnpm --filter @smartpos/desktop test:package-demo
+          pnpm --filter @smartpos/desktop security:check
+      - name: Package unsigned versioned DEMO install bundle + SHA-256
+        run: pnpm --filter @smartpos/desktop ${{ matrix.command }}
+      - name: Upload unsigned short-lived demo artifacts (not GitHub Releases)
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-demo-${{ matrix.target }}
+          path: ${{ matrix.artifacts }}
+          if-no-files-found: error
+          retention-days: 5
+          compression-level: 0
