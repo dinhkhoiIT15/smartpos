@@ -101,7 +101,8 @@ function classify(sale:SaleRow):LocalReportKind{
       if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))reject('INVALID_ACK');
       ack=parsed as Record<string,unknown>;
     }catch{reject('INVALID_ACK');}
-    if(ack.eventId!==sale.event_id||ack.saleId!==sale.sale_id||
+    if(!Array.isArray(ack.conflictIds)||!ack.conflictIds.every((x:unknown)=>typeof x==='string')||
+      ack.eventId!==sale.event_id||ack.saleId!==sale.sale_id||
       ack.status!=='ACKED'||typeof ack.serverReceivedAt!=='string'||
       !['APPLIED','STOCK_SHORTAGE_RECONCILIATION','STALE_PRICE_REVIEW']
         .includes(String(ack.resultCode)) ||
@@ -110,10 +111,22 @@ function classify(sale:SaleRow):LocalReportKind{
       reject('INVALID_ACK');
     return 'SERVER_ACKED_MIRROR';
   }
-  if(status==='PENDING_SYNC'&&['PENDING','SYNCING','RETRY'].includes(state))
+  if(status==='PENDING_SYNC'&&['PENDING','SYNCING','RETRY'].includes(state)){
+    if(sale.ack_json!==null)reject('UNEXPECTED_ACK');
     return 'LOCAL_PENDING';
-  if(status==='NEEDS_REVIEW'&&state==='NEEDS_REVIEW')
+  }
+  if(status==='NEEDS_REVIEW'&&state==='NEEDS_REVIEW'){
+    if(sale.ack_json!==null){
+      let result:unknown;
+      try{result=JSON.parse(sale.ack_json);}catch{reject('INVALID_ACK');}
+      if(!result||typeof result!=='object'||Array.isArray(result))
+        reject('INVALID_ACK');
+      const ack=result as Record<string,unknown>;
+      if(ack.eventId!==sale.event_id||ack.saleId!==sale.sale_id||
+        ack.status!=='NEEDS_REVIEW')reject('INVALID_ACK');
+    }
     return 'LOCAL_NEEDS_REVIEW_UNCONFIRMED';
+  }
   return reject('STATE_CONTRADICTION');
 }
 const byKey=<T extends string>(map:Map<T,{n:bigint;gross:bigint}>,
