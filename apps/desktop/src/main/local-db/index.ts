@@ -2,7 +2,7 @@ import { mkdirSync, chmodSync } from 'node:fs';
 import { dirname, isAbsolute, resolve } from 'node:path';
 import { backup, DatabaseSync } from 'node:sqlite';
 import { LOCAL_MIGRATIONS, SQLITE_SCHEMA_VERSION as CURRENT_SCHEMA_VERSION } from './migrations.ts';
-import {secureSqliteStoragePath,refuseExistingBackupTarget} from './storage-policy.ts';
+import {secureSqliteStoragePath,refuseExistingBackupTarget} from './storage-policy.mts';
 
 // Direct export is also visible to Node 24's native TypeScript/CJS test loader.
 export const SQLITE_SCHEMA_VERSION = CURRENT_SCHEMA_VERSION;
