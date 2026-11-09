@@ -55,7 +55,7 @@ jobs:
               apps/desktop/demo-artifacts/SHA256SUMS.txt
               apps/desktop/demo-artifacts/BUILD_PROVENANCE.json
           - target: mac-x64
-            runner: macos-14
+            runner: macos-15-intel
             command: package:demo:mac:x64
             artifacts: |
               apps/desktop/demo-artifacts/SmartPOS-DEMO-*.dmg
@@ -63,7 +63,7 @@ jobs:
               apps/desktop/demo-artifacts/SHA256SUMS.txt
               apps/desktop/demo-artifacts/BUILD_PROVENANCE.json
           - target: mac-arm64
-            runner: macos-14
+            runner: macos-15
             command: package:demo:mac:arm64
             artifacts: |
               apps/desktop/demo-artifacts/SmartPOS-DEMO-*.dmg
