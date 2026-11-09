@@ -41,6 +41,27 @@ export const storeMemberships = pgTable('store_memberships', {
   check('store_memberships_role_not_empty', sql`length(trim(${t.role})) > 0`),
 ]);
 
+export const staffSessions = pgTable('staff_sessions', {
+  id: uuid('id').primaryKey(),
+  storeId: uuid('store_id').notNull(),
+  userId: uuid('user_id').notNull(),
+  tokenHash: text('token_hash').notNull(),
+  issuedAt: timestamp('issued_at', { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  revokedBy: uuid('revoked_by').references(() => users.id, { onDelete: 'restrict' }),
+}, (t) => [
+  foreignKey({
+    columns: [t.storeId,t.userId],
+    foreignColumns: [storeMemberships.storeId,storeMemberships.userId],
+    name: 'staff_sessions_membership_fk',
+  }).onDelete('restrict'),
+  unique('staff_sessions_token_hash_unique').on(t.tokenHash),
+  index('staff_sessions_store_user_idx').on(t.storeId,t.userId),
+  check('staff_sessions_token_hash_format', sql`${t.tokenHash} ~ '^[0-9a-f]{64}$'`),
+  check('staff_sessions_short_lived', sql`${t.expiresAt} > ${t.issuedAt} AND ${t.expiresAt} <= ${t.issuedAt} + interval '15 minutes'`),
+]);
+
 export const devices = pgTable('devices', {
   id: uuid('id').primaryKey(),
   storeId: uuid('store_id').notNull().references(() => stores.id, { onDelete: 'restrict' }),

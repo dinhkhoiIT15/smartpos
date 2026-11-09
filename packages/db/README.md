@@ -60,3 +60,9 @@ There is **no automatic DOWN migration** in this iteration; dropping sale tables
 ## Migration is not a functioning POS
 
 Database-level constraints protect many invariants, but cross-line sums, variant-to-sale store matching, staff session validity, movement authorization, advanced idempotent sync semantics and stock reconciliation still require future transactional services (POS-014/015/016/021). SQLite offline schema is separate (POS-013). This package does not store secrets and never exposes SQL access to the Electron renderer.
+
+## POS-025 additive staff session migration 0001 (Draft PR #48)
+
+This adds `staff_sessions` after the existing 17-table v1 baseline without altering old tables or migrations. It stores **only** SHA-256 token digests of 256-bit random server-issued access credentials, not plaintext. DB constraints enforce a maximum 15-minute online session, FK to current store/user membership, and audit-linked revocation. The online session is **not** D-010's signed four-hour offline cashier grant. No password login/Argon2id or OS keychain has been introduced.
+
+`pnpm --filter @smartpos/db schema:check` validates Drizzle metadata without touching Neon. GitHub disposable CI `test:migrations` applies both migrations on `127.0.0.1:5432/smartpos_ci` and asserts exactly 18 public SmartPOS tables and 2 Drizzle history records, plus invalid token/TTL/FK tests. **Do not run `migrate:dev` against Neon without separate owner approval, staged backup/review and rollback/forward-fix plan.** No production migrations are approved.

@@ -56,6 +56,8 @@ jobs:
           pnpm --filter @smartpos/api test:sync:parity
       - name: POS-024 strict manager conflict review route guards
         run: pnpm --filter @smartpos/api test:conflicts
+      - name: POS-025 staff session/role default-deny unit tests
+        run: pnpm --filter @smartpos/api test:staff
       - name: Verify shared DTOs and bigint VND domain rules
         run: |
           pnpm --filter @smartpos/contracts test
@@ -109,6 +111,8 @@ jobs:
         run: pnpm --filter @smartpos/api test:pull:pg
       - name: POS-024 manager conflict review, audit, store isolation and rollback
         run: pnpm --filter @smartpos/api test:conflicts:pg
+      - name: POS-025 online staff sessions, revocation, RBAC, audit and rollback (ephemeral)
+        run: pnpm --filter @smartpos/api test:staff:pg
 
 # Database tests run ONLY against disposable CI PostgreSQL; Neon is never contacted.
 
@@ -147,3 +151,5 @@ jobs:
         run: pnpm --filter @smartpos/api test:sync:parity
       - name: POS-024 opt-in manager route guards on Windows Node24
         run: pnpm --filter @smartpos/api test:conflicts
+      - name: POS-025 online staff RBAC and default-deny routes on Windows Node24
+        run: pnpm --filter @smartpos/api test:staff

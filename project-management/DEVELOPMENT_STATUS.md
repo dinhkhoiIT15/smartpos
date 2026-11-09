@@ -2,34 +2,33 @@
 
 status_schema: 1
 last_reviewed_at: 2026-11-09
-verified_commit: f102091c6de9ba4d6616129d7df2129415173377
+verified_commit: 026bfa1ce51274525cb99cb44c847a115ac00744
 verified_ref: main
 repository_url: https://github.com/dinhkhoiIT15/smartpos
-repo_connection: CONFIRMED — GitHub read/write connector; no admin
+repo_connection: CONFIRMED — GitHub issue/PR/commit/CI connector, no admin
 last_github_synced_at: MANUAL GITHUB REVIEW 2026-11-09
-current_milestone: M4 — offline sync reconciliation
-current_phase: POS-024 [Issue #45](https://github.com/dinhkhoiIT15/smartpos/issues/45), [Draft PR #46](https://github.com/dinhkhoiIT15/smartpos/pull/46); owner Windows acceptance PENDING; NOT merged
-ci_status: POS-024 code checkpoint 0e5f70561ae7f356c0a79d8dc23d597bd2d0034c [Foundation CI #42587150764](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42587150764) SUCCESS all 3 Linux/API, Windows Node24, disposable PostgreSQL16 jobs; earlier [Documentation CI #42587083108](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42587083108) SUCCESS on preceding documentation commit. Subsequent handoff-only edits need final HEAD CI verification; owner Windows acceptance still pending.
-production_status: NOT DEPLOYED — D-013 signed device/cashier grant and real staff RBAC/POS-025 missing, normal API conflict/PUSH/PULL routes 404, normal Electron demo workers not activated, no Neon sale writes
+current_milestone: M5 — internal server staff RBAC/session foundation
+current_phase: POS-025 [Issue #47](https://github.com/dinhkhoiIT15/smartpos/issues/47), [Draft PR #48](https://github.com/dinhkhoiIT15/smartpos/pull/48); implementation on feature/POS-025-staff-rbac-sessions; owner Windows acceptance PENDING, NOT merged
+ci_status: POS-025 checkpoint e675fea0f4ad256c2361312f99c1bdc76c433c4c [Foundation CI #42590414219](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42590414219) SUCCESS 3/3 jobs (Linux/API, Windows Node24, disposable PG16 migration/RBAC); [Documentation CI #42590414113](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42590414113) SUCCESS same checkpoint. Final documentation updates require renewed HEAD CI verification before owner signoff
+production_status: NOT DEPLOYED — no real Argon2id/rate-limited login, OS-backed desktop credential storage, signed offline device/cashier grant or authorized checkout/sync (D-013); normal staff/catalog/inventory/conflict/sync privileged HTTP routes remain 404; Neon not migrated
 
-## Verified owner-accepted main
+## Owner-verified merged main
 
-- POS-001–POS-022 already accepted and merged.
-- POS-023 [PR #44](https://github.com/dinhkhoiIT15/smartpos/pull/44) owner Windows PASS, merged [main `f102091`](https://github.com/dinhkhoiIT15/smartpos/commit/f102091c6de9ba4d6616129d7df2129415173377); Foundation CI [#42451595741](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42451595741) SUCCESS all 3 jobs. Issue #43 closed 2026-11-09 after owner acceptance. No live sync activated.
-- POS-023 conservative late-ACK-after-stock-PULL caveat remains: local available qty may be temporarily understated pending durable rebase marker/trusted reconciliation; must be addressed before pilot, never erase cash sale.
+- POS-001..POS-023 owner accepted and merged.
+- POS-024 [PR #46](https://github.com/dinhkhoiIT15/smartpos/pull/46) owner reported Windows PASS and GitHub verified merged at [main `026bfa1`](https://github.com/dinhkhoiIT15/smartpos/commit/026bfa1ce51274525cb99cb44c847a115ac00744). [Foundation CI #42588442780](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42588442780) SUCCESS on merge.
+- POS-024 internal conflict review audit and clearly synthetic UI do not activate real online authorization. Conservative late-ACK stock understatement from POS-023 still pending before pilot.
 
-## Current POS-024 Draft PR #46
+## POS-025 Draft PR #48
 
-- `apps/api/src/sync/conflict-review.ts`: internal authoritative active manager/admin membership; store-scoped list/detail for STOCK_SHORTAGE and STALE_PRICE, 1..100 page; actor note/UUID review, row-lock OPEN -> RESOLVED, exact repeat returns REPLAYED, divergent close 409, atomic append-only audit with rollback.
-- `apps/api/src/sync/conflict-review-routes.ts`: opt-in Fastify.inject test adapter with trusted synthetic principal; normal `main.ts` does not mount review endpoints and fake role headers fail closed.
-- `apps/api/src/sync/conflict-review-routes.test.ts` and `conflict-review.pg.test.ts`: default-deny, strict schema, real PG16 POS-021 generated shortage/stale-price conflict, manager/cashier/foreign-store/revocation, concurrent idempotency, audit rollback and original financial/stock/receipt immutability.
-- `apps/desktop/src/renderer/src/conflict-demo.tsx`: two synthetic fixed demo scenarios with only in-memory state, no network/DB/IPC/auth. Does not display real conflicts or record a true audit.
-- CI includes Linux/Windows Node24 default-deny and ephemeral PG16 integration. No migrations, production/Neon writes, real auth, new dependencies.
-- [POS-024 full Windows acceptance](../docs/POS-024_CONFLICT_REVIEW_ACCEPTANCE.md).
+- Additive PostgreSQL migration `0001_staff_sessions.sql` + versioned Drizzle metadata and schema; 18th table and 2-entry journal. Store only SHA-256 digest of random 256-bit opaque bearer; 15m expiry, FK to user membership, explicit revocation. Old PostgreSQL 17 tables and SQLite v1 9 tables remain intact; **not applied to Neon**.
+- `apps/api/src/auth/staff-sessions.ts`: `issueForVerifiedIdentity` may run ONLY after a trusted upstream identity proof, with no API login route. `resolve` reads active user/membership/store/role/revocation/expiry from PostgreSQL on every call. Admin-only role/active changes with reason and per-store advisory serialization, last-admin protection, affected session revocation plus immutable audit in the SAME transaction; own session revoke audited.
+- `apps/api/src/auth/staff-routes.ts`: optional test-injected `/v1/staff/me`, `/v1/staff/logout`, `/v1/staff/members/:id`; `createStaffPrincipalResolver` obtains verified principal from bearer for POS-014/015/024 opt-in test interfaces, never spoofed x-role/header. Normal `main.ts` mounts none of them.
+- `apps/api/src/auth/staff-routes.test.ts`, `staff-sessions.pg.test.ts`, new migration constraint tests, Linux/Windows/PG CI regression; no production secrets or real cashier grant.
+- [POS-025 Windows/migration/security acceptance](../docs/POS-025_STAFF_RBAC_ACCEPTANCE.md).
 
 ## Next
 
-1. Verify final HEAD CI Foundation (Linux/Windows/disposable PG16) and Documentation ALL green; fix any regressions on the branch.
-2. Owner Windows safe scripts: `pnpm install --frozen-lockfile`, `pnpm --filter @smartpos/api test:conflicts`, `pnpm --filter @smartpos/api test`, `pnpm --filter @smartpos/desktop typecheck`, `pnpm --filter @smartpos/desktop security:check`, `pnpm --filter @smartpos/desktop build`, `pnpm run check`.
-3. Manual Electron demo conflict filter/note/ack memory-only, existing cart/receipt/IPC regression and normal conflict API HTTP404; no Neon.
-4. Owner security review and explicit Windows PASS, then manually merge PR #46 and close Issue #45. D-013/POS-025 still block production functionality.
+1. Verify final branch SHA Foundation CI (Linux/API, Windows Node24, disposable PostgreSQL 16) and Docs CI all SUCCESS. Fix all errors before owner handoff.
+2. Owner Windows SAFE: `pnpm install --frozen-lockfile`, `pnpm --filter @smartpos/db schema:check`, `pnpm --filter @smartpos/api test:staff`, `pnpm --filter @smartpos/api test`, `pnpm --filter @smartpos/desktop build`, `pnpm run check`.
+3. Confirm normal Fastify health 200 and staff/privileged routes 404, and Electron remains DEMO ONLY; do not connect Neon/migrate without approval.
+4. Owner reviews security, migration and D-013 scope; Windows PASS and manually merges Draft #48. Then close Issue #47, proceed to POS-026 reporting after POS-025 accepted.
