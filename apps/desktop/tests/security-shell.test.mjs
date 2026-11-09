@@ -4,7 +4,7 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
 import {createShellPolicy,isAllowedDocumentUrl,isAllowedRendererResource,
-  DEMO_SESSION_PARTITION} from '../src/main/shell-policy.ts';
+  DEMO_SESSION_PARTITION,isTrustedReadOnlyIpcSender} from '../src/main/shell-policy.ts';
 
 const dev='http://127.0.0.1:5173/';
 test('POS-027 dev renderer allows ONLY exact loopback entry with no credentials/path/query/fragment',()=>{
@@ -78,4 +78,19 @@ test('POS-027 packaged renderer permits ONLY its own local asset tree',()=>{
  assert.throws(()=>createShellPolicy(undefined,join(root,'not-index.html')),
   /DEMO_SHELL_INVALID_ENTRY/);
  assert.throws(()=>createShellPolicy(undefined,'index.html'),/DEMO_SHELL_INVALID_ENTRY/);
+});
+
+test('POS-027 mainFrame+sender reference identity required for app-info IPC',()=>{
+ const p=createShellPolicy(dev,join(tmpdir(),'out','renderer','index.html'));
+ const frame={url:dev},webContents={mainFrame:frame,getURL:()=>dev};
+ assert.equal(isTrustedReadOnlyIpcSender(webContents,frame,webContents,p),true);
+ assert.equal(isTrustedReadOnlyIpcSender({},frame,webContents,p),false);
+ assert.equal(isTrustedReadOnlyIpcSender(webContents,{url:dev},webContents,p),false);
+ assert.equal(isTrustedReadOnlyIpcSender(webContents,null,webContents,p),false);
+ assert.equal(isTrustedReadOnlyIpcSender(webContents,undefined,webContents,p),false);
+ const changedFrame={url:dev+'admin'};
+ assert.equal(isTrustedReadOnlyIpcSender({...webContents,mainFrame:changedFrame},
+   changedFrame,webContents,p),false);
+ const wrongURLWebContents={mainFrame:frame,getURL:()=>dev+'evil'};
+ assert.equal(isTrustedReadOnlyIpcSender(wrongURLWebContents,frame,wrongURLWebContents,p),false);
 });
