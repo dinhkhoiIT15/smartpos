@@ -1,7 +1,7 @@
 import {spawnSync} from 'node:child_process';
 import {existsSync,lstatSync,mkdirSync,readFileSync} from 'node:fs';
 import {homedir} from 'node:os';
-import {dirname,isAbsolute,join,resolve,win32} from 'node:path';
+import {dirname,isAbsolute,join,resolve,sep,win32} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 /**
