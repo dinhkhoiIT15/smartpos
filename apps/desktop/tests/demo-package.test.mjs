@@ -8,6 +8,7 @@ import {dirname,join} from 'node:path';
 import {stageDemoPackage,STAGE_NAME,STAGE_MARKER,ELECTRON_PIN}
  from '../scripts/stage-demo.mjs';
 import {verifyDemoArtifacts} from '../scripts/verify-demo-artifacts.mjs';
+import {commandForWindows,BUILDER_VERSION} from '../scripts/run-win-builder.mjs';
 
 function fixture(t){
  const root=mkdtempSync(join(tmpdir(),'smartpos-pos028-'));
@@ -147,4 +148,19 @@ test('POS-028 requires BOTH macOS DMG/ZIP and rejects corrupt or wrong version p
  binary(join(dir,prefix+'.zip'),'NO');
  assert.throws(()=>verifyDemoArtifacts(dir,{platform:'mac',arch:'arm64',
   version:'0.1.0'}),/DEMO_RELEASE_INVALID_ZIP/);
+});
+
+test('POS-028 Windows NSIS uses short per-user pnpm dlx cache, not userData',()=>{
+ const {cache,args}=commandForWindows('win','x64','C:\\Users\\runneradmin');
+ assert.ok(cache.endsWith('.spx'));
+ assert.equal(BUILDER_VERSION,'26.18.1');
+ assert.deepEqual(args.slice(0,2),['dlx','electron-builder@26.18.1']);
+ assert.ok(args.join(' ').includes('--publish never'));
+ assert.throws(()=>commandForWindows('mac','x64','C:\\Users\\runneradmin'),
+  /DEMO_BUILDER_UNSUPPORTED_TARGET/);
+ assert.throws(()=>commandForWindows('win','arm64','C:\\Users\\runneradmin'),
+  /DEMO_BUILDER_UNSUPPORTED_TARGET/);
+ assert.throws(()=>commandForWindows('win','x64',
+  'C:\\Users\\this_profile_is_very_long_and_can_break_nsis_paths_on_windows'),
+  /DEMO_BUILDER_CACHE_PATH_TOO_LONG/);
 });
