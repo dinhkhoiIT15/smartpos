@@ -4,7 +4,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { getLocalSchemaVersion, openLocalDatabase } from './local-db/index.ts';
 import {createShellPolicy,isAllowedDocumentUrl,isAllowedRendererResource,
   isTrustedReadOnlyIpcSender,
-  DEMO_SESSION_PARTITION,type ShellPolicy} from './shell-policy.ts';
+  DEMO_SESSION_PARTITION,type ShellPolicy} from './shell-policy.mts';
 
 const APP_INFO_CHANNEL = 'smartpos:app-info';
 const DEV_RENDERER_URL = process.env.ELECTRON_RENDERER_URL;
