@@ -60,3 +60,16 @@ export function isAllowedRendererResource(value:string,policy:ShellPolicy):boole
   return rel===''||(!isAbsolute(rel)&&rel!=='..'&&
     !rel.startsWith('..'+sep));
 }
+
+/**
+ * Pure negative-case oracle for IPC unit tests. Electron MAIN also performs
+ * each explicit check at the call site, so no attacker-supplied role, path,
+ * frame ID or renderer URL can authorize this channel.
+ */
+export function isTrustedReadOnlyIpcSender(sender:unknown,
+  frame:{url:string}|null|undefined,
+  expected:{mainFrame:unknown;getURL:()=>string},
+  policy:ShellPolicy):boolean {
+  return sender===expected&&!!frame&&frame===expected.mainFrame&&
+    frame.url===expected.getURL()&&isAllowedDocumentUrl(frame.url,policy);
+}
