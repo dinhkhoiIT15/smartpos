@@ -1,7 +1,7 @@
 import {spawnSync} from 'node:child_process';
 import {existsSync,lstatSync,mkdirSync,readFileSync} from 'node:fs';
 import {homedir} from 'node:os';
-import {dirname,isAbsolute,join,relative,resolve,sep} from 'node:path';
+import {dirname,isAbsolute,join,resolve,win32} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 /**
@@ -22,8 +22,9 @@ export const BUILDER_VERSION='26.18.1';
 
 export function commandForWindows(platform,arch,home,nodeExec=process.execPath){
   if(platform!=='win'||arch!=='x64')fail('UNSUPPORTED_TARGET');
-  if(typeof home!=='string'||!isAbsolute(home)||home.length<3||
-    typeof nodeExec!=='string'||!isAbsolute(nodeExec))fail('INVALID_HOME');
+  if(typeof home!=='string'||!(isAbsolute(home)||win32.isAbsolute(home))||home.length<3||
+    typeof nodeExec!=='string'||!(isAbsolute(nodeExec)||win32.isAbsolute(nodeExec)))
+    fail('INVALID_HOME');
   // Only locally generated, no user-supplied shell command text. Reject
   // problematic characters even though we execute Node without a shell.
   const cache=join(home,'.spx');
