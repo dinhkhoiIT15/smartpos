@@ -53,7 +53,8 @@
 - POS-011 approved **policy/design only**: signed maximum 4-hour offline cashier grant and one offline device; the live OS-backed key, device proof, grant verifier, clock/shift/revocation are not implemented (D-013).
 - POS-025 implements **internal server RBAC/session primitives**, not a complete public password login + cross-platform offline device provisioning.
 - POS-018..024 provide demo UI or independently tested MAIN/internal PostgreSQL/SQLite services; real cashier checkout/sync authorization, server endpoints and desktop transport are not enabled for production. Normal privileged API routes intentionally 404.
-- D-009 remains OPEN: local SQLite and backups are plaintext; no approved encrypted backup retention/RPO/RTO or verified disaster restore. D-011 signing/notarization and D-012 refund/returns policy remain OPEN.
+- D-009 remains OPEN: local SQLite and backups are plaintext; no approved encrypted backup retention/RPO/RTO or verified disaster restore. [SEC-009 #61](https://github.com/dinhkhoiIT15/smartpos/issues/61) tracks completion. D-011 signing/notarization and D-012 refund/returns policy remain OPEN.
+- D-013 real online cashier authorization, signed offline device-bound 4h grants and OS key provision are tracked in [SEC-013 #60](https://github.com/dinhkhoiIT15/smartpos/issues/60). POS-011 policy + POS-025 internal staff sessions do not satisfy live FR-01/FR-07.
 - POS-029 recovery/conflict rehearsal and POS-030 pilot readiness were never started; they must not be marked done merely because PR #54 produces a DEMO installer.
 
 ## Gate/order before new feature tasks
