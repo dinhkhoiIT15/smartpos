@@ -1,49 +1,76 @@
 import {spawnSync} from 'node:child_process';
-import {lstatSync,mkdirSync} from 'node:fs';
+import {existsSync,lstatSync,mkdirSync,readFileSync} from 'node:fs';
 import {homedir} from 'node:os';
-import {dirname,join,resolve} from 'node:path';
+import {dirname,isAbsolute,join,relative,resolve,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 /**
- * POS-028 Windows-only electron-builder launcher. NSIS has a conservative
- * pathname limit for !include StdUtils.nsh. pnpm dlx under the default long
- * %LOCALAPPDATA%\pnpm-cache\dlx\... produces a long app-builder-lib path.
- * Use an owner-controlled SHORT cache under the SAME Windows user profile.
+ * POS-028 Windows-only Electron-builder launcher.
  *
- * This cache holds only installer CLI dependencies; NEVER set ELECTRON
- * userData / SQLite, never write to production file paths, never elevate.
+ * NSIS's StdUtils.nsh include cannot resolve pnpm dlx's very deep virtual-store
+ * path under %LOCALAPPDATA%\pnpm-cache\dlx. Use npm's flat module layout in a
+ * SHORT temporary build-tool prefix under this user's home directory.
+ * Uses the setup-node bundled npm CLI directly via node.exe (no cmd shell),
+ * with lifecycle scripts disabled. This NEVER touches Electron userData,
+ * SQLite/WAL/SHM, source workspace lockfile, or OS credential stores.
+ *
+ * Packaging tool dependencies are NOT frozen by pnpm-lock.yaml. D-011 still
+ * requires approved supply-chain lock/provenance before any production release.
  */
 const fail=code=>{throw new Error('DEMO_BUILDER_'+code);};
 export const BUILDER_VERSION='26.18.1';
-export function commandForWindows(platform,arch,home){
+
+export function commandForWindows(platform,arch,home,nodeExec=process.execPath){
   if(platform!=='win'||arch!=='x64')fail('UNSUPPORTED_TARGET');
-  if(typeof home!=='string'||home.length<3)fail('INVALID_HOME');
+  if(typeof home!=='string'||!isAbsolute(home)||home.length<3||
+    typeof nodeExec!=='string'||!isAbsolute(nodeExec))fail('INVALID_HOME');
+  // Only locally generated, no user-supplied shell command text. Reject
+  // problematic characters even though we execute Node without a shell.
   const cache=join(home,'.spx');
-  // A long Windows profile root would leave NSIS include paths too deep.
   if(cache.length>48)fail('CACHE_PATH_TOO_LONG');
+  const npmCli=join(dirname(nodeExec),'node_modules','npm','bin','npm-cli.js');
+  const builder=join(cache,'node_modules','electron-builder','cli.js');
   return {
-    cache,
-    args:['dlx','electron-builder@'+BUILDER_VERSION,'--projectDir','.demo-package',
-      '--win','nsis','--x64','--publish','never'],
+    cache,npmCli,builder,
+    npmArgs:['install','--prefix',cache,'--no-save','--no-package-lock',
+      '--ignore-scripts','--no-audit','--no-fund',
+      'electron-builder@'+BUILDER_VERSION],
+    builderArgs:['--projectDir','.demo-package','--win','nsis','--x64',
+      '--publish','never'],
   };
 }
-export function runWindowsBuilder({home=homedir(),root=resolve(dirname(fileURLToPath(import.meta.url)),'..')}={}){
-  if(process.platform!=='win32')fail('WINDOWS_ONLY');
-  const planned=commandForWindows('win','x64',home);
-  mkdirSync(planned.cache,{recursive:true});
-  const stat=lstatSync(planned.cache);
+
+function checkedDirectory(dir){
+  mkdirSync(dir,{recursive:true});
+  const stat=lstatSync(dir);
   if(!stat.isDirectory()||stat.isSymbolicLink())fail('UNTRUSTED_CACHE');
-  // pnpm v10 cacheDir setting: this changes only dlx package extraction.
-  // All arguments are static, no untrusted paths are interpolated in shell.
-  const env={...process.env,PNPM_CONFIG_CACHE_DIR:planned.cache};
-  const outcome=spawnSync('pnpm.cmd',planned.args,{
-    cwd:root,env,stdio:'inherit',shell:true,
-  });
-  if(outcome.error)throw outcome.error;
-  if(outcome.status!==0)fail('PACKAGE_FAILED');
+}
+function runNode(exec,args,root){
+  const run=spawnSync(exec,args,{cwd:root,stdio:'inherit',shell:false});
+  if(run.error)throw run.error;
+  if(run.status!==0)fail('PACKAGE_FAILED');
+}
+export function runWindowsBuilder({
+  home=homedir(),root=resolve(dirname(fileURLToPath(import.meta.url)),'..'),
+  nodeExec=process.execPath,
+}={}){
+  if(process.platform!=='win32')fail('WINDOWS_ONLY');
+  const planned=commandForWindows('win','x64',home,nodeExec);
+  checkedDirectory(planned.cache);
+  if(!existsSync(planned.npmCli))fail('MISSING_NPM_CLI');
+  runNode(nodeExec,[planned.npmCli,...planned.npmArgs],root);
+  const pkgPath=join(planned.cache,'node_modules','electron-builder','package.json');
+  if(!existsSync(pkgPath))fail('MISSING_BUILDER');
+  const pkg=JSON.parse(readFileSync(pkgPath,'utf8'));
+  if(pkg.version!==BUILDER_VERSION||!pkg.bin||
+    pkg.bin['electron-builder']!=='cli.js')fail('UNPINNED_BUILDER');
+  if(!existsSync(planned.builder))fail('MISSING_BUILDER_CLI');
+  runNode(nodeExec,[planned.builder,...planned.builderArgs],root);
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
   try{runWindowsBuilder();}
-  catch(error){console.error(error instanceof Error?error.message:'PACKAGE_FAILED');
-    process.exitCode=1;}
+  catch(error){
+    console.error(error instanceof Error?error.message:'PACKAGE_FAILED');
+    process.exitCode=1;
+  }
 }
