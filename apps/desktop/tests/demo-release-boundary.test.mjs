@@ -29,12 +29,20 @@ test('POS-028 unsigned installer config must be explicitly non-publishing and no
  assert.match(conf,/output:\s*\.\.\/demo-artifacts/);
  assert.doesNotMatch(conf,/provider:\s*(?:github|s3|generic)|publish:\s*(?:always|onTag)/);
  const scripts=JSON.parse(get('../package.json')).scripts;
- for(const name of ['package:demo:win','package:demo:mac:x64','package:demo:mac:arm64']){
+ assert.match(scripts['package:demo:win'],/scripts\/run-win-builder\.mjs/);
+ for(const name of ['package:demo:mac:x64','package:demo:mac:arm64']){
   assert.match(scripts[name],/electron-builder@26\.18\.1/);
   assert.match(scripts[name],/--publish never/);
+ }
+ for(const name of ['package:demo:win','package:demo:mac:x64','package:demo:mac:arm64']){
   assert.match(scripts[name],/scripts\/stage-demo\.mjs/);
   assert.match(scripts[name],/scripts\/verify-demo-artifacts\.mjs/);
  }
+ const wrapper=get('../scripts/run-win-builder.mjs');
+ assert.match(wrapper,/BUILDER_VERSION='26\.18\.1'/);
+ assert.match(wrapper,/PNPM_CONFIG_CACHE_DIR:planned\.cache/);
+ assert.match(wrapper,/--publish','never'/);
+ assert.match(wrapper,/cache\.length>48/);
 });
 test('POS-028 repository workflow cannot create releases or expose production signing credentials',()=>{
  const workflow=get('../../../.github/workflows/demo-installers.yml');
