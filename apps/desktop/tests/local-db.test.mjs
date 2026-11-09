@@ -4,6 +4,7 @@ import { mkdtempSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { LOCAL_MIGRATIONS } from '../src/main/local-db/migrations.ts';
 import {
   openLocalDatabase, getLocalSchemaVersion, withLocalTransaction,
   backupLocalDatabase, SQLITE_SCHEMA_VERSION,
@@ -61,7 +62,7 @@ function insertVariant(db, variantId = 'v1', storeId = 'store1', sku = 'SKU-A') 
     VALUES (?,?,?,?,?,?)`).run(variantId, storeId, sku, 'Test product', '{"color":"black"}', 8_990_000n);
 }
 
-test('POS-013 migration v1 is atomic, file-backed, idempotent, WAL and strict', (t) => {
+test('POS-013/BUG-023 migration v2 is atomic, file-backed, idempotent, WAL and strict', (t) => {
   const {file,open} = temporaryDatabase(t);
   let db = open(file);
   assert.equal(getLocalSchemaVersion(db), SQLITE_SCHEMA_VERSION);
@@ -72,15 +73,50 @@ test('POS-013 migration v1 is atomic, file-backed, idempotent, WAL and strict', 
   const names = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all().map(x => x.name);
   assert.deepEqual(names, [
     'local_catalog_variants','local_device_metadata','local_inventory_balances','local_payments',
-    'local_sale_items','local_sales','local_schema_migrations','outbox_events','sync_cursors',
+    'local_sale_items','local_sales','local_schema_migrations','local_stock_pull_coverage',
+    'outbox_events','sync_cursors',
   ]);
-  assert.equal(count(db, 'local_schema_migrations'), 1);
+  assert.equal(count(db, 'local_schema_migrations'), 2);
   db.close();
   assert.equal(existsSync(file), true);
   db = open(file);
-  assert.equal(getLocalSchemaVersion(db), 1);
-  assert.equal(count(db, 'local_schema_migrations'), 1);
+  assert.equal(getLocalSchemaVersion(db), 2);
+  assert.equal(count(db, 'local_schema_migrations'), 2);
   db.close();
+});
+
+
+test('BUG-023 forward-only v1 to v2 migration preserves paid/outbox/pending data and does not guess missed stock coverage', t=>{
+  const {file,open,openRaw}=temporaryDatabase(t);
+  const legacy=openRaw(file);
+  legacy.exec('PRAGMA foreign_keys=ON');
+  legacy.exec(LOCAL_MIGRATIONS[0].sql);
+  legacy.prepare('INSERT INTO local_schema_migrations(version,name) VALUES(?,?)')
+    .run(1,LOCAL_MIGRATIONS[0].name);
+  legacy.exec('PRAGMA user_version=1');
+  insertVariant(legacy);
+  legacy.prepare('INSERT INTO local_inventory_balances (store_id,variant_id,server_qty,pending_delta) VALUES (?,?,?,?)')
+    .run('store1','v1',9n,-1n);
+  legacy.prepare('INSERT INTO local_sales (sale_id,store_id,device_id,cashier_id,client_created_at,total_vnd) VALUES (?,?,?,?,?,?)')
+    .run('sale1','store1','dev1','cashier1','2026-11-07T00:00:00Z',8_990_000n);
+  legacy.prepare('INSERT INTO local_payments (payment_id,sale_id,method,due_vnd,tendered_vnd,change_vnd) VALUES (?,?,?,?,?,?)')
+    .run('pay1','sale1','CASH',8_990_000n,9_000_000n,10_000n);
+  legacy.prepare('INSERT INTO outbox_events(event_id,sale_id,store_id,device_id,payload_json,payload_hash,created_at) VALUES (?,?,?,?,?,?,?)')
+    .run('evt1','sale1','store1','dev1','{"schemaVersion":1}','a'.repeat(64),'2026-11-07T00:00:00Z');
+  legacy.close();
+  let db=open(file);
+  assert.equal(getLocalSchemaVersion(db),2);
+  assert.equal(count(db,'local_schema_migrations'),2);
+  assert.equal(count(db,'local_sales'),1);
+  assert.equal(count(db,'local_payments'),1);
+  assert.equal(count(db,'outbox_events'),1);
+  assert.equal(count(db,'local_stock_pull_coverage'),0);
+  assert.equal(db.prepare('SELECT pending_delta FROM local_inventory_balances').get().pending_delta,-1);
+  db.close();
+  db=open(file);
+  assert.equal(getLocalSchemaVersion(db),2);
+  assert.equal(count(db,'local_stock_pull_coverage'),0);
+  assert.equal(db.prepare('SELECT state FROM outbox_events').get().state,'PENDING');
 });
 
 test('rollback on injected failure leaves neither sale, payment, stock delta nor event', (t) => {
@@ -213,7 +249,7 @@ test('WAL-consistent SQLite backup reopens as separate DB, never overwrites file
   await backupLocalDatabase(db,backupFile);
   const copy = open(backupFile);
   try {
-    assert.equal(getLocalSchemaVersion(copy),1);
+    assert.equal(getLocalSchemaVersion(copy),2);
     assert.equal(count(copy,'local_catalog_variants'),1);
     assert.equal(copy.prepare('SELECT sku FROM local_catalog_variants').get().sku,'SKU-A');
   } finally {

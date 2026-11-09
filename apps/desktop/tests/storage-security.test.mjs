@@ -20,7 +20,7 @@ function fixture(t){
  });
  return {dir,file,open};
 }
-test('POS-027 existing SQLite v1 is never reset, WAL and paid evidence survive reopen',t=>{
+test('POS-027 existing SQLite v2 is never reset, WAL and paid evidence survive reopen',t=>{
  const f=fixture(t),db=f.open();
  db.prepare(`INSERT INTO local_sales(sale_id,store_id,device_id,cashier_id,
    client_created_at,total_vnd) VALUES(?,?,?,?,?,?)`)
@@ -38,7 +38,7 @@ test('POS-027 existing SQLite v1 is never reset, WAL and paid evidence survive r
  assert.equal(raw.get().total_vnd,9007199254740993n);
  assert.equal(reopened.prepare('SELECT payload_hash FROM outbox_events')
   .get().payload_hash,'f'.repeat(64));
- assert.equal(getLocalSchemaVersion(reopened),1);
+ assert.equal(getLocalSchemaVersion(reopened),2);
  assert.equal(reopened.prepare('PRAGMA journal_mode').get().journal_mode,'wal');
  if(process.platform!=='win32'){
   assert.equal(statSync(f.dir).mode & 0o777,0o700);

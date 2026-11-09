@@ -4,6 +4,7 @@ import {
   syncPushRequestSchema, type SyncPushRequest, type SyncPushResponse,
 } from '@smartpos/contracts';
 import { withLocalTransaction } from './index.ts';
+import {releaseAckedCoveredStock} from './inventory-rebase.ts';
 import { loadCommittedLocalReceipt } from './receipt.ts';
 
 /**
@@ -176,8 +177,11 @@ function commitOutcome(
       WHERE sale_id=? AND store_id=? AND device_id=?`)
       .run(saleState,claim.saleId,claim.storeId,claim.deviceId);
     if(sale.changes!==1)invalid('SALE_STATE_RACE');
-    // A failed second UPDATE must roll back the first one too. Neither
-    // local_sales financial columns nor pending_delta are touched.
+    // ACK, local sale status and any previously cursor-covered stock
+    // reservation are one SQLite transaction. A failed rebase rolls back
+    // the ACK and leaves immutable paid evidence untouched.
+    if(state==='SYNCED')
+      releaseAckedCoveredStock(db,claim.storeId,claim.saleId,claim.eventId);
   });
 }
 

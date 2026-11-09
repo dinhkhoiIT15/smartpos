@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import { openLocalDatabase } from '../src/main/local-db/index.ts';
 import { applyInitialCatalogSnapshot } from '../src/main/local-db/catalog-cache.ts';
 import { commitLocalCashSale } from '../src/main/local-db/offline-sale.ts';
+import {applyCatalogPullPage} from '../src/main/local-db/catalog-pull.ts';
 import { loadCommittedLocalReceipt } from '../src/main/local-db/receipt.ts';
 import {
   OutboxRetryWorker, calculateOutboxRetryMs, recoverOrphanedOutbox,
@@ -392,4 +393,99 @@ test('POS-022: wrong store/device cannot dispatch or clear pending outbox',async
  assert.equal(x.outbox(sale.eventId).state,'PENDING');
  assert.equal(retryOutboxNow(x.db,{storeId:x.ids.storeId,deviceId:uuid()},sale.eventId),false);
  assert.equal(recoverOrphanedOutbox(x.db,{storeId:uuid(),deviceId:x.ids.deviceId}),0);
+});
+
+
+function coveredPage(x:ReturnType<typeof fixture>,
+  sale:{saleId:string;eventId:string},from:string,offset:bigint,qty:string){
+  const entries=[x.ids.phoneId,x.ids.caseId].map((variantId,i)=>({
+    seq:(offset+BigInt(i)).toString(),
+    entityType:'inventory_balance' as const,entityId:variantId,
+    op:'UPSERT' as const,createdAt:ACK_AT,
+    payload:{storeId:x.ids.storeId,variantId,qty,
+      revision:qty==='9'?'1':'2',saleId:sale.saleId,eventId:sale.eventId},
+  }));
+  const next=(offset+1n).toString();
+  return {protocolVersion:1 as const,storeId:x.ids.storeId,
+    fromCursor:from,nextCursor:next,highWatermark:next,
+    hasMore:false,changes:entries};
+}
+
+test('BUG-023 late ACK after covered PULL releases each variant once, survives restart and replay',async t=>{
+ const x=fixture(t),sale=x.commit();
+ const before=x.outbox(sale.eventId);
+ const page=coveredPage(x,sale,'9007199254740993',9007199254740994n,'9');
+ assert.equal(x.pending(x.ids.phoneId),-1n);
+ assert.equal(applyCatalogPullPage(x.db,x.ids.storeId,page).cursor,page.nextCursor);
+ assert.equal(x.pending(x.ids.phoneId),-1n);
+ assert.equal(x.pending(x.ids.caseId),-1n);
+ assert.equal(x.db.prepare('SELECT count(*) AS n FROM local_stock_pull_coverage').get()?.n,2);
+ x.close();x.open();
+ assert.equal((await x.worker(async req=>x.ack(req)).runOnce()).kind,'ACKED');
+ assert.equal(x.pending(x.ids.phoneId),0n);
+ assert.equal(x.pending(x.ids.caseId),0n);
+ assert.equal(x.db.prepare('SELECT sum(released) AS n FROM local_stock_pull_coverage').get()?.n,2);
+ assert.equal(x.outbox(sale.eventId).payload_hash,before.payload_hash);
+ assert.equal(x.outbox(sale.eventId).payload_json,before.payload_json);
+ assert.equal(applyCatalogPullPage(x.db,x.ids.storeId,page).replay,true);
+ assert.equal(x.pending(x.ids.phoneId),0n);
+ x.close();x.open();
+ assert.equal(x.pending(x.ids.caseId),0n);
+ assert.equal((await x.worker(async req=>x.ack(req)).runOnce()).kind,'IDLE');
+ assert.equal(x.db.prepare('SELECT count(*) AS n FROM local_sales').get()?.n,1);
+ assert.equal(x.db.prepare('SELECT count(*) AS n FROM local_payments').get()?.n,1);
+});
+
+test('BUG-023 two sales and pre-ACK PULLs rebase independently without double-counting',async t=>{
+ const x=fixture(t),first=x.commit(),second=x.commit();
+ assert.equal(x.pending(x.ids.phoneId),-2n);
+ const firstPage=coveredPage(x,first,'9007199254740993',9007199254740994n,'9');
+ applyCatalogPullPage(x.db,x.ids.storeId,firstPage);
+ assert.equal(x.pending(x.ids.phoneId),-2n);
+ const w=x.worker(async req=>x.ack(req));
+ assert.equal((await w.runOnce()).kind,'ACKED');
+ assert.equal((await w.runOnce()).kind,'ACKED');
+ assert.equal(x.pending(x.ids.phoneId),-1n);
+ assert.equal(x.pending(x.ids.caseId),-1n);
+ const secondPage=coveredPage(x,second,firstPage.nextCursor,9007199254740996n,'8');
+ applyCatalogPullPage(x.db,x.ids.storeId,secondPage);
+ assert.equal(x.pending(x.ids.phoneId),0n);
+ assert.equal(x.pending(x.ids.caseId),0n);
+ assert.equal(x.db.prepare('SELECT count(*) AS n FROM outbox_events').get()?.n,2);
+ assert.equal(x.db.prepare('SELECT count(*) AS n FROM local_stock_pull_coverage WHERE released=1').get()?.n,4);
+ assert.equal(applyCatalogPullPage(x.db,x.ids.storeId,secondPage).replay,true);
+});
+
+test('BUG-023 failed late ACK rebase rolls back ACK, recovers worker and releases after restart',async t=>{
+ const x=fixture(t),sale=x.commit();
+ const page=coveredPage(x,sale,'9007199254740993',9007199254740994n,'9');
+ applyCatalogPullPage(x.db,x.ids.storeId,page);
+ x.db.exec("CREATE TRIGGER bug023_fault BEFORE UPDATE OF released ON local_stock_pull_coverage BEGIN SELECT RAISE(ABORT,'BUG023_RELEASE_FAULT'); END");
+ await assert.rejects(()=>x.worker(async req=>x.ack(req)).runOnce(),/BUG023_RELEASE_FAULT/);
+ assert.equal(x.outbox(sale.eventId).state,'SYNCING');
+ assert.equal(x.outbox(sale.eventId).ack_json,null);
+ assert.equal(x.saleState(sale.saleId),'PENDING_SYNC');
+ assert.equal(x.pending(x.ids.phoneId),-1n);
+ assert.equal(x.db.prepare('SELECT count(*) AS n FROM local_stock_pull_coverage WHERE released=1').get()?.n,0);
+ x.db.exec('DROP TRIGGER bug023_fault');
+ x.close();x.open();
+ assert.equal(recoverOrphanedOutbox(x.db,x.identity),1);
+ assert.equal((await x.worker(async req=>x.ack(req)).runOnce()).kind,'ACKED');
+ assert.equal(x.pending(x.ids.phoneId),0n);
+ assert.equal(x.pending(x.ids.caseId),0n);
+ assert.equal(x.db.prepare('SELECT sum(released) AS n FROM local_stock_pull_coverage').get()?.n,2);
+});
+
+test('BUG-023 untrusted non-ACK outcome cannot release covered stock',async t=>{
+ const x=fixture(t),sale=x.commit();
+ applyCatalogPullPage(x.db,x.ids.storeId,
+   coveredPage(x,sale,'9007199254740993',9007199254740994n,'9'));
+ const result=await x.worker(async request=>({
+   protocolVersion:1,deviceId:request.deviceId,
+   results:[{eventId:sale.eventId,saleId:sale.saleId,
+     status:'NEEDS_REVIEW',resultCode:'REVOKED_DEVICE',conflictIds:[]}],
+ })).runOnce();
+ assert.equal(result.kind,'NEEDS_REVIEW');
+ assert.equal(x.pending(x.ids.phoneId),-1n);
+ assert.equal(x.db.prepare('SELECT sum(released) AS n FROM local_stock_pull_coverage').get()?.n,0);
 });

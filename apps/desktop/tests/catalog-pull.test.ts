@@ -265,3 +265,52 @@ test('POS-023: without trusted POS-017 bootstrap or other store scope, no page m
  assert.ok(other);
  assert.equal(f.getCursor(),'0');
 });
+
+
+test('BUG-023 PULL records durable lost-ACK coverage without prematurely freeing stock',t=>{
+ const f=fixture(t);f.sale();
+ const stock={...f.balance('9','1'),saleId:f.saleId,eventId:f.eventId};
+ const page=f.page([f.change('1','inventory_balance',stock,'UPSERT')],'0','1');
+ applyCatalogPullPage(f.db,f.storeId,page);
+ assert.equal(f.row().pending_delta,-1n);
+ const row=f.db.prepare('SELECT covered_seq,covered_qty,released FROM local_stock_pull_coverage').get();
+ assert.deepEqual({...row},{covered_seq:1,covered_qty:1,released:0});
+ f.close();f.open();
+ assert.equal(f.getCursor(),'1');
+ assert.equal(f.db.prepare('SELECT released FROM local_stock_pull_coverage').get()?.released,0);
+ assert.equal(applyCatalogPullPage(f.db,f.storeId,page).replay,true);
+ assert.equal(f.row().pending_delta,-1n);
+});
+
+test('BUG-023 wrong event identity cannot mark another local sale as covered; atomic rollback',t=>{
+ const f=fixture(t);f.sale();
+ const forged={...f.balance('9','1'),saleId:f.saleId,eventId:id()};
+ assert.throws(()=>applyCatalogPullPage(f.db,f.storeId,
+  f.page([f.change('1','inventory_balance',forged,'UPSERT')],'0','1')),
+  /STOCK_REBASE_EVENT_IDENTITY/);
+ assert.equal(f.getCursor(),'0');
+ assert.deepEqual(f.row(),{server_qty:10n,pending_delta:-1n,server_revision:0n});
+ assert.equal(f.db.prepare('SELECT count(*) AS n FROM local_stock_pull_coverage').get()?.n,0);
+ const unrelated={...f.balance('8','1'),saleId:id(),eventId:id()};
+ assert.equal(applyCatalogPullPage(f.db,f.storeId,
+  f.page([f.change('1','inventory_balance',unrelated,'UPSERT')],'0','1')).cursor,'1');
+ assert.equal(f.row().pending_delta,-1n);
+ assert.equal(f.db.prepare('SELECT count(*) AS n FROM local_stock_pull_coverage').get()?.n,0);
+});
+
+test('BUG-023 re-PULL of a previously ACK-covered sale cannot release stock twice',t=>{
+ const f=fixture(t);f.sale();
+ f.markSynced(f.saleId,f.eventId);
+ const first={...f.balance('9','1'),saleId:f.saleId,eventId:f.eventId};
+ applyCatalogPullPage(f.db,f.storeId,
+  f.page([f.change('1','inventory_balance',first,'UPSERT')],'0','1'));
+ assert.equal(f.row().pending_delta,0n);
+ const second={...f.balance('8','2'),saleId:f.saleId,eventId:f.eventId};
+ applyCatalogPullPage(f.db,f.storeId,
+  f.page([f.change('2','inventory_balance',second,'UPSERT')],'1','2'));
+ assert.equal(f.row().pending_delta,0n);
+ assert.equal(f.row().server_qty,8n);
+ assert.equal(f.db.prepare('SELECT count(*) AS n FROM local_stock_pull_coverage WHERE released=1').get()?.n,1);
+ const marker=f.db.prepare('SELECT covered_seq FROM local_stock_pull_coverage').get();
+ assert.equal(marker?.covered_seq,1);
+});

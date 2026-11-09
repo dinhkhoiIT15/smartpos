@@ -6,7 +6,7 @@
  * Future migration versions must be APPENDED (never edit the SQL of an applied version).
  * This schema stores NO credentials and is NOT a working checkout implementation.
  */
-export const SQLITE_SCHEMA_VERSION = 1;
+export const SQLITE_SCHEMA_VERSION = 2;
 
 export const LOCAL_MIGRATIONS: ReadonlyArray<Readonly<{ version: number; name: string; sql: string }>> = [
   {
@@ -141,6 +141,36 @@ BEFORE UPDATE OF event_id, sale_id, store_id, device_id, schema_version, payload
 BEGIN SELECT RAISE(ABORT, 'outbox event identity/payload immutable'); END;
 CREATE TRIGGER outbox_no_delete BEFORE DELETE ON outbox_events
 BEGIN SELECT RAISE(ABORT, 'outbox event cannot be deleted'); END;
+`,
+  },
+  {
+    version: 2,
+    name: 'late_ack_stock_coverage_v2',
+    sql: `
+-- Forward-only coverage evidence. Do not infer or clear pre-migration pending sales.
+CREATE TABLE local_stock_pull_coverage (
+ store_id TEXT NOT NULL,
+ variant_id TEXT NOT NULL,
+ sale_id TEXT NOT NULL,
+ event_id TEXT NOT NULL,
+ covered_seq INTEGER NOT NULL CHECK (covered_seq > 0),
+ covered_qty INTEGER NOT NULL CHECK (covered_qty > 0),
+ released INTEGER NOT NULL DEFAULT 0 CHECK (released IN (0,1)),
+ PRIMARY KEY (store_id,sale_id,variant_id),
+ FOREIGN KEY (store_id,variant_id) REFERENCES local_inventory_balances (store_id,variant_id) ON DELETE RESTRICT,
+ FOREIGN KEY (store_id,sale_id) REFERENCES local_sales (store_id,sale_id) ON DELETE RESTRICT,
+ FOREIGN KEY (event_id) REFERENCES outbox_events (event_id) ON DELETE RESTRICT
+) STRICT;
+CREATE INDEX local_stock_coverage_unreleased ON local_stock_pull_coverage (store_id,sale_id,released);
+CREATE TRIGGER local_stock_coverage_identity_immutable
+BEFORE UPDATE OF store_id,variant_id,sale_id,event_id,covered_seq,covered_qty ON local_stock_pull_coverage
+BEGIN SELECT RAISE(ABORT,'stock coverage evidence immutable'); END;
+CREATE TRIGGER local_stock_coverage_no_delete BEFORE DELETE ON local_stock_pull_coverage
+BEGIN SELECT RAISE(ABORT,'stock coverage evidence cannot be deleted'); END;
+CREATE TRIGGER local_stock_coverage_release_once
+BEFORE UPDATE OF released ON local_stock_pull_coverage
+WHEN OLD.released != 0 OR NEW.released != 1
+BEGIN SELECT RAISE(ABORT,'stock coverage release is one-way'); END;
 `,
   },
 ];

@@ -122,7 +122,7 @@ function applyLocalMigrations(db: DatabaseSync): void {
   const count = db.prepare(
     "SELECT count(*) AS value FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
   ).get() as { value: number };
-  if (count.value !== 9) throw new Error('SQLite table count mismatch; manual recovery required');
+  if (count.value !== 10) throw new Error('SQLite table count mismatch; manual recovery required');
 }
 
 /**

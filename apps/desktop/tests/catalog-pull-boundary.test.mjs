@@ -19,7 +19,14 @@ test('POS-023 local importer is atomic and cannot mutate financial evidence or c
  assert.match(apply,/syncPullResponseSchema/);
  assert.ok(apply.includes('server_qty=excluded.server_qty') && apply.includes('server_revision=excluded.server_revision'));
  assert.match(apply,/pending_delta=excluded.pending_delta/);
- assert.match(apply,/syncPushResultSchema/);
+ assert.match(apply,/recordCoveredStockDelta/);
+ const rebase=read('../src/main/local-db/inventory-rebase.ts');
+ assert.match(rebase,/syncPushResultSchema/);
+ assert.match(rebase,/releaseAckedCoveredStock/);
+ assert.match(rebase,/local_stock_pull_coverage/);
+ assert.match(rebase,/released=0/);
+ assert.doesNotMatch(rebase,/\bfetch\s*\(|\baxios\b|ipcMain|ipcRenderer|DATABASE_URL|https?:\/\//);
+ assert.doesNotMatch(rebase,/\bUPDATE\s+(?:local_sales|local_payments|local_sale_items|outbox_events)\b/i);
  assert.doesNotMatch(apply,/\bfetch\s*\(|\baxios\b|ipcMain|ipcRenderer|DATABASE_URL|https?:\/\//);
  assert.doesNotMatch(apply,/\bUPDATE\s+(?:local_sales|local_payments|local_sale_items|outbox_events)\b/i);
  // A cursor-covered, validated ACKed sale can release only its own pending portion.
