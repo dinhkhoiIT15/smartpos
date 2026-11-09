@@ -191,7 +191,7 @@ test('POS-025 PostgreSQL staff RBAC/session revocation/audit invariants',async t
     const app=buildServer({conflictReview:{
       resolvePrincipal:createStaffPrincipalResolver(staff),
       service:{
-        list:async actor=>{calls++;assert.equal(actor.userId,f.managerId);return [];},
+        list:async actor=>{if(!actor)throw Error('missing actor');calls++;assert.equal(actor.userId,f.managerId);return [];},
         get:async()=>{throw Error('not called');},
         resolve:async()=>{throw Error('not called');},
       },
