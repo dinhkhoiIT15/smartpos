@@ -289,3 +289,17 @@ pnpm --filter @smartpos/desktop build
 ```
 
 See the [POS-027 security and Windows acceptance guide](docs/POS-027_SECURITY_ACCEPTANCE.md) for complete threat review, ACL checking and GUI test plan. **Do not interpret these controls as SQLite encryption**: D-009 backup/restore/key policy, D-013 OS-backed private key, signed offline device/cashier grant, Argon2id login, revocation/clock/restore and untrusted same-user/administrator protections remain open. Fastify privileged routes and real checkout/sync are NOT activated and Neon is not touched.
+
+## POS-028 — unsigned Windows/macOS installers (Draft PR #54, M6/P1)
+
+Owner reported POS-027 Windows PASS and merged; verified [PR #52](https://github.com/dinhkhoiIT15/smartpos/pull/52) on main `5e4d292` and post-merge [CI #42604675859](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42604675859) SUCCESS. Packaging scope is [Issue #53](https://github.com/dinhkhoiIT15/smartpos/issues/53) / [Draft PR #54](https://github.com/dinhkhoiIT15/smartpos/pull/54).
+
+The optional, **unsigned DEMO ONLY** installer toolchain packages *only compiled* Electron-vite files into a minimal no-dependencies staging app, refusing checked-in sources, secrets, `.env`, SQLite/`-wal`/`-shm`, credentials and symlink/hardlink assets. Windows **x64 NSIS** and macOS **Intel x64 + Apple Silicon arm64 DMG/ZIP** are built on OS-native GitHub Actions runners. It pins Node24/pnpm10.20.0/Electron44.9.3 and invokes `electron-builder@26.18.1` without modifying the workspace lockfile. Every packaged installer includes `DEMO` in the artifact filename; checksums/provenance are validated and stored as five-day GitHub Actions **artifacts**, not releases. **No signing, notarization, auto-updates, public publication or real payments.** Installed Electron ignores externally injected `ELECTRON_RENDERER_URL` and uses packaged local assets only.
+
+```powershell
+pnpm --filter @smartpos/desktop test:package-demo
+pnpm --filter @smartpos/desktop package:demo:win
+# macOS ONLY: package:demo:mac:x64 or package:demo:mac:arm64
+```
+
+See [POS-028 Windows/macOS acceptance and release rules](docs/POS-028_PACKAGING_ACCEPTANCE.md) and [ADR-0005 proposed packaging design](docs/ADR-0005-unsigned-demo-packaging.md). Note: `pnpm dlx` transitive dependency graph and OS runner image are not frozen, so this is **reproducible build procedure and hashes, not byte-for-byte deterministic or production signing**. D-011 Windows/macOS signing, D-009 SQLite encryption/backup and D-013 login/device/cashier grants remain OPEN; OS protections may block unsigned builds, which must not be bypassed for a test PASS.
