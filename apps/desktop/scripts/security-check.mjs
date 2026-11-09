@@ -7,8 +7,8 @@ import { readFileSync } from 'node:fs';
 
 const read = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
 const main = read('src/main/index.ts');
-const shell = read('src/main/shell-policy.ts');
-const storage = read('src/main/local-db/storage-policy.ts');
+const shell = read('src/main/shell-policy.mts');
+const storage = read('src/main/local-db/storage-policy.mts');
 const db = read('src/main/local-db/index.ts');
 const preload = read('src/preload/index.ts');
 const renderer = read('src/renderer/src/app.tsx');
