@@ -9,7 +9,7 @@ repo_connection: CONFIRMED — GitHub read/write connector; no admin
 last_github_synced_at: MANUAL GITHUB REVIEW 2026-11-09
 current_milestone: M4 — offline sync reconciliation
 current_phase: POS-024 [Issue #45](https://github.com/dinhkhoiIT15/smartpos/issues/45), [Draft PR #46](https://github.com/dinhkhoiIT15/smartpos/pull/46); owner Windows acceptance PENDING; NOT merged
-ci_status: Foundation/API/Windows/disposable PostgreSQL CI runs are pending final HEAD verification; do not treat PR as PASS before run and owner evidence.
+ci_status: POS-024 code checkpoint 0e5f70561ae7f356c0a79d8dc23d597bd2d0034c [Foundation CI #42587150764](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42587150764) SUCCESS all 3 Linux/API, Windows Node24, disposable PostgreSQL16 jobs; earlier [Documentation CI #42587083108](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42587083108) SUCCESS on preceding documentation commit. Subsequent handoff-only edits need final HEAD CI verification; owner Windows acceptance still pending.
 production_status: NOT DEPLOYED — D-013 signed device/cashier grant and real staff RBAC/POS-025 missing, normal API conflict/PUSH/PULL routes 404, normal Electron demo workers not activated, no Neon sale writes
 
 ## Verified owner-accepted main
