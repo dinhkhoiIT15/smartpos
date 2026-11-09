@@ -40,8 +40,12 @@ test('POS-028 unsigned installer config must be explicitly non-publishing and no
  }
  const wrapper=get('../scripts/run-win-builder.mjs');
  assert.match(wrapper,/BUILDER_VERSION='26\.18\.1'/);
- assert.match(wrapper,/PNPM_CONFIG_CACHE_DIR:planned\.cache/);
+ assert.match(wrapper,/--no-package-lock/);
+ assert.match(wrapper,/--ignore-scripts/);
+ assert.match(wrapper,/npm-cli\.js/);
+ assert.match(wrapper,/electron-builder','cli\.js/);
  assert.match(wrapper,/--publish','never'/);
+ assert.doesNotMatch(wrapper,/PNPM_CONFIG_CACHE_DIR|shell:true/);
  assert.match(wrapper,/cache\.length>48/);
 });
 test('POS-028 repository workflow cannot create releases or expose production signing credentials',()=>{
