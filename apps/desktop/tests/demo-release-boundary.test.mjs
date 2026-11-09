@@ -43,7 +43,9 @@ test('POS-028 repository workflow cannot create releases or expose production si
  assert.match(workflow,/retention-days: 5/);
  assert.match(workflow,/if-no-files-found: error/);
  assert.match(workflow,/windows-latest/);
- assert.match(workflow,/macos-14/);
+ assert.match(workflow,/macos-15-intel/);
+ assert.match(workflow,/runner: macos-15\n/);
+ assert.doesNotMatch(workflow,/macos-14/);
  assert.match(workflow,/package:demo:mac:arm64/);
  assert.match(workflow,/pnpm install --frozen-lockfile/);
  assert.doesNotMatch(workflow,/create-release|softprops\/action-gh-release|release-action|contents: write|secrets\./);
