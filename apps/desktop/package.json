@@ -22,7 +22,10 @@
     "test:catalog-pull": "pnpm --filter @smartpos/contracts exec tsx --test ../../apps/desktop/tests/catalog-pull.test.ts",
     "test:catalog-pull:boundary": "node --test tests/catalog-pull-boundary.test.mjs",
     "test:sales-report": "pnpm --filter @smartpos/domain exec tsx --test ../../apps/desktop/tests/sales-report.test.ts",
-    "test:sales-report:boundary": "node --test tests/sales-report-boundary.test.mjs"
+    "test:sales-report:boundary": "node --test tests/sales-report-boundary.test.mjs",
+    "test:security-shell": "node --experimental-strip-types --test tests/security-shell.test.mjs",
+    "test:storage-security": "node --experimental-strip-types --test tests/storage-security.test.mjs",
+    "test:security": "pnpm run security:check && pnpm run test:security-shell && pnpm run test:storage-security && pnpm run test:receipt-boundary && pnpm run test:outbox-boundary && pnpm run test:catalog-pull:boundary && pnpm run test:sales-report:boundary"
   },
   "dependencies": {
     "@smartpos/domain": "workspace:*",
