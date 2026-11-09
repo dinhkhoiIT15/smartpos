@@ -111,7 +111,6 @@ test('POS-027 backup path refuses dangling symlink; no overwrite and snapshot re
  assert.throws(()=>refuseExistingBackupTarget(dangling),/SQLITE_STORAGE_BACKUP_EXISTS/);
  await assert.rejects(()=>backupLocalDatabase(db,dangling),/Refusing to overwrite/);
  assert.equal(existsSync(missing),false);
- assert.equal(backup.prepare?true:true,true);
 });
 test('POS-027 storage guard fails closed on file not directory and never deletes its contents',t=>{
  const f=fixture(t),notDirectory=join(f.dir,'not-dir');
