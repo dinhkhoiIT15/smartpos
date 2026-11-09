@@ -274,7 +274,7 @@ test('BUG-023 PULL records durable lost-ACK coverage without prematurely freeing
  applyCatalogPullPage(f.db,f.storeId,page);
  assert.equal(f.row().pending_delta,-1n);
  const row=f.db.prepare('SELECT covered_seq,covered_qty,released FROM local_stock_pull_coverage').get();
- assert.deepEqual(row,{covered_seq:1,covered_qty:1,released:0});
+ assert.deepEqual({...row},{covered_seq:1,covered_qty:1,released:0});
  f.close();f.open();
  assert.equal(f.getCursor(),'1');
  assert.equal(f.db.prepare('SELECT released FROM local_stock_pull_coverage').get()?.released,0);
