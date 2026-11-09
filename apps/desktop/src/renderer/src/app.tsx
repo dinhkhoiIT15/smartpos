@@ -6,6 +6,7 @@ import {
 import type { SmartPosAppInfo } from './desktop-bridge';
 import { createDemoInternalReceipt, type InternalReceipt } from '@smartpos/domain/receipt';
 import { DemoReceiptPreview } from './internal-receipt';
+import { DemoConflictReview } from './conflict-demo';
 
 const demoCatalog: readonly CartCatalogVariant[] = [
   { variantId: 'f82563fe-8545-495e-98d1-ebcbf747b166', sku: 'PHONE-128',
@@ -260,7 +261,7 @@ function FoundationOverview() {
 }
 
 export function App() {
-  const [tab, setTab] = useState<'overview' | 'cart'>('overview');
+  const [tab, setTab] = useState<'overview' | 'cart' | 'conflicts'>('overview');
   return (
     <div className="layout">
       <aside className="sidebar">
@@ -277,6 +278,10 @@ export function App() {
           aria-current={tab === 'cart' ? 'page' : undefined} onClick={() => setTab('cart')}>
           ▦ <span>Giỏ hàng &amp; tiền mặt (demo)</span>
         </button>
+        <button type="button" className={tab === 'conflicts' ? 'nav-current nav-button' : 'nav-muted nav-button'}
+          aria-current={tab === 'conflicts' ? 'page' : undefined} onClick={() => setTab('conflicts')}>
+          ⚑ <span>Đối soát xung đột (demo)</span>
+        </button>
         <div className="sidebar-label sidebar-label-gap">SẮP TRIỂN KHAI</div>
         <div className="nav-muted">▤ <span>Sản phẩm thực tế</span></div>
         <div className="nav-muted">◫ <span>Kho hàng</span></div>
@@ -288,10 +293,10 @@ export function App() {
       </aside>
       <main className="content">
         <header className="topbar">
-          <div className="breadcrumb">SmartPOS <span>/</span> {tab === 'cart' ? 'Giỏ hàng demo' : 'Tổng quan'}</div>
-          <span className="top-label">POS-020 • PHIẾU MẪU NỘI BỘ</span>
+          <div className="breadcrumb">SmartPOS <span>/</span> {tab === 'cart' ? 'Giỏ hàng demo' : tab === 'conflicts' ? 'Đối soát demo' : 'Tổng quan'}</div>
+          <span className="top-label">POS-024 • DEMO ONLY</span>
         </header>
-        {tab === 'cart' ? <CashCartDemo /> : <FoundationOverview />}
+        {tab === 'cart' ? <CashCartDemo /> : tab === 'conflicts' ? <DemoConflictReview /> : <FoundationOverview />}
       </main>
     </div>
   );
