@@ -1,49 +1,26 @@
-# Session Handoff — POS-023 SmartPOS
+# Session Handoff — POS-024 SmartPOS
 
-## Verified main and current branch
+## Verified main / branch
 
-- User confirmed POS-022 Windows PASS and merged. GitHub verified [PR #42](https://github.com/dinhkhoiIT15/smartpos/pull/42) merged into `main` at `a01fcf5fec9595d97f155f62c7d82ee7916caeb5`; Issue #41 closed, D-013 unsigned-grant blocker remains.
-- Current [Issue #43](https://github.com/dinhkhoiIT15/smartpos/issues/43) and [Draft PR #44](https://github.com/dinhkhoiIT15/smartpos/pull/44), branch `feature/POS-023-catalog-delta-pull`, based on verified main. **POS-023 NOT merged / owner Windows PASS pending**.
+- User confirmed POS-023 Windows PASS. GitHub verified [PR #44](https://github.com/dinhkhoiIT15/smartpos/pull/44) merged into main at `f102091c6de9ba4d6616129d7df2129415173377` and [Foundation CI #42451595741](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42451595741) all jobs SUCCESS; Issue #43 closed after owner acceptance.
+- POS-024 [Issue #45](https://github.com/dinhkhoiIT15/smartpos/issues/45) and [Draft PR #46](https://github.com/dinhkhoiIT15/smartpos/pull/46) branch `feature/POS-024-conflict-review` created from exactly that main SHA. **NOT merged / owner Windows PASS pending**.
 
-## Implemented / security
+## Implementation
 
-- `apps/api/src/sync/pull-service.ts`: store-scoped catalog_change_log high-water pagination, 64-bit decimal seq cursor, max100, same transaction-level advisory lock all new catalog/inventory/PUSH stream writers use to avoid global identity/commit reorder. Reads active device/cashier DB membership but **not real D-013 signed grant**. Product rename/deactivation fans out SKU updates; variant events materialize name; manual and offline-sale inventory server balance snapshots appended in original PG transaction with event/sale linkage. Legacy variant log name fallback for old rows; missing legacy stock deltas require separately verified initial bootstrap.
-- `apps/api/src/sync/pull-routes.ts` and `src/server.ts` opt-in GET `/v1/sync/pull` with injected synthetic principal in Fastify.inject only. `src/main.ts` leaves it HTTP404, also PUSH404. No real signed grant, login, Neon write, or public live transport.
-- `apps/desktop/src/main/local-db/catalog-pull.ts`: opt-in MAIN-only fake transport, POS-016 Zod page validation, transactional SQLite v1 apply variant/stock/cursor with rollback, cross-store/overflow/revision validation. Protects real sales/items/payment/outbox, preserves all unsynced pending_delta. Release only ACKed local sale portion when sale-linked server stock seq is covered and cursor advances. Late ACK after stock page causes **conservative stock understatement** pending a durable rebase marker or trusted resnapshot in later approved scope; do NOT falsely claim production-ready precise stock.
-- Tests: `apps/desktop/tests/catalog-pull.test.ts` file-backed Linux/Windows; `catalog-pull-boundary.test.mjs` no runtime/IPC/HTTP; `apps/api/src/sync/pull-routes.test.ts` default 404/test principal; `pull.pg.test.ts` real disposable PostgreSQL 16 cursor, gap isolation, reader/writer locking, product rename, manual stock and POS-021 source delta replay.
-- No new migration in PG/SQLite. SQLite remains v1 with 9 tables. No new external npm packages, no Neon/test-prodn data.
+- `apps/api/src/sync/conflict-review.ts`: internal PostgreSQL `ConflictReviewService` with strict list + record get, enforce active manager/admin role on store_memberships/users at transaction time. Cross-store conflict join by `sales.store_id`, no disclosure; bounded lists.
+- Review requires stable UUID `resolutionId`, 12–1000 character note. `SELECT FOR UPDATE` row lock serializes concurrent resolutions. The status change OPEN -> RESOLVED plus append-only `audit_logs` actor/note/key commit together; repeat same actor/key/note returns REPLAYED and different resolution yields 409. A forced audit failure rolls everything back. No adjustments to financial sale/items/CASH, stock movements/balance, conflict details or immutable POS-021 receipt/ACK.
+- `apps/api/src/sync/conflict-review-routes.ts` registered in `buildServer` only when tests supply `conflictReview`; actual main.ts supplies no resolver. An `x-role: ADMIN` spoof must never unlock routes, which remain HTTP 404. No real D-013 signed grants/employee sessions.
+- `apps/desktop/src/renderer/src/conflict-demo.tsx`: clearly labeled fixed synthetic shortage and stale price, filter/list/details/in-memory review note. No PostgreSQL, SQLite, IPC, auth or real audit. Status resets after reload.
+- API route tests, disposable PG16 real POS-021 generated conflicts integration and Linux+Windows CI configured; SQLite and PG migrations unchanged.
+- Files are limited to API sync, server opt-in, desktop renderer demo, CI, docs. No new packages or Neon access.
 
-## Verified CI checkpoints
+## Testing and safety
 
-- Early foundation CI failed strict TS, old POS-014 catalog audit-count expectations, test null-prototype SQLite object comparison and an overescaped static regex. All addressed, code checkpoint `fe63a34d40a924b91669fcda2667fecfeadf1e83` [Foundation #42439380658](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42439380658) **SUCCESS** all Linux/API, Windows Node24, disposable PostgreSQL 16; [Docs #42439380695](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42439380695) **SUCCESS**.
-- Later README, traceability, status and handoff updates are docs-only; MUST recheck final PR SHA GitHub Foundation and Docs before owner review. PR stays Draft until owner Windows PASS.
+- Windows (safe): `pnpm install --frozen-lockfile`, `pnpm --filter @smartpos/api test:conflicts`, `pnpm --filter @smartpos/desktop typecheck`, `pnpm --filter @smartpos/desktop build`, `pnpm run check`, then `pnpm --filter @smartpos/desktop dev`.
+- Normal Fastify health 200, `GET /v1/sync/conflicts` 404, `POST /v1/sync/conflicts/:id/resolve` 404; demo preview should be clearly synthetic and non-persistent.
+- `test:conflicts:pg` ONLY GitHub disposable PostgreSQL 16 at 127.0.0.1:5432/smartpos_ci; NEVER Neon.
+- Review [full acceptance](../docs/POS-024_CONFLICT_REVIEW_ACCEPTANCE.md). **GitHub final SHA CI results are not yet verified in this snapshot.** Must check Foundation and Docs CI before claiming PASS.
 
-## Owner Windows (safe, NO Neon)
+## Remaining blockers
 
-```powershell
-git status --short
-git fetch origin
-git switch feature/POS-023-catalog-delta-pull
-git pull --ff-only origin feature/POS-023-catalog-delta-pull
-node --version
-pnpm --version
-pnpm install --frozen-lockfile
-pnpm --filter @smartpos/desktop typecheck
-pnpm --filter @smartpos/desktop test:catalog-pull
-pnpm --filter @smartpos/desktop test:catalog-pull:boundary
-pnpm --filter @smartpos/desktop test:catalog-cache
-pnpm --filter @smartpos/desktop test:offline-sale
-pnpm --filter @smartpos/desktop test:outbox-worker
-pnpm --filter @smartpos/desktop test:receipt-db
-pnpm --filter @smartpos/desktop security:check
-pnpm --filter @smartpos/desktop build
-pnpm --filter @smartpos/api typecheck
-pnpm --filter @smartpos/api test:pull
-pnpm run check
-```
-
-Expected Node24/pnpm10.20.0, zero test failures. Actual PG `test:pull:pg` only disposable CI `127.0.0.1:5432/smartpos_ci` (guard rejects Neon). Optional `pnpm --filter @smartpos/desktop dev` still DEMO_ONLY/SQLite v1. [Detailed scenarios](../docs/POS-023_CATALOG_PULL_ACCEPTANCE.md).
-
-## Next
-
-Verify final PR #44 CI and status, note verified HEAD + Windows acceptance. Do NOT merge; owner must confirm PASS and manually merge. Afterwards close #43, continue POS-024 conflict review, then address D-013 signed auth and late-ACK stock rebase marker before commercial rollout.
+D-013 device-bound signature/shift/session verification, POS-025 real auth/RBAC, POS-023 late-ACK conservative stock understatement and operational stock-adjustment policy before pilot. Current internal review does not change inventory. Keep PR **Draft and unmerged** until owner Windows PASS and manual merge.
