@@ -13,7 +13,7 @@
 - [ ] [POS-006 #57](https://github.com/dinhkhoiIT15/smartpos/issues/57) documentation audit PR + final docs CI + fresh session handoff verification before close.
 
 ## Critical pre-pilot work
-- [ ] [BUG-023 #58](https://github.com/dinhkhoiIT15/smartpos/issues/58) late ACK/rebase correctness. Write fail-before/pass-after SQLite restart and idempotency tests; no destructive migration.
+- [x] [BUG-023 #58](https://github.com/dinhkhoiIT15/smartpos/issues/58) fixed in merged PR #62 at `989a9bad` (SQLite v2 new PULL coverage). Pre-v2 historic uncertain stock remains a separate trusted-recovery gate; never auto-clear.
 - [ ] [SEC-013 #60](https://github.com/dinhkhoiIT15/smartpos/issues/60): D-013 actual authenticated online cashier login, device provisioning/OS-backed signing keys, 4-hour grant, single authorized offline device, shift/revocation/clock evidence. POS-011 design and POS-025 internal session do not cover this.
 - [ ] [SEC-009 #61](https://github.com/dinhkhoiIT15/smartpos/issues/61): D-009 encrypted SQLite backup/retention/restore; do not treat POS-013 unencrypted backup helper as production disaster recovery.
 - [ ] D-011/D-012: release signing/notarization and refund/cancel/returns operating policy before pilot.
@@ -24,3 +24,7 @@
 - [ ] POS-030: production pilot readiness — not started.
 
 **Safety:** no production DB writes, no Neon credential upload, no auto-merges, no deletion of local SQLite/userData.
+
+## SEC-013A proposed design test slice (unmerged)
+- [ ] Owner reviews [ADR-0006](../docs/ADR-0006-sec013-offline-grant-crypto-proposal.md) and makes D-013 technical decision; new Ed25519 verifier is docs-only and is **not** checkout authorization.
+- [ ] Verify Linux + Windows CI signed-envelope negative tests and [SEC-013A acceptance](../docs/SEC-013A_GRANT_PROTOTYPE_ACCEPTANCE.md) prior to manual merge; SEC-013 #60 stays OPEN.
