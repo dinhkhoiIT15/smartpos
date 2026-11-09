@@ -39,6 +39,8 @@ test('POS-028 unsigned installer config must be explicitly non-publishing and no
   assert.match(scripts[name],/scripts\/verify-demo-artifacts\.mjs/);
  }
  const wrapper=get('../scripts/run-win-builder.mjs');
+ // Regression: the Windows path containment guard must import its separator.
+ assert.match(wrapper,/import\s*\{[^}]*\bsep\b[^}]*\}\s*from\s*'node:path'/s);
  assert.match(wrapper,/BUILDER_VERSION='26\.18\.1'/);
  assert.match(wrapper,/--no-package-lock/);
  assert.match(wrapper,/--ignore-scripts/);
