@@ -157,7 +157,7 @@ test('POS-028 Windows NSIS uses short per-user pnpm dlx cache, not userData',()=
  assert.ok(cache.endsWith('.spx'));
  assert.equal(BUILDER_VERSION,'26.18.1');
  assert.ok(npmCli.endsWith('npm-cli.js'));
- assert.ok(builder.endsWith('electron-builder\\cli.js'));
+ assert.ok(builder.replaceAll('\\\\','/').endsWith('electron-builder/cli.js'));
  assert.ok(npmArgs.includes('electron-builder@26.18.1'));
  assert.ok(npmArgs.includes('--ignore-scripts'));
  assert.equal(builderArgs.join(' ').includes('--publish never'),true);
