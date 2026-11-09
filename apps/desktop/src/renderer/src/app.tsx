@@ -7,6 +7,7 @@ import type { SmartPosAppInfo } from './desktop-bridge';
 import { createDemoInternalReceipt, type InternalReceipt } from '@smartpos/domain/receipt';
 import { DemoReceiptPreview } from './internal-receipt';
 import { DemoConflictReview } from './conflict-demo';
+import { DemoSalesReport } from './sales-report-demo';
 
 const demoCatalog: readonly CartCatalogVariant[] = [
   { variantId: 'f82563fe-8545-495e-98d1-ebcbf747b166', sku: 'PHONE-128',
@@ -261,7 +262,7 @@ function FoundationOverview() {
 }
 
 export function App() {
-  const [tab, setTab] = useState<'overview' | 'cart' | 'conflicts'>('overview');
+  const [tab, setTab] = useState<'overview' | 'cart' | 'conflicts' | 'reports'>('overview');
   return (
     <div className="layout">
       <aside className="sidebar">
@@ -282,10 +283,14 @@ export function App() {
           aria-current={tab === 'conflicts' ? 'page' : undefined} onClick={() => setTab('conflicts')}>
           ⚑ <span>Đối soát xung đột (demo)</span>
         </button>
+        <button type="button" className={tab === 'reports' ? 'nav-current nav-button' : 'nav-muted nav-button'}
+          aria-current={tab === 'reports' ? 'page' : undefined} onClick={() => setTab('reports')}>
+          ◷ <span>Lịch sử &amp; báo cáo (demo)</span>
+        </button>
         <div className="sidebar-label sidebar-label-gap">SẮP TRIỂN KHAI</div>
         <div className="nav-muted">▤ <span>Sản phẩm thực tế</span></div>
         <div className="nav-muted">◫ <span>Kho hàng</span></div>
-        <div className="nav-muted">◷ <span>Lịch sử giao dịch</span></div>
+
         <div className="sidebar-spacer" />
         <div className="sidebar-foot"><span className="status-dot" />
           <div><strong>Máy thử nghiệm</strong><small>Không ghi giao dịch thật</small></div>
@@ -293,10 +298,10 @@ export function App() {
       </aside>
       <main className="content">
         <header className="topbar">
-          <div className="breadcrumb">SmartPOS <span>/</span> {tab === 'cart' ? 'Giỏ hàng demo' : tab === 'conflicts' ? 'Đối soát demo' : 'Tổng quan'}</div>
-          <span className="top-label">POS-024 • DEMO ONLY</span>
+          <div className="breadcrumb">SmartPOS <span>/</span> {tab === 'cart' ? 'Giỏ hàng demo' : tab === 'conflicts' ? 'Đối soát demo' : tab === 'reports' ? 'Báo cáo demo' : 'Tổng quan'}</div>
+          <span className="top-label">POS-026 • DEMO ONLY</span>
         </header>
-        {tab === 'cart' ? <CashCartDemo /> : tab === 'conflicts' ? <DemoConflictReview /> : <FoundationOverview />}
+        {tab === 'cart' ? <CashCartDemo /> : tab === 'conflicts' ? <DemoConflictReview /> : tab === 'reports' ? <DemoSalesReport /> : <FoundationOverview />}
       </main>
     </div>
   );
