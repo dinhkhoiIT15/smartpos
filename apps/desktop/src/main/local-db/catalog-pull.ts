@@ -1,22 +1,23 @@
 import type { DatabaseSync } from 'node:sqlite';
 import {
   syncPullResponseSchema, assertPullResponseMatchesQuery,
-  type SyncPullResponse, type SyncPullQuery, syncPushResultSchema,
+  type SyncPullResponse, type SyncPullQuery,
 } from '@smartpos/contracts';
 import {
   parseInitialCatalogSnapshot, getLocalCatalogCursor,
 } from './catalog-cache.ts';
 import { withLocalTransaction } from './index.ts';
+import {recordCoveredStockDelta} from './inventory-rebase.ts';
 
 /**
  * POS-023 — MAIN-only atomic server-to-client PULL projection.
  * No HTTP/credentials/IPC; tests inject a synthetic response. D-013 verified
  * signed device/cashier grant still blocks real activation.
  *
- * SQLite v1 nine-table schema is unchanged. Financial sale/outbox records,
- * pending_delta of UNSYNCED sales and local device metadata are never
- * discarded. Only a cursor-covered, exact ACKed sale stock delta can release
- * its own pending portion, once, without modifying financial evidence.
+ * SQLite v2 records durable per-sale stock coverage. Financial sale/outbox
+ * records and unrelated pending stock are never discarded. Only exact
+ * cursor-covered sales with verified PUSH ACKs can release their pending
+ * quantity, even if the ACK arrives after the PULL cursor advances.
  * Must bootstrap an authenticated POS-017 initial snapshot before deltas.
  */
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -78,7 +79,9 @@ function applyVariant(db:DatabaseSync,storeId:string,raw:unknown,entityId:string
    JSON.stringify(validated.attributes),BigInt(validated.priceVnd),
    BigInt(validated.revision),Number(validated.active));
 }
-function applyBalance(db:DatabaseSync,storeId:string,raw:unknown,entityId:string):void{
+function applyBalance(
+ db:DatabaseSync,storeId:string,raw:unknown,entityId:string,sequence:string,
+):void{
  const hasSale=raw!==null&&typeof raw==='object'&&!Array.isArray(raw)&&
    ('saleId' in raw || 'eventId' in raw);
  const b=object(raw,hasSale
@@ -87,62 +90,29 @@ function applyBalance(db:DatabaseSync,storeId:string,raw:unknown,entityId:string
  if(uuid(b.storeId)!==storeId||uuid(b.variantId)!==entityId)
    reject('WRONG_BALANCE');
  const qty=bigint(b.qty,true),revision=bigint(b.revision);
- const local=db.prepare(`SELECT server_revision,pending_delta
-   FROM local_inventory_balances WHERE store_id=? AND variant_id=?`);
+ const local=db.prepare('SELECT server_revision,pending_delta '+
+   'FROM local_inventory_balances WHERE store_id=? AND variant_id=?');
  local.setReadBigInts(true);
  const before=local.get(storeId,entityId) as {
    server_revision:bigint;pending_delta:bigint;
  }|undefined;
- if(before&&before.server_revision>revision)reject('BALANCE_REVISION_REGRESSION');
- let release=0n;
+ if(before&&before.server_revision>revision)
+   reject('BALANCE_REVISION_REGRESSION');
+ // A server snapshot never clears all outstanding local reservations.
+ const pending=before?.pending_delta??0n;
+ db.prepare('INSERT INTO local_inventory_balances '+
+   '(store_id,variant_id,server_qty,pending_delta,server_revision) '+
+   'VALUES(?,?,?,?,?) ON CONFLICT(store_id,variant_id) DO UPDATE SET '+
+   'server_qty=excluded.server_qty,server_revision=excluded.server_revision,'+
+   'pending_delta=excluded.pending_delta'
+ ).run(storeId,entityId,qty,pending,revision);
  if(hasSale){
-   const saleId=uuid(b.saleId),eventId=uuid(b.eventId);
-   const outbox=db.prepare(`
-     SELECT state,ack_json FROM outbox_events
-     WHERE store_id=? AND device_id IN
-       (SELECT device_id FROM local_device_metadata WHERE store_id=?)
-       AND sale_id=? AND event_id=?`).get(storeId,storeId,saleId,eventId) as {
-         state:string;ack_json:string|null;
-       }|undefined;
-   if(outbox?.state==='SYNCED'){
-     let parsed:unknown;
-     try{parsed=JSON.parse(outbox.ack_json??'');}catch{
-       reject('INVALID_STORED_ACK');
-     }
-     const ack=syncPushResultSchema.parse(parsed);
-     if(ack.status!=='ACKED'||ack.eventId!==eventId||ack.saleId!==saleId)
-       reject('ACK_IDENTITY');
-     // Only the exact server stock snapshot FOR THIS acknowledged sale
-     // can release its original pending quantity. Every other unsynced
-     // sale remains in pending_delta. The advancing cursor is the durable
-     // once-only guard; replay never re-applies this adjustment.
-     const stmt=db.prepare(`
-       SELECT quantity FROM local_sale_items
-       WHERE store_id=? AND sale_id=? AND variant_id=?`);
-     stmt.setReadBigInts(true);
-     const item=stmt.get(storeId,saleId,entityId) as {
-       quantity:bigint;
-     }|undefined;
-     if(!item||item.quantity<=0n||!before)reject('ACK_SALE_ITEM');
-     release=item.quantity;
-   }
+   // PULL records a server-covered sale, NOT payment approval.
+   // ACK may arrive later; its transaction releases this exact quantity.
+   recordCoveredStockDelta(db,storeId,entityId,
+     uuid(b.saleId),uuid(b.eventId),sequence);
  }
- const pending=(before?.pending_delta??0n)+release;
- if(pending>0n||pending<MIN)reject('PENDING_REBASE_OVERFLOW');
- // New server snapshot is authoritative; adjust *only* the ACKed sale
- // portion once when this page moves forward. Other offline sale deltas
- // remain intact; NEVER reset the aggregate pending_delta on an UPSERT.
- db.prepare(`
-   INSERT INTO local_inventory_balances
-     (store_id,variant_id,server_qty,pending_delta,server_revision)
-   VALUES(?,?,?,?,?)
-   ON CONFLICT(store_id,variant_id) DO UPDATE SET
-     server_qty=excluded.server_qty,
-     server_revision=excluded.server_revision,
-     pending_delta=excluded.pending_delta`)
- .run(storeId,entityId,qty,pending,revision);
 }
-
 /**
  * Validates entire v1 page then applies in BEGIN IMMEDIATE. If ANY event
  * fails after prior updates, stock/catalog/cursor all roll back together.
@@ -173,7 +143,7 @@ export function applyCatalogPullPage(
      if(change.entityType==='product_variant')
        applyVariant(db,storeId,change.payload,change.entityId);
      else if(change.entityType==='inventory_balance')
-       applyBalance(db,storeId,change.payload,change.entityId);
+       applyBalance(db,storeId,change.payload,change.entityId,change.seq);
      // category/brand/product are metadata-only in SQLite v1. Product
      // rename/deactivation generates explicit product_variant delta on server.
    }

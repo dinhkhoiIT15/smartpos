@@ -233,7 +233,7 @@ function FoundationOverview() {
       <section className="stats">
         <div className="stat"><span>Desktop</span><strong>Electron</strong><small className="ready">● Giao diện demo</small></div>
         <div className="stat"><span>Backend API</span><strong>Fastify</strong><small>Health API độc lập</small></div>
-        <div className="stat"><span>Dữ liệu offline</span><strong>SQLite v1</strong><small className="ready">● Cache trong Electron MAIN</small></div>
+        <div className="stat"><span>Dữ liệu offline</span><strong>SQLite v2</strong><small className="ready">● Cache trong Electron MAIN</small></div>
       </section>
       <div className="section-header"><h2>Các phân hệ trong lộ trình</h2><span>Đang phát triển</span></div>
       <section className="modules">
