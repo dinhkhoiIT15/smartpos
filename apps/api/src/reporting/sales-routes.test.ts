@@ -4,10 +4,21 @@ import {randomUUID} from 'node:crypto';
 import {buildServer} from '../server.js';
 import {createStaffPrincipalResolver} from '../auth/staff-routes.js';
 import type {CatalogPrincipal} from '../catalog/service.js';
+import {salesReportQuerySchema,type ServerSalesReport} from './sales-report.js';
 
 const id=()=>randomUUID();
 const actor:CatalogPrincipal={storeId:id(),userId:id(),role:'MANAGER'};
 const good='/v1/reports/sales?from=2026-11-01&to=2026-11-09&limit=10';
+const mockReport:ServerSalesReport={
+ source:'CLOUD_POSTED',asOf:'DATABASE_SNAPSHOT',
+ timezone:'Asia/Ho_Chi_Minh',dateBasis:'CLIENT_CREATED_AT',
+ skuFilterMode:'FULL_SALE_TOTALS_FOR_MATCHED_SKU',
+ storeId:actor.storeId,from:'2026-11-01',to:'2026-11-09',
+ cashierId:null,sku:null,limit:10,offset:0,
+ matchedSaleCount:'0',matchedSalesGrossVnd:'0',skuLineGrossVnd:'0',
+ days:[],cashiers:[],topSkus:[],topSkusTruncated:false,
+ sales:[],hasMore:false,
+};
 test('POS-026 normal API keeps reporting HTTP 404 even with spoofed roles and bearer',async t=>{
  const app=buildServer();t.after(()=>app.close());
  for(const url of [good,'/v1/reports/sales']){
@@ -26,10 +37,10 @@ test('POS-026 opt-in route validates query and gets trusted principal, not heade
   service:{report:async(p,q)=>{
    calls++;
    assert.deepEqual(p,actor);
-   assert.equal(q.limit,10);
-   assert.equal(q.from,'2026-11-01');
-   return {source:'CLOUD_POSTED',sales:[],matchedSaleCount:'0',
-     matchedSalesGrossVnd:'0'};
+   const checked=salesReportQuerySchema.parse(q);
+   assert.equal(checked.limit,10);
+   assert.equal(checked.from,'2026-11-01');
+   return mockReport;
   }},
  }});
  t.after(()=>app.close());
@@ -68,7 +79,7 @@ test('POS-026 staff session resolver can be injected, does not accept role spoof
   }),
   service:{report:async principal=>{
    assert.deepEqual(principal,another);
-   return {source:'CLOUD_POSTED',sales:[]};
+   return mockReport;
   }},
  }});
  t.after(()=>app.close());
