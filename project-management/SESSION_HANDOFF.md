@@ -35,4 +35,4 @@ Detailed [Windows acceptance guide](../docs/POS-025_STAFF_RBAC_ACCEPTANCE.md). A
 
 ## Handoff checkpoint
 
-CI final HEAD results MUST be checked after these documentation commits and any code fixes; report exact HEAD SHA/workflow URLs, never claim final PASS from an earlier commit. Keep issue open, PR Draft and no production rollout until explicit owner acceptance. Next backlog after owner merge: POS-026 synced vs pending sales reporting (M5/P1).
+POS-025 checkpoint `e675fea` CI verified: [Foundation #42590414219](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42590414219) SUCCESS all 3 Linux/API, Windows Node24 and disposable PG16 jobs (including staff RBAC sessions and migration); [Docs #42590414113](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42590414113) SUCCESS at same SHA. Since this handoff documentation is subsequently updated, recheck final HEAD CI before owner signoff. Human Windows PASS NOT YET reported; no Neon, no production auth. Keep issue open, PR Draft and no production rollout until explicit owner acceptance. Next backlog after owner merge: POS-026 synced vs pending sales reporting (M5/P1).
