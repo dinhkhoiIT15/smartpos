@@ -273,3 +273,19 @@ pnpm --filter @smartpos/desktop build
 ```
 
 PostgreSQL reporting integration `test:report:pg` runs **only on disposable GitHub CI PG16 127.0.0.1:5432/smartpos_ci**, never Neon. See [POS-026 Windows acceptance](docs/POS-026_SALES_REPORT_ACCEPTANCE.md). D-013 login/device/offline grant, POS-023 late-ACK caveat and refund policy remain release blockers.
+
+## POS-027 Electron IPC, secrets and local SQLite hardening (Draft PR #52)
+
+Based on owner-approved POS-026 [PR #50](https://github.com/dinhkhoiIT15/smartpos/pull/50), merged main `00cb417`, [post-merge CI #42601151173](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42601151173) SUCCESS. Implementation [Issue #51](https://github.com/dinhkhoiIT15/smartpos/issues/51) / [Draft PR #52](https://github.com/dinhkhoiIT15/smartpos/pull/52).
+
+The Electron **DEMO_ONLY** renderer uses a nonpersistent isolated Chromium partition with `cache:false` rather than the default persistent disk-backed session. This avoids retaining web cache/cookies/localStorage on disk and may prevent the Windows Chromium `net\\disk_cache\\blockfile` error reported during POS-026, but must be confirmed by GUI smoke testing. No automatic cache cleanup is performed. The main process rejects navigation, redirects, downloads, webviews, popups, permissions and off-origin scripts/API/WebSockets; only Vite same-origin HMR in development or packaged local renderer assets are allowed. The existing `smartpos:app-info` IPC remains **read-only**, guarded by exact sender, frame, document and active window URL. No password, bearer, SQL handle, local file path or real sale is sent to the renderer.
+
+File-backed SQLite/WAL/SHM now refuse directly linked/symlinked/special-file targets before opening and immediately after migration. The owner-only `0700/0600` mode is applied **only on POSIX**; Windows NTFS ACLs still require manual inspection. Backup refuses existing/dangling symlink destinations. No schema, financial or outbox data is deleted, reset or rewritten by these checks.
+
+```powershell
+pnpm --filter @smartpos/desktop test:security
+pnpm --filter @smartpos/desktop test:local-db
+pnpm --filter @smartpos/desktop build
+```
+
+See the [POS-027 security and Windows acceptance guide](docs/POS-027_SECURITY_ACCEPTANCE.md) for complete threat review, ACL checking and GUI test plan. **Do not interpret these controls as SQLite encryption**: D-009 backup/restore/key policy, D-013 OS-backed private key, signed offline device/cashier grant, Argon2id login, revocation/clock/restore and untrusted same-user/administrator protections remain open. Fastify privileged routes and real checkout/sync are NOT activated and Neon is not touched.

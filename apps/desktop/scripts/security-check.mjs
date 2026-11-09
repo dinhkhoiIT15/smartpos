@@ -7,6 +7,9 @@ import { readFileSync } from 'node:fs';
 
 const read = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
 const main = read('src/main/index.ts');
+const shell = read('src/main/shell-policy.mts');
+const storage = read('src/main/local-db/storage-policy.mts');
+const db = read('src/main/local-db/index.ts');
 const preload = read('src/preload/index.ts');
 const renderer = read('src/renderer/src/app.tsx');
 const config = read('electron.vite.config.ts');
@@ -27,7 +30,20 @@ const required = [
   ['navigation blocked', /will-navigate/, main],
   ['popup blocked', /setWindowOpenHandler/, main],
   ['webview blocked', /will-attach-webview/, main],
-  ['loopback-only dev URL', /isAllowedDevUrl/, main],
+  ['strict loopback-only dev URL', /createShellPolicy\(DEV_RENDERER_URL/, main],
+  ['nonpersistent Chromium partition', /partition:\s*DEMO_SESSION_PARTITION/,main],
+  ['no Chromium disk cache', /cache:false/,main],
+  ['in-memory partition invariant', /demoSession\.isPersistent\(\)/,main],
+  ['download deny', /on\('will-download',event=>event\.preventDefault\(\)\)/,main],
+  ['cross-origin subresource deny', /webRequest\.onBeforeRequest/,main],
+  ['no HTTP API from demo renderer', /isAllowedRendererResource\(details\.url,shellPolicy\)/,main],
+  ['redirect denied', /will-redirect/,main],
+  ['exact expected IPC document', /isAllowedDocumentUrl\(frame\.url,shellPolicy\)/,main],
+  ['no renderer credential storage', /smartpos-demo-memory-only/,shell],
+  ['deny file URL outside packaged assets', /relative\(policy\.resourceBase,path\)/,shell],
+  ['deny linked SQLite files', /info\.nlink!==1/,storage],
+  ['protect WAL and SHM', /'-wal','-shm'/,storage],
+  ['guard backup target', /refuseExistingBackupTarget/,db],
   ['CSP script rule', /__SMARTPOS_SCRIPT_POLICY__/, html],
   ['CSP production rule', /development\s*\?\s*"'self' 'unsafe-inline'"\s*:\s*"'self'"/, config],
   ['sandbox-compatible CJS preload', /format:\s*'cjs'/, config],
@@ -46,3 +62,14 @@ assert.equal(typeof pkg.scripts.build, 'string');
 assert.doesNotMatch(preload, /sendSync|exposeInMainWorld\(['"]ipcRenderer|node:sqlite|local-db|DATABASE_URL/);
 assert.doesNotMatch(renderer, /\b(?:node:fs|node:sqlite|DATABASE_URL|ipcRenderer)\b/);
 console.log('POS-007 security/source checks passed (' + required.length + ' controls). Not an Electron GUI test.');
+
+assert.doesNotMatch(main,/session\.defaultSession\.setPermissionRequestHandler/,
+  'DEMO_ONLY must use isolated private session instead of default persistent browser session');
+assert.doesNotMatch(preload,/\b(?:localStorage|sessionStorage|DATABASE_URL|password|bearer|secret|privateKey)\b/i,
+  'Preload must never handle persistent credentials or auth tokens');
+assert.doesNotMatch(renderer,/\b(?:localStorage|sessionStorage|DATABASE_URL|password|bearer|privateKey)\b/i,
+  'DEMO renderer must not handle persistent credentials or auth tokens');
+assert.match(shell,/!u\.port\|\|u\.username\|\|u\.password\|\|u\.search\|\|u\.hash/);
+assert.match(storage,/process\.platform!=='win32'/,
+  'Windows chmod cannot be relied upon to enforce NTFS ACL');
+console.log('POS-027 security shell/SQLite source policy guards passed.');

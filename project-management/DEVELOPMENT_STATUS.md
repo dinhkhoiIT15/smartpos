@@ -2,33 +2,33 @@
 
 status_schema: 1
 last_reviewed_at: 2026-11-09
-verified_commit: efd18aeaaf524660ef33867c76048a936da889d9
+verified_commit: 00cb41704be50a54588b730d4e347509e9b7f8be
 verified_ref: main
 repository_url: https://github.com/dinhkhoiIT15/smartpos
-repo_connection: CONFIRMED — GitHub read/write, no admin
+repo_connection: CONFIRMED — GitHub repository read/write and PR/CI connector, no admin permissions
 last_github_synced_at: MANUAL GITHUB REVIEW 2026-11-09
-current_milestone: M5 — sales history and source-separated reporting
-current_phase: POS-026 [Issue #49](https://github.com/dinhkhoiIT15/smartpos/issues/49), [Draft PR #50](https://github.com/dinhkhoiIT15/smartpos/pull/50), branch feature/POS-026-sales-reporting. Owner Windows acceptance PENDING; NOT merged
-ci_status: POS-026 Linux/API, Windows Node24, disposable PostgreSQL16 plus Docs final HEAD verification PENDING; no owner acceptance without green full workflow on final PR SHA
-production_status: NOT DEPLOYED — D-013 real password login, OS-backed staff/device identity, signed offline grant and checkout/sync remain UNIMPLEMENTED. Normal report API 404. No Neon migrations or writes.
+current_milestone: M5 — secrets, IPC and SQLite storage hardening
+current_phase: POS-027 [Issue #51](https://github.com/dinhkhoiIT15/smartpos/issues/51), [Draft PR #52](https://github.com/dinhkhoiIT15/smartpos/pull/52), feature/POS-027-security-hardening. Windows owner acceptance pending, NOT merged.
+ci_status: POS-027 Foundation CI Linux/Windows/ephemeral PostgreSQL16 + docs need SUCCESS on FINAL HEAD; early transient Node24 TypeScript CJS import-test error prompted explicit ESM .mts policy modules. Do not accept old run; reverify.
+production_status: NOT DEPLOYED. SQLite+backups are PLAINTEXT; Windows DACL policy, encryption, server password login and device-signed cashier/shift offline grant remain OPEN D-009/D-013. Default privileged Fastify routes 404. NO Neon writes.
 
 ## Owner-verified merged main
 
-- POS-001 through POS-024 owner accepted and merged.
-- POS-025 [PR #48](https://github.com/dinhkhoiIT15/smartpos/pull/48) owner Windows acceptance and merge verified at [main `efd18ae`](https://github.com/dinhkhoiIT15/smartpos/commit/efd18aeaaf524660ef33867c76048a936da889d9), with [post-merge Foundation CI #42598447814](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42598447814) SUCCESS. Issue #47 closed 2026-11-09 after owner report. Its internal short-lived sessions are NOT a shipped login.
-- POS-023 conservative late-ACK/stock-rebase understatement remains open; verify before pilot.
+- POS-001 through POS-025 owner-accepted and merged.
+- POS-026 [PR #50](https://github.com/dinhkhoiIT15/smartpos/pull/50) owner said Windows UI/IPC working and merged. GitHub verified [main `00cb417`](https://github.com/dinhkhoiIT15/smartpos/commit/00cb41704be50a54588b730d4e347509e9b7f8be) and post-merge [Foundation CI #42601151173](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42601151173) SUCCESS. Issue #49 should be closed after merge verification.
+- POS-023 conservative late-ACK stock rebase can understate true stock, still needs dedicated review before live pilot.
 
-## POS-026 Draft PR #50, implementation
+## POS-027 Draft PR #52
 
-- `apps/api/src/reporting/sales-report.ts` + `sales-routes.ts`: read-only server sale `POSTED` projection with current DB membership check, ADMIN/MANAGER own-store, CASHIER own sales, VN local client-created day, 31-day bounded range, fixed SQL and deterministic pagination. Returns separate `matchedSalesGrossVnd` (full totals of matching sales) and `skuLineGrossVnd` (SKU line totals), per day/cashier/top 50 SKU, conflict counts, VND numeric-to-text.
-- `apps/desktop/src/main/local-db/sales-report.ts`: MAIN-only store/device scoped read-only local paid sale report with persisted receipt/hash/CASH evidence verification; `LOCAL_PENDING`, `LOCAL_NEEDS_REVIEW_UNCONFIRMED`, `SERVER_ACKED_MIRROR` buckets, BigInt string VND. Report refuses >5000 local sales instead of silent truncation; local ACKED mirror must never be added to cloud totals.
-- Synthetic React `sales-report-demo.tsx`: four fixture rows, a cloud sale and local ACKed mirror deliberately repeated; date/cashier/SKU/state filters, no real IPC/network/database, `DEMO_ONLY`.
-- Tests `sales-routes.test.ts`, disposable `sales-report.pg.test.ts`, file-backed SQLite `sales-report.test.ts`, D-013 `sales-report-boundary.test.mjs`; CI Linux/Windows Node24/disposable PG16. No new PostgreSQL or SQLite schema migration.
-- [POS-026 Windows acceptance guide](../docs/POS-026_SALES_REPORT_ACCEPTANCE.md).
+- `apps/desktop/src/main/shell-policy.mts`: pure exact dev-renderer-origin and packed-file-asset policy, only loopback HTTP dev root and same-origin Vite HMR; deny path/query/credentials, no arbitrary file, network, WS or adjacent-port API. Pure WebContents+mainFrame+current URL IPC oracle.
+- `apps/desktop/src/main/index.ts`: isolated in-memory Chromium partition `smartpos-demo-memory-only` with `cache:false` (previous Windows Chromium disk-cache errors); deny permissions, downloads, remote subresources, navigation, redirects, popups, webviews. One read-only `smartpos:app-info` stays tightly checked; Electron remains DEMO_ONLY.
+- `apps/desktop/src/main/local-db/storage-policy.mts`, `local-db/index.ts`: SQLite DB, WAL, SHM directly symlinked/junctioned/hardlinked target rejection and POSIX 0700/0600; lstat backup collision incl dangling symlink, no deletion/rewrites. Windows ACL review manual and disk encryption/keys OPEN; ancestor symlinks and TOCTOU remain residual risks.
+- `apps/desktop/tests/security-shell.test.mjs`, `storage-security.test.mjs`, expanded `security-check.mjs`, CI Linux and Windows Node24 tests, existing outbox/sale/report/receipt and disposable PostgreSQL suites retained.
+- [POS-027 Windows acceptance and threat review](../docs/POS-027_SECURITY_ACCEPTANCE.md). D-009 encryption, backup retention/RPO/RTO, D-013 Argon2id login, OS non-exportable keys, session/offline grant/shift/clock/key-loss still open; no claim production security.
 
 ## Next
 
-1. Final SHA Foundation CI Linux/API, Windows Node24, ephemeral PG16 + Docs all SUCCESS; fix any regressions before owner handoff.
-2. Owner Windows safe local/API tests, desktop build/security and `pnpm run check`.
-3. Electron demo filter, ACKed mirror and zero combined-total check; health200 and reports endpoint404 even with spoofed headers.
-4. Owner Windows PASS/security review/manual merge PR #50; close Issue #49. POS-027 (M5/P0 secrets IPC/local data protection) is next after POS-026.
+1. Verify final feature branch SHA Foundation Linux/API, Windows Node24, PG16 and Docs CI all SUCCESS; fix failures.
+2. Owner Windows SAFE tests: `pnpm --filter @smartpos/desktop test:security`, `test:local-db`, `typecheck`, `build`, `pnpm run check`.
+3. Windows Electron GUI: normal IPC and Vite HMR, POS-018 cart, POS-020 sample receipt/print, POS-024 conflict demo, POS-026 report demo; no new cache/blank screen errors. Confirm unchanged SQLite v1.
+4. Review Windows filesystem ACL with `icacls` READ ONLY; no DACL edits, no file deletes/Neon. Owner Windows PASS manually merges Draft #52; close Issue #51 after verified merge. POS-028 packaging is next.

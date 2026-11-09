@@ -51,6 +51,10 @@ jobs:
           pnpm --filter @smartpos/desktop test:catalog-pull:boundary
           pnpm --filter @smartpos/desktop test:sales-report
           pnpm --filter @smartpos/desktop test:sales-report:boundary
+      - name: POS-027 Electron memory-only session, IPC origins and SQLite filesystem protections
+        run: |
+          pnpm --filter @smartpos/desktop test:security-shell
+          pnpm --filter @smartpos/desktop test:storage-security
       - name: POS-026 SQLite financial report with ACK-mirror safeguards
         run: |
           pnpm --filter @smartpos/desktop test:sales-report
@@ -157,6 +161,13 @@ jobs:
           pnpm --filter @smartpos/desktop test:outbox-boundary
           pnpm --filter @smartpos/desktop test:catalog-pull
           pnpm --filter @smartpos/desktop test:catalog-pull:boundary
+          pnpm --filter @smartpos/desktop test:security-shell
+          pnpm --filter @smartpos/desktop test:storage-security
+      - name: POS-027 Windows local shell and SQLite file security regressions
+        run: |
+          pnpm --filter @smartpos/desktop security:check
+          pnpm --filter @smartpos/desktop test:security-shell
+          pnpm --filter @smartpos/desktop test:storage-security
       - name: POS-021 strict POS-016 contract and hash parity on Windows Node24
         run: pnpm --filter @smartpos/api test:sync:parity
       - name: POS-024 opt-in manager route guards on Windows Node24
