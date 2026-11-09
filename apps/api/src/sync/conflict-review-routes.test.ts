@@ -74,7 +74,7 @@ test('POS-024 opt-in manager routes validate trusted principal and strict inputs
   assert.equal((await get('/v1/sync/conflicts?status=OPEN&limit=10&offset=0')).statusCode, 200);
   assert.equal((await get('/v1/sync/conflicts/' + conflictId)).statusCode, 200);
   assert.equal((await get('/v1/sync/conflicts/not-a-uuid')).statusCode, 400);
-  const resolve = (payload: unknown) => app.inject({
+  const resolve = (payload: Record<string, unknown>) => app.inject({
     method: 'POST', url: '/v1/sync/conflicts/' + conflictId + '/resolve', payload,
   });
   for (const payload of [
