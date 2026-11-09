@@ -1,38 +1,31 @@
-# Session Handoff — POS-027 Electron security hardening (M5/P0)
+# Session handoff — backlog audit / POS-006 (2026-11-09)
 
-## Base GitHub verified
+## Start here
+- Repository: https://github.com/dinhkhoiIT15/smartpos
+- Verified **main** HEAD: `5e4d2928d9b1e2df4ee2f695b8f652e96b71667e`, POS-027 PR #52 MERGED, [Foundation CI SUCCESS](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42604675859).
+- Use [BACKLOG_AUDIT_2026-11-09.md](BACKLOG_AUDIT_2026-11-09.md) as the task-by-task reconciliation, not the previous stale `TODO.md`.
+- This audit branch adds tracking/docs only; do not mistake an open PR for a merged fix. Review docs CI on final head before owner merge and closing POS-006 #57.
 
-- Owner Windows pass and merge POS-026; verified [PR #50](https://github.com/dinhkhoiIT15/smartpos/pull/50) merged at main `00cb41704be50a54588b730d4e347509e9b7f8be`, [post-merge Foundation CI #42601151173](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42601151173) SUCCESS. Owner specifically reported app functional despite Chromium `CreateMapBlock`/disk cache errors.
-- [POS-027 Issue #51](https://github.com/dinhkhoiIT15/smartpos/issues/51), [Draft PR #52](https://github.com/dinhkhoiIT15/smartpos/pull/52) `feature/POS-027-security-hardening` based on that main. **NOT merged**, owner Windows acceptance PENDING.
+## Remediation issues
+- [#55 POS-003](https://github.com/dinhkhoiIT15/smartpos/issues/55): mapping + Project board URL not verified; owner action required.
+- [#56 POS-005](https://github.com/dinhkhoiIT15/smartpos/issues/56): GitHub main `protected:false`, only admin can apply ruleset.
+- [#57 POS-006](https://github.com/dinhkhoiIT15/smartpos/issues/57): this status/handoff remediation; pending owner PR review + fresh-session check.
+- [#58 BUG-023](https://github.com/dinhkhoiIT15/smartpos/issues/58): late ACK after PULL stock undercount; P0 before pilot.
+- GitHub issues #7 (POS-007) and #29 (POS-016) closed after confirming merged implementation evidence.
 
-## Implementation
+## In-flight POS-028 is NOT merged
+- [Issue #53](https://github.com/dinhkhoiIT15/smartpos/issues/53), [draft PR #54](https://github.com/dinhkhoiIT15/smartpos/pull/54). The old Windows installer job [#42609431116](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42609431116) failed: `sep is not defined` in the Windows electron-builder wrapper; macOS x64/arm64 jobs passed on old head.
+- Fix and static regression test were committed to `feature/POS-028-desktop-packaging` (feature SHA `80bba378c3493bc7d166c87c9dffcb38d950b081`); [Foundation](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42641036215) and [Docs](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42641036212) SUCCESS, installer workflow [#42641036325](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42641036325) queued at initial checkpoint. **Verify final native Windows/macOS jobs and artifact SHA-256 before passing.**
+- Owner manual desktop GUI / uninstall safety and macOS launch remain necessary. Unsigned DEMO artifacts are not safe production distribution.
 
-- Electron `shell-policy.mts` pure exact entrypoint allowlist (loopback host port for Vite, same-host HMR, packaged file only within renderer asset root). `main/index.ts` isolates the DEMO window to nonpersistent `session.fromPartition('smartpos-demo-memory-only',{cache:false})`, blocks permissions/downloads/off-origin resources and WS, navigation, redirect, popup and webview; no automatic userData/cache deletions. Read-only `smartpos:app-info` IPC still checks sender WebContents reference, mainFrame identity, current window URL and expected entrypoint; zero new privileged channels.
-- `local-db/storage-policy.mts` refuses directly symlinked/junctioned storage directory or SQLite / `-wal` / `-shm` and nlink>1 files before opening and after migration; POSIX 0700/0600. Backup uses lstat for destination (including broken symlinks) and restricts destination dir modes. No new migrations, no financial/outbox mutation or deletion. Windows NTFS DACL cannot be set via chmod; user must inspect manually. Ancestor symlinks, same-user/admin attacks and file-race are not solved.
-- Tests `tests/security-shell.test.mjs`, `storage-security.test.mjs`, `security:check`; CI Linux and Windows Node24; existing DB/outbox/receipt/report and disposable PG16 unmodified.
-- Full [Windows GUI/security acceptance](../docs/POS-027_SECURITY_ACCEPTANCE.md), including manual read-only `icacls`, malware/BitLocker review and no deletion of `smartpos-local.sqlite` or WAL/SHM.
-- D-009 (backup/restore/encryption) and D-013 (OS keys/clock/shift/key rotation, signed 4h offline grant, Argon2id login) still OPEN. No production authentication or authorized checkout/sync; plain SQLite and backups; normal Fastify privileged routes remain HTTP 404.
+## Security/financial blockers
+- POS-011 design D-010 maximum 4h grant only; D-013 real device key + clock + online cashier shift/grant not implemented. No production checkout/sync.
+- D-009 plaintext SQLite/backup, encryption, retention and restore unknown. POS-029 restoration not executed.
+- POS-023 potential stock undercount when ACK arrives after PULL cursor: stop before live rollout; write regression tests and reconciliation design, preserve sales/outbox.
+- D-011 signing/notarization and D-012 refund policy unresolved; normal privileged Fastify routes intentionally return 404.
 
-## Windows SAFE
-
-```powershell
-cd C:\Users\dinhk\Desktop\smartpos
-git status --short
-git fetch origin
-git switch feature/POS-027-security-hardening
-git pull --ff-only origin feature/POS-027-security-hardening
-pnpm install --frozen-lockfile
-pnpm --filter @smartpos/desktop test:security
-pnpm --filter @smartpos/desktop test:local-db
-pnpm --filter @smartpos/desktop test:outbox-worker
-pnpm --filter @smartpos/desktop typecheck
-pnpm --filter @smartpos/desktop build
-pnpm run check
-pnpm --filter @smartpos/desktop dev
-```
-
-UI smoke: Electron IPC OK `DEMO_ONLY`, SQLite schema v1, Vite HMR updates, POS-026 reports filter, POS-024 conflicts and sample cash/receipt unaffected. Web-only Vite tab has no IPC as designed. DB paths/secrets never displayed to renderer.
-
-## Handoff checkpoint
-
-Initial Foundation CI ran before temporary Node24 CJS policy import-test issue was fixed: new standalone pure TS policy files use explicit `.mts` extension, MJS tests import `.mts` directly, instead of relying on TypeScript ESM in `type:commonjs` package. **Do NOT cite old failing CI as success**. Verify final PR HEAD: Foundation all Linux/Windows/PG16 jobs + Docs CI green. Owner Windows GUI/security PASS PENDING, PR stays DRAFT; no production rollout or Neon migrations. Next POS-028 packaging Windows/macOS.
+## Next handoff smoke (fresh session + local optional)
+1. Read `AGENTS.md`, verified `main` SHA, PR #54 state, Issues #55–#58 and latest CI by SHA.
+2. Compare against this audit; do not confuse old failed intermediate commits with final HEAD.
+3. In a clean local checkout: `node scripts/validate-context.mjs`, `pnpm run check`, `git status --short`. These commands have NOT been claimed as run by remote GitHub auditing.
+4. Record actual owner/admin-only Board/protection evidence; merge documentation via PR only after review.

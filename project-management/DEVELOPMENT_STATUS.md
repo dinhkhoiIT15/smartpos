@@ -2,33 +2,34 @@
 
 status_schema: 1
 last_reviewed_at: 2026-11-09
-verified_commit: 00cb41704be50a54588b730d4e347509e9b7f8be
+verified_commit: 5e4d2928d9b1e2df4ee2f695b8f652e96b71667e
 verified_ref: main
 repository_url: https://github.com/dinhkhoiIT15/smartpos
-repo_connection: CONFIRMED — GitHub repository read/write and PR/CI connector, no admin permissions
-last_github_synced_at: MANUAL GITHUB REVIEW 2026-11-09
-current_milestone: M5 — secrets, IPC and SQLite storage hardening
-current_phase: POS-027 [Issue #51](https://github.com/dinhkhoiIT15/smartpos/issues/51), [Draft PR #52](https://github.com/dinhkhoiIT15/smartpos/pull/52), feature/POS-027-security-hardening. Windows owner acceptance pending, NOT merged.
-ci_status: POS-027 Foundation CI Linux/Windows/ephemeral PostgreSQL16 + docs need SUCCESS on FINAL HEAD; early transient Node24 TypeScript CJS import-test error prompted explicit ESM .mts policy modules. Do not accept old run; reverify.
-production_status: NOT DEPLOYED. SQLite+backups are PLAINTEXT; Windows DACL policy, encryption, server password login and device-signed cashier/shift offline grant remain OPEN D-009/D-013. Default privileged Fastify routes 404. NO Neon writes.
+repo_connection: CONFIRMED — GitHub read/write PR/CI; repository admin permission FALSE
+last_github_synced_at: GITHUB API AUDIT 2026-11-09
+current_milestone: M0 backlog/handoff remediation and M6 unsigned DEMO packaging (not merged)
+current_phase: POS-006 Issue #57 audit PR pending review; POS-028 Issue #53 / Draft PR #54 in separate feature branch; BUG-023 Issue #58 high-priority gap
+ci_status: main SHA 5e4d2928d9b1e2df4ee2f695b8f652e96b71667e Foundation #42604675859 SUCCESS. POS-028 feature SHA 80bba378c3493bc7d166c87c9dffcb38d950b081 Foundation #42641036215 SUCCESS; Docs #42641036212 SUCCESS; native installers #42641036325 QUEUED at audit checkpoint (REVERIFY, do not claim PASS).
+production_status: NOT DEPLOYED / DEMO_ONLY. Real cashier/device offline authentication and transport not enabled; SQLite/backups plaintext, D-009/D-013 OPEN; privileged Fastify routes default 404. NO Neon writes in this audit.
 
-## Owner-verified merged main
+## Verified main and backlog
 
-- POS-001 through POS-025 owner-accepted and merged.
-- POS-026 [PR #50](https://github.com/dinhkhoiIT15/smartpos/pull/50) owner said Windows UI/IPC working and merged. GitHub verified [main `00cb417`](https://github.com/dinhkhoiIT15/smartpos/commit/00cb41704be50a54588b730d4e347509e9b7f8be) and post-merge [Foundation CI #42601151173](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42601151173) SUCCESS. Issue #49 should be closed after merge verification.
-- POS-023 conservative late-ACK stock rebase can understate true stock, still needs dedicated review before live pilot.
+- POS-001, POS-002, POS-004 and POS-007..POS-027 have corresponding MERGED PRs and scoped implementation evidence. PR #52 POS-027 merged at main `5e4d2928d9b1e2df4ee2f695b8f652e96b71667e` on 2026-11-09, post-merge Foundation CI #42604675859 SUCCESS.
+- POS-011 is DESIGN ONLY, POS-018..024 contain DEMO/INTERNAL components, POS-025 uses INTERNAL server sessions, POS-027 does not encrypt local SQLite.
+- POS-003 #55 Project board not verified. POS-005 #56 main branch protection is FALSE (owner/admin required). POS-006 #57 context snapshot work remains IN REVIEW.
+- POS-007 #7 and POS-016 #29 closed as bookkeeping cleanup after verifying their previous merged PRs and owner acceptance.
+- POS-028 #53 / PR #54 still DRAFT (native Windows package failed on old head `39280de6`; fixed `sep` reference + regression test on feature HEAD `80bba378`; final packaging workflow recheck pending).
+- POS-029 and POS-030 PLANNED, not started. [Full task-by-task evidence](BACKLOG_AUDIT_2026-11-09.md).
 
-## POS-027 Draft PR #52
+## Release and correctness blockers
 
-- `apps/desktop/src/main/shell-policy.mts`: pure exact dev-renderer-origin and packed-file-asset policy, only loopback HTTP dev root and same-origin Vite HMR; deny path/query/credentials, no arbitrary file, network, WS or adjacent-port API. Pure WebContents+mainFrame+current URL IPC oracle.
-- `apps/desktop/src/main/index.ts`: isolated in-memory Chromium partition `smartpos-demo-memory-only` with `cache:false` (previous Windows Chromium disk-cache errors); deny permissions, downloads, remote subresources, navigation, redirects, popups, webviews. One read-only `smartpos:app-info` stays tightly checked; Electron remains DEMO_ONLY.
-- `apps/desktop/src/main/local-db/storage-policy.mts`, `local-db/index.ts`: SQLite DB, WAL, SHM directly symlinked/junctioned/hardlinked target rejection and POSIX 0700/0600; lstat backup collision incl dangling symlink, no deletion/rewrites. Windows ACL review manual and disk encryption/keys OPEN; ancestor symlinks and TOCTOU remain residual risks.
-- `apps/desktop/tests/security-shell.test.mjs`, `storage-security.test.mjs`, expanded `security-check.mjs`, CI Linux and Windows Node24 tests, existing outbox/sale/report/receipt and disposable PostgreSQL suites retained.
-- [POS-027 Windows acceptance and threat review](../docs/POS-027_SECURITY_ACCEPTANCE.md). D-009 encryption, backup retention/RPO/RTO, D-013 Argon2id login, OS non-exportable keys, session/offline grant/shift/clock/key-loss still open; no claim production security.
+- [BUG-023 #58](https://github.com/dinhkhoiIT15/smartpos/issues/58): server stock PULL before late PUSH ACK can understate local stock. Preserve immutable paid sales and pending deltas until a formally tested reconciliation exists.
+- D-009 plaintext SQLite/backup encryption, RPO/RTO, device restore; D-013 device/cashier signed 4h grant, real password login and revocation; D-011 signing/notarization; D-012 refund policy — remain unresolved.
+- No live authorized checkout, public privileged endpoints, production API transport, Neon writes or userData cleanup is authorized by this audit.
 
-## Next
+## Immediate next verification
 
-1. Verify final feature branch SHA Foundation Linux/API, Windows Node24, PG16 and Docs CI all SUCCESS; fix failures.
-2. Owner Windows SAFE tests: `pnpm --filter @smartpos/desktop test:security`, `test:local-db`, `typecheck`, `build`, `pnpm run check`.
-3. Windows Electron GUI: normal IPC and Vite HMR, POS-018 cart, POS-020 sample receipt/print, POS-024 conflict demo, POS-026 report demo; no new cache/blank screen errors. Confirm unchanged SQLite v1.
-4. Review Windows filesystem ACL with `icacls` READ ONLY; no DACL edits, no file deletes/Neon. Owner Windows PASS manually merges Draft #52; close Issue #51 after verified merge. POS-028 packaging is next.
+1. Verify audit PR docs validation; new session opens this file and [handoff](SESSION_HANDOFF.md), checks main HEAD and PR #54 independently.
+2. Admin resolves [POS-005 #56](https://github.com/dinhkhoiIT15/smartpos/issues/56) protection and owner confirms Project board [POS-003 #55](https://github.com/dinhkhoiIT15/smartpos/issues/55).
+3. Re-run native installer workflow on final POS-028 feature HEAD; review Windows NSIS and macOS artifacts; do not infer PASS from mac-only jobs.
+4. BUG-023 and D-009/D-013 require design, test and owner approval before any production pilot.
