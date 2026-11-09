@@ -1,6 +1,6 @@
 # SmartPOS backlog audit — 2026-11-09
 
-**Audit basis:** GitHub `main` SHA `5e4d2928d9b1e2df4ee2f695b8f652e96b71667e` (merged POS-027 PR #52); [post-merge Foundation CI #42604675859](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42604675859) SUCCESS. This is an evidence snapshot, not an assertion that the app is ready for production. We compared the 30 logical IDs from `project-management/BACKLOG.csv` with actual GitHub PRs/issues/CI and the source tree.
+**Updated audit basis:** GitHub `main` SHA `95485d09c1210cd90fc3c3a82767b328fbbc34d6` (POS-028 PR #54 merged); [post-merge Foundation CI #42642484458](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42642484458) SUCCESS. Initial pre-POS-028 audit baseline was `5e4d2928d9b1e2df4ee2f695b8f652e96b71667e`. This is an evidence snapshot, not an assertion that the app is ready for production. We compared the 30 logical IDs from `project-management/BACKLOG.csv` with actual GitHub PRs/issues/CI and the source tree.
 
 **Counting rule:** `MERGED` means the PR's scoped code/docs reached main; it does NOT certify completed production functionality. `DESIGN`, `DEMO`, `INTERNAL CORE` remain subject to launch gates. A red X on an intermediate PR commit does not invalidate a later successful final-head run.
 
@@ -35,7 +35,7 @@
 | POS-025 | M5 | INTERNAL SERVER RBAC MERGED | [#47](https://github.com/dinhkhoiIT15/smartpos/issues/47) | [#48](https://github.com/dinhkhoiIT15/smartpos/pull/48) |
 | POS-026 | M5 | INTERNAL/DEMO MERGED | [#49](https://github.com/dinhkhoiIT15/smartpos/issues/49) | [#50](https://github.com/dinhkhoiIT15/smartpos/pull/50) |
 | POS-027 | M5 | DEMO HARDENING MERGED | [#51](https://github.com/dinhkhoiIT15/smartpos/issues/51) | [#52](https://github.com/dinhkhoiIT15/smartpos/pull/52) |
-| POS-028 | M6 | DRAFT / NOT MERGED | [#53](https://github.com/dinhkhoiIT15/smartpos/issues/53) | [#54](https://github.com/dinhkhoiIT15/smartpos/pull/54) |
+| POS-028 | M6 | UNSIGNED DEMO PACKAGING MERGED; GUI/SIGNING STILL OPEN | [#53](https://github.com/dinhkhoiIT15/smartpos/issues/53) | [#54](https://github.com/dinhkhoiIT15/smartpos/pull/54) |
 | POS-029 | M6 | PLANNED (not started) | — | — |
 | POS-030 | M6 | PLANNED (not started) | — | — |
 
@@ -46,7 +46,7 @@
 3. **M0 POS-006 [#57](https://github.com/dinhkhoiIT15/smartpos/issues/57):** pre-audit `DEVELOPMENT_STATUS.md` points to obsolete `00cb417` and marks POS-027 unmerged; handoff/TODO/traceability/bug tracker are stale. This audit PR updates the tracking snapshot. A clean fresh-session context read and final docs CI are required before closing.
 4. **Old issue bookkeeping fixed:** [POS-007 #7](https://github.com/dinhkhoiIT15/smartpos/issues/7) and [POS-016 #29](https://github.com/dinhkhoiIT15/smartpos/issues/29) were still OPEN despite merged PR #8 and PR #30 plus user-reported Windows PASS. Closed as completed on 2026-11-09. Other POS-001..027 issues are closed.
 5. **Known stock correctness gap** [BUG-023 #58](https://github.com/dinhkhoiIT15/smartpos/issues/58): if the server inventory PULL delta passes the cursor before a previously lost PUSH ACK arrives, SQLite v1 may retain already-committed sale's negative pending delta and understate available stock. Requires reviewed reconciliation, idempotency and restart tests before live sync.
-6. **POS-028 [#53](https://github.com/dinhkhoiIT15/smartpos/issues/53), [draft PR #54](https://github.com/dinhkhoiIT15/smartpos/pull/54):** previously failed native Windows packaging job showed `sep is not defined` in `run-win-builder.mjs` ([run #42609431116](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42609431116)); repaired on feature branch with explicit `node:path` import and regression assertion at feature HEAD `80bba378c3493bc7d166c87c9dffcb38d950b081`. Final packaging verification remained PENDING at snapshot time; Foundation and Docs CI on the same feature HEAD were SUCCESS ([#42641036215](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42641036215), [#42641036212](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42641036212)). Do not merge until installer workflow + owner desktop verification pass.
+6. **POS-028 [#53](https://github.com/dinhkhoiIT15/smartpos/issues/53), [draft PR #54](https://github.com/dinhkhoiIT15/smartpos/pull/54):** previously failed native Windows packaging job showed `sep is not defined` in `run-win-builder.mjs` ([run #42609431116](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42609431116)); repaired on feature branch with explicit `node:path` import and regression assertion at feature HEAD `80bba378c3493bc7d166c87c9dffcb38d950b081`. PR #54 was MERGED into main `95485d09` on 2026-11-09; native packaging/GUI acceptance is a separate gate. Foundation and Docs CI on final feature HEAD were SUCCESS ([#42641036215](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42641036215), [#42641036212](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42641036212)). After merge, recheck [post-merge native installer CI #42642484398](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42642484398) and owner GUI acceptance; do not claim a signed production release.
 
 ## Technical scope NOT equivalent to production feature delivery
 
@@ -63,6 +63,6 @@
 2. Repository owner completes POS-005 branch ruleset and POS-003 board verification.
 3. Repair/verify BUG-023 with fault-injection and restart scenarios before enabling real PULL/checkout.
 4. Address D-009/D-013 through reviewed implementation/decision work; keep real sales and signed production deployment disabled.
-5. Only then complete current POS-028 native installers plus Windows/macOS owner smoke, then POS-029 and POS-030. An unsigned DEMO installer is NOT a production release.
+5. POS-028 PR #54 was already merged. Recheck native installer output and Windows/macOS owner smoke, D-011 signing/OS policy, then POS-029 and POS-030. An unsigned DEMO installer is NOT a production release.
 
 **Verification scope:** Remote GitHub metadata/files/workflow-job logs checked; no local working tree, Windows/macOS GUI, physical cash transaction, production database or Neon credential was accessed. All unknown owner/admin-only states remain explicitly unverified.

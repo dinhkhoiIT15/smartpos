@@ -120,3 +120,16 @@ pnpm --filter @smartpos/desktop test:catalog-pull:boundary
 The schema and transaction primitive lay groundwork for POS-017/POS-019. They do **not** validate a cashier session (POS-011), enable real checkout/stock deduction to a cashier (D-013/POS-019 integration), live authenticated network sync (D-013/POS-023) or completed backup/recovery (POS-027/029). Business policy remains one authorized offline cashier, cash only, money in signed 64-bit integer VND, no IMEI, paid sale snapshots immutable.
 
 `node:sqlite` in Node 24 is stability **1.2 / release candidate**. Re-test on pinned Electron/Node, and require a Windows/macOS manual launch before merging. See [ADR-0003](../../docs/ADR-0003-local-sqlite-driver.md) for alternatives and risks.
+
+## POS-028 Windows/macOS unsigned DEMO installer build (Draft)
+
+For the first time the desktop app can be staged from its **compiled-only** output and installed as a Windows NSIS x64 or macOS DMG/ZIP (Intel and Apple Silicon). No real payment, login, stock sync or signed offline cashier grant is activated. The packaged app ignores `ELECTRON_RENDERER_URL` even if the environment supplies one. No secrets/SQLite/backup/WAL/SHM or unreviewed raw sources are packaged.
+
+```powershell
+pnpm --filter @smartpos/desktop test:package-demo
+pnpm --filter @smartpos/desktop package:demo:win
+```
+
+On macOS, use `package:demo:mac:x64` or `package:demo:mac:arm64`; each creates its own versioned `.dmg`/`.zip` plus SHA-256 and provenance. Generated outputs under `.demo-package/` and `demo-artifacts/` are gitignored; do not rename/move the actual Electron `userData` SQLite files. Build script pins `electron-builder@26.18.1` via a short per-user flat npm prefix on Windows (avoids pnpm dlx NSIS include-path limit) and pnpm dlx on macOS, and passes `--publish never`. CI uploads these **unsigned** results temporarily, never to public Releases. **Windows SmartScreen and macOS Gatekeeper may correctly block them**; do not bypass OS protections just to confirm a GUI test.
+
+See [POS-028 packaging acceptance](../../docs/POS-028_PACKAGING_ACCEPTANCE.md) and [ADR-0005](../../docs/ADR-0005-unsigned-demo-packaging.md). Windows/macOS signing, notarization and OS minimum versions are D-011 OPEN; SQLite encryption, password login/OS key store/offline grant, backup/restore and production pilot still blocked.

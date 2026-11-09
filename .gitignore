@@ -44,3 +44,7 @@ Thumbs.db
 *.log
 npm-debug.log*
 pnpm-debug.log*
+
+# POS-028: unsigned throwaway installer stage and GitHub Actions artifacts
+.demo-package/
+demo-artifacts/

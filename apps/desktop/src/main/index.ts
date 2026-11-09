@@ -7,7 +7,9 @@ import {createShellPolicy,isAllowedDocumentUrl,isAllowedRendererResource,
   DEMO_SESSION_PARTITION,type ShellPolicy} from './shell-policy.mts';
 
 const APP_INFO_CHANNEL = 'smartpos:app-info';
-const DEV_RENDERER_URL = process.env.ELECTRON_RENDERER_URL;
+// A packaged installer must NEVER redirect to a developer-controlled loopback server,
+// even if ELECTRON_RENDERER_URL is injected by a parent process.
+const DEV_RENDERER_URL = app.isPackaged ? undefined : process.env.ELECTRON_RENDERER_URL;
 let localDatabase: DatabaseSync | undefined;
 let shellPolicy: ShellPolicy;
 

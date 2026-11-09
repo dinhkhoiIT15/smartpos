@@ -1,11 +1,11 @@
 # TODO — SmartPOS audit-backed priorities (2026-11-09)
 
-**Source of truth:** [Full 30-task audit](BACKLOG_AUDIT_2026-11-09.md), GitHub issues/PRs/CI. Latest verified main: `5e4d2928d9b1e2df4ee2f695b8f652e96b71667e`.
+**Source of truth:** [Full 30-task audit](BACKLOG_AUDIT_2026-11-09.md), GitHub issues/PRs/CI. Latest verified main: `95485d09c1210cd90fc3c3a82767b328fbbc34d6` (POS-028 merged).
 
 ## Confirmed scoped merges
-- [x] POS-001/002/004, POS-007..027 merged to main through PR #52. This includes DESIGN/DEMO/INTERNAL deliverables, not live production authorization.
+- [x] POS-001/002/004, POS-007..028 merged to main through PR #54. This includes DESIGN/DEMO/INTERNAL deliverables, not live production authorization.
 - [x] POS-007 issue #7 and POS-016 issue #29 bookkeeping closed (merged PRs #8 and #30; owner-reported tests PASS).
-- [x] Main Foundation CI #42604675859 SUCCESS.
+- [x] Main Foundation [CI #42642484458](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42642484458) SUCCESS at `95485d09`.
 
 ## Missing M0 acceptance
 - [ ] [POS-003 #55](https://github.com/dinhkhoiIT15/smartpos/issues/55) board verification, import/mapping all 30 logical tasks; owner must supply valid Project URL.
@@ -19,7 +19,7 @@
 - [ ] D-011/D-012: release signing/notarization and refund/cancel/returns operating policy before pilot.
 
 ## Work in progress / planned
-- [ ] [POS-028 #53 / Draft PR #54](https://github.com/dinhkhoiIT15/smartpos/pull/54): `sep` Windows packaging bug fixed on feature; final installer CI + owner Windows/macOS GUI smoke still required. No production release.
+- [x] [POS-028 PR #54](https://github.com/dinhkhoiIT15/smartpos/pull/54) MERGED at `95485d09` with corrected `sep` import and UNSIGNED DEMO artifacts. [ ] Verify [native installer post-merge CI #42642484398](https://github.com/dinhkhoiIT15/smartpos/actions/runs/42642484398), Windows/macOS GUI acceptance and close [Issue #53](https://github.com/dinhkhoiIT15/smartpos/issues/53) only after evidence. No signed production release.
 - [ ] POS-029: crash/restore and sync-conflict rehearsal — not started.
 - [ ] POS-030: production pilot readiness — not started.
 
