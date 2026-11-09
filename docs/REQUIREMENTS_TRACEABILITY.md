@@ -1,3 +1,5 @@
+> **Audit update 2026-11-09:** The table below retains historical planned mapping and early acceptance evidence; some `PENDING` labels refer to scope at the time the row was written, not a claim that later demo/internal PRs are unmerged. POS-014..028 scoped PRs have merged (POS-028 is UNSIGNED DEMO packaging only), but **real authenticated checkout/sync, device-signed offline grant, encrypted SQLite backups and late ACK stock reconciliation remain open**. For up-to-date task status and individual PR/Issue links see [full backlog audit](../project-management/BACKLOG_AUDIT_2026-11-09.md), [Development Status](../project-management/DEVELOPMENT_STATUS.md) and [BUG-023](https://github.com/dinhkhoiIT15/smartpos/issues/58). Do not infer production readiness from merged design/internal/demo code.
+
 # Requirements Traceability — PRD v1.0
 
 **Nguồn yêu cầu:** [PRODUCT_REQUIREMENTS.md](PRODUCT_REQUIREMENTS.md). **Nguồn backlog lúc khởi tạo:** [BACKLOG.csv](../project-management/BACKLOG.csv). GitHub Issues là nguồn status sau khi import. Tất cả mapping bên dưới là **kế hoạch**, chưa là bằng chứng hoàn thành.
