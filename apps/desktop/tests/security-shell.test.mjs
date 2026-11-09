@@ -3,11 +3,8 @@ import assert from 'node:assert/strict';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
-import {createRequire} from 'node:module';
-const require=createRequire(import.meta.url);
-const {createShellPolicy,isAllowedDocumentUrl,isAllowedRendererResource,
-  DEMO_SESSION_PARTITION,isTrustedReadOnlyIpcSender} =
-  require('../src/main/shell-policy.ts');
+import {createShellPolicy,isAllowedDocumentUrl,isAllowedRendererResource,
+  DEMO_SESSION_PARTITION,isTrustedReadOnlyIpcSender} from '../src/main/shell-policy.mts';
 
 const dev='http://127.0.0.1:5173/';
 test('POS-027 dev renderer allows ONLY exact loopback entry with no credentials/path/query/fragment',()=>{
