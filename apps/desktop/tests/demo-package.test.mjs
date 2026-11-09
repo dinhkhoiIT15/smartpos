@@ -151,11 +151,16 @@ test('POS-028 requires BOTH macOS DMG/ZIP and rejects corrupt or wrong version p
 });
 
 test('POS-028 Windows NSIS uses short per-user pnpm dlx cache, not userData',()=>{
- const {cache,args}=commandForWindows('win','x64','C:\\Users\\runneradmin');
+ const {cache,npmCli,builder,npmArgs,builderArgs} =
+  commandForWindows('win','x64','C:\\Users\\runneradmin',
+   'C:\\Program Files\\nodejs\\node.exe');
  assert.ok(cache.endsWith('.spx'));
  assert.equal(BUILDER_VERSION,'26.18.1');
- assert.deepEqual(args.slice(0,2),['dlx','electron-builder@26.18.1']);
- assert.ok(args.join(' ').includes('--publish never'));
+ assert.ok(npmCli.endsWith('npm-cli.js'));
+ assert.ok(builder.endsWith('electron-builder\\cli.js'));
+ assert.ok(npmArgs.includes('electron-builder@26.18.1'));
+ assert.ok(npmArgs.includes('--ignore-scripts'));
+ assert.equal(builderArgs.join(' ').includes('--publish never'),true);
  assert.throws(()=>commandForWindows('mac','x64','C:\\Users\\runneradmin'),
   /DEMO_BUILDER_UNSUPPORTED_TARGET/);
  assert.throws(()=>commandForWindows('win','arm64','C:\\Users\\runneradmin'),
