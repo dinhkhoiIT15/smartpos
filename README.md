@@ -1,6 +1,6 @@
 # SmartPOS Retail — Desktop + API Foundation
 
-**Status:** M4 POS-024 internal manager conflict review development. Owner accepted POS-023 and [PR #44](https://github.com/dinhkhoiIT15/smartpos/pull/44) merged into `main` at `f102091` (Foundation CI green). [Issue #45](https://github.com/dinhkhoiIT15/smartpos/issues/45) / [Draft PR #46](https://github.com/dinhkhoiIT15/smartpos/pull/46) add store-scoped manager conflict list/review audit and a React DEMO-only preview. **No real staff login, public conflict/sync routes, signed offline grants, live checkout or production rollout**; D-013 and POS-025 still block real use.
+**Status:** M5 POS-025 staff RBAC/revocable online sessions (INTERNAL ONLY). Owner Windows-accepted POS-024 [PR #46](https://github.com/dinhkhoiIT15/smartpos/pull/46) was merged at `main` `026bfa1`. POS-025 [Issue #47](https://github.com/dinhkhoiIT15/smartpos/issues/47) / [Draft PR #48](https://github.com/dinhkhoiIT15/smartpos/pull/48) add hash-only 15-minute server sessions, authoritative role and audit with additive PostgreSQL migration. **No real staff password login, public auth/privileged endpoints, secure Electron token storage, signed offline grants, live POS or sync**; D-013 remains open.
 
 SmartPOS is a planned offline-first, cash-only POS for a single electronics store. The accepted baseline (one authorized offline cashier, immutable sales, integer VND, SKU inventory) is recorded in [AGENTS.md](AGENTS.md), [PRD](docs/PRODUCT_REQUIREMENTS.md), [Business Rules](docs/BUSINESS_RULES.md) and [Architecture](docs/SYSTEM_ARCHITECTURE.md).
 
@@ -243,3 +243,18 @@ pnpm --filter @smartpos/desktop dev
 ```
 
 Actual PostgreSQL scenario tests are limited to disposable CI (`pnpm --filter @smartpos/api test:conflicts:pg`), **never Neon**. See [POS-024 Windows acceptance guide](docs/POS-024_CONFLICT_REVIEW_ACCEPTANCE.md).
+
+## POS-025 internal staff RBAC and revocable online sessions (Draft PR #48)
+
+`apps/api/src/auth/staff-sessions.ts` implements internal short-lived server sessions issued **only after a separate trusted identity proof** (no public login/password route). PostgreSQL `staff_sessions` stores a SHA-256 hash of a random 256-bit token, with 15-minute server-enforced expiry, store/user binding and immediate revocation. The resolver checks user/membership active state and actual role from PostgreSQL for every request; no trust in `x-role` or `x-store-id`. ADMIN can change a member's role/active flag with required reason, revoke their sessions and append one immutable audit record in the same transaction. Last active ADMIN is protected. Manager and Cashier cannot administer staff.
+
+Drizzle **additive migration 0001** creates the session table (v1's original 17 tables untouched). This migration is applied only by GitHub disposable PostgreSQL16 CI; do not run against Neon without separate owner review/approval. `buildServer({staff:...})` and `createStaffPrincipalResolver` are test-injected only; actual `main.ts` has **no staff/login HTTP routes**. Authentication password Argon2id, rate limiting, refresh, desktop OS secure keychain, signed device/shift grant and D-013 still block public use.
+
+```powershell
+pnpm --filter @smartpos/db schema:check
+pnpm --filter @smartpos/api test:staff
+pnpm --filter @smartpos/api typecheck
+pnpm --filter @smartpos/desktop build
+```
+
+Real PostgreSQL staff session/role/revoke/audit/rollback tests use **only ephemeral GitHub CI** with `pnpm --filter @smartpos/api test:staff:pg` (guarded localhost). See [POS-025 Windows acceptance and migration review](docs/POS-025_STAFF_RBAC_ACCEPTANCE.md).
