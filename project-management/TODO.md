@@ -14,8 +14,8 @@
 
 ## Critical pre-pilot work
 - [ ] [BUG-023 #58](https://github.com/dinhkhoiIT15/smartpos/issues/58) late ACK/rebase correctness. Write fail-before/pass-after SQLite restart and idempotency tests; no destructive migration.
-- [ ] D-013: actual authenticated online cashier login, device provisioning/OS-backed signing keys, 4-hour grant, single authorized offline device, shift/revocation/clock evidence. POS-011 design and POS-025 internal session do not cover this.
-- [ ] D-009: encrypted SQLite backup/retention/restore; do not treat POS-013 unencrypted backup helper as production disaster recovery.
+- [ ] [SEC-013 #60](https://github.com/dinhkhoiIT15/smartpos/issues/60): D-013 actual authenticated online cashier login, device provisioning/OS-backed signing keys, 4-hour grant, single authorized offline device, shift/revocation/clock evidence. POS-011 design and POS-025 internal session do not cover this.
+- [ ] [SEC-009 #61](https://github.com/dinhkhoiIT15/smartpos/issues/61): D-009 encrypted SQLite backup/retention/restore; do not treat POS-013 unencrypted backup helper as production disaster recovery.
 - [ ] D-011/D-012: release signing/notarization and refund/cancel/returns operating policy before pilot.
 
 ## Work in progress / planned
