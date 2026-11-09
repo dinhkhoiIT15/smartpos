@@ -63,10 +63,19 @@ export function runWindowsBuilder({
   const pkgPath=join(planned.cache,'node_modules','electron-builder','package.json');
   if(!existsSync(pkgPath))fail('MISSING_BUILDER');
   const pkg=JSON.parse(readFileSync(pkgPath,'utf8'));
-  if(pkg.version!==BUILDER_VERSION||!pkg.bin||
-    pkg.bin['electron-builder']!=='cli.js')fail('UNPINNED_BUILDER');
-  if(!existsSync(planned.builder))fail('MISSING_BUILDER_CLI');
-  runNode(nodeExec,[planned.builder,...planned.builderArgs],root);
+  if(pkg.version!==BUILDER_VERSION||!pkg.bin)fail('UNPINNED_BUILDER');
+  // Official package metadata may use './cli.js' or a direct bin string.
+  // Resolve its bin in the verified pinned package directory, never from a
+  // user-controlled PATH, arbitrary NPM bin shim or global executable.
+  const bin=typeof pkg.bin==='string'?pkg.bin:pkg.bin['electron-builder'];
+  if(typeof bin!=='string'||bin.length>100||bin.includes('\\0')||
+    isAbsolute(bin)||win32.isAbsolute(bin))fail('UNPINNED_BUILDER');
+  const base=join(planned.cache,'node_modules','electron-builder');
+  const resolved=resolve(base,bin);
+  const rel=resolved.startsWith(base+sep)?resolved.slice(base.length+1):'';
+  if(!rel||rel.includes('..'+sep)||!existsSync(resolved))
+    fail('MISSING_BUILDER_CLI');
+  runNode(nodeExec,[resolved,...planned.builderArgs],root);
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
   try{runWindowsBuilder();}
