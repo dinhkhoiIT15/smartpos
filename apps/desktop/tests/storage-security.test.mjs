@@ -4,10 +4,12 @@ import {mkdtempSync,rmSync,linkSync,symlinkSync,existsSync,statSync,readFileSync
   writeFileSync,mkdirSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {openLocalDatabase,backupLocalDatabase,getLocalSchemaVersion}
- from '../src/main/local-db/index.ts';
-import {secureSqliteStoragePath,refuseExistingBackupTarget}
- from '../src/main/local-db/storage-policy.ts';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url);
+const {openLocalDatabase,backupLocalDatabase,getLocalSchemaVersion} =
+  require('../src/main/local-db/index.ts');
+const {secureSqliteStoragePath,refuseExistingBackupTarget} =
+  require('../src/main/local-db/storage-policy.ts');
 
 function fixture(t){
  const dir=mkdtempSync(join(tmpdir(),'smartpos-pos027-'));
