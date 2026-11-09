@@ -1,6 +1,6 @@
 # SmartPOS Retail — Desktop + API Foundation
 
-**Status:** M5 POS-025 staff RBAC/revocable online sessions (INTERNAL ONLY). Owner Windows-accepted POS-024 [PR #46](https://github.com/dinhkhoiIT15/smartpos/pull/46) was merged at `main` `026bfa1`. POS-025 [Issue #47](https://github.com/dinhkhoiIT15/smartpos/issues/47) / [Draft PR #48](https://github.com/dinhkhoiIT15/smartpos/pull/48) add hash-only 15-minute server sessions, authoritative role and audit with additive PostgreSQL migration. **No real staff password login, public auth/privileged endpoints, secure Electron token storage, signed offline grants, live POS or sync**; D-013 remains open.
+**Status:** M5 POS-026 internal sales reporting and strictly synthetic demo. POS-025 [PR #48](https://github.com/dinhkhoiIT15/smartpos/pull/48) owner Windows-accepted and merged into `main` at `efd18ae` (post-merge CI successful). POS-026 [Issue #49](https://github.com/dinhkhoiIT15/smartpos/issues/49) / [Draft PR #50](https://github.com/dinhkhoiIT15/smartpos/pull/50) separates cloud POSTED totals, local unconfirmed paid sales, local review and local ACKED mirrors. **No live password login, cashier shift, signed offline device grants, IPC report access, production sales/sync or Neon writes**; D-013 still open.
 
 SmartPOS is a planned offline-first, cash-only POS for a single electronics store. The accepted baseline (one authorized offline cashier, immutable sales, integer VND, SKU inventory) is recorded in [AGENTS.md](AGENTS.md), [PRD](docs/PRODUCT_REQUIREMENTS.md), [Business Rules](docs/BUSINESS_RULES.md) and [Architecture](docs/SYSTEM_ARCHITECTURE.md).
 
@@ -258,3 +258,18 @@ pnpm --filter @smartpos/desktop build
 ```
 
 Real PostgreSQL staff session/role/revoke/audit/rollback tests use **only ephemeral GitHub CI** with `pnpm --filter @smartpos/api test:staff:pg` (guarded localhost). See [POS-025 Windows acceptance and migration review](docs/POS-025_STAFF_RBAC_ACCEPTANCE.md).
+
+## POS-026 sales history / reporting (Draft PR #50 — INTERNAL + DEMO ONLY)
+
+The server-only `apps/api/src/reporting/sales-report.ts` offers store-scoped **read-only** history of PostgreSQL `sales.status=POSTED`, with current active membership recheck. Admin/Manager see own-store sales, Cashier sees only self. It groups by selling day in `Asia/Ho_Chi_Minh` (client-created time, not settlement), cashier and top SKU; amounts are exact decimal strings and summaries cover **all matching sales**, independent of the requested page. Filtering SKU makes `matchedSalesGrossVnd` the entire sale totals of orders containing the SKU, whereas `skuLineGrossVnd` is only those SKU line totals.
+
+Electron MAIN-only `apps/desktop/src/main/local-db/sales-report.ts` verifies stored sale/items/CASH/payment/outbox integrity before reporting; it labels `LOCAL_PENDING`, `LOCAL_NEEDS_REVIEW_UNCONFIRMED` and `SERVER_ACKED_MIRROR` separately. **Do not add `SERVER_ACKED_MIRROR` to cloud totals** or assume a pending/review local order is absent on cloud after a lost ACK. No globally correct combined total exists without reconciliation. The React tab **Lịch sử & báo cáo (demo)** illustrates this using four hard-coded synthetic rows, including one duplicated cloud + local mirror. No real database, network or privileged IPC is exposed. Normal Fastify `main.ts` keeps `GET /v1/reports/sales` HTTP 404; it is opt-in only for trusted synthetic Fastify.inject tests.
+
+```powershell
+pnpm --filter @smartpos/desktop test:sales-report
+pnpm --filter @smartpos/desktop test:sales-report:boundary
+pnpm --filter @smartpos/api test:report
+pnpm --filter @smartpos/desktop build
+```
+
+PostgreSQL reporting integration `test:report:pg` runs **only on disposable GitHub CI PG16 127.0.0.1:5432/smartpos_ci**, never Neon. See [POS-026 Windows acceptance](docs/POS-026_SALES_REPORT_ACCEPTANCE.md). D-013 login/device/offline grant, POS-023 late-ACK caveat and refund policy remain release blockers.
